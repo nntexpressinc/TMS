@@ -1,0 +1,32 @@
+.create-broker-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #ffffff00;
+    border-radius: 8px;
+  }
+  
+  .create-broker-container form {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-flex-wrap: wrap;
+    -webkit-flex-wrap: wrap;
+    -ms-flex-wrap: wrap;
+    flex-wrap: nowrap;
+    gap: 16px;
+    align-items: flex-start;
+    justify-content: center;
+    align-content: center;
+    flex-direction: row;
+  }
+  
+  .create-broker-container .MuiPaper-root {
+    flex: 1 1 45%;
+    margin-bottom: 16px;
+  }
+  
+  .create-broker-container .MuiButton-root {
+    align-self: flex-end;
+  }

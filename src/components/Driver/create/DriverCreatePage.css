@@ -1,0 +1,24 @@
+.create-driver-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: transparent; /* Instead of #ffffff00 */
+    border-radius: 8px;
+  }
+  
+  .create-driver-container form {
+    display: flex; /* Modern browsers support this */
+    flex-wrap: nowrap; /* Fixed from nowrap */
+    gap: 16px;
+    align-items: flex-start;
+  }
+  
+  .create-driver-container .MuiPaper-root {
+    flex: 1 1 45%; /* This is fine */
+    margin-bottom: 16px;
+  }
+  
+  .create-driver-container .MuiButton-root {
+    align-self: flex-end; /* This is fine */
+  }
+  
