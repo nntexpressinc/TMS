@@ -1,6 +1,6 @@
 {
     "build": {
-        "command": "npm install --legacy-peer-deps && npm run build"
+        "command": "npm install -g npm@11.2.0 && npm run build"
     }
 }
   
