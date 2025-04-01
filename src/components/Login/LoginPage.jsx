@@ -2,49 +2,99 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, NavLink } from "react-router-dom";
 import { ApiService } from "../../api/auth";
-import { TextField, Button, Box, Typography, Container } from "@mui/material";
+import { TextField, Button } from "@mui/material";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import Loader1 from "../loader/loader1";
 import { lightLogo } from "../../images";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
+
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(true);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [location, setLocation] = useState(null);
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const {login}=useAuth()
+  const { login } = useAuth();
+
   const togglePasswordVisibility = (e) => {
     e.preventDefault();
     setShowPassword(!showPassword);
   };
 
+  useEffect(() => {
+    const getLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setLocation({ latitude, longitude });
+            // toast.success("Joylashuv aniqlandi!");
+          },
+          (err) => {
+            setError("Please allow geolocation");
+            toast.error("Joylashuvni aniqlash uchun ruxsat kerak!");
+          }
+        );
+      } else {
+        setError("Brauzer geolokatsiyani qo‘llab-quvvatlamaydi");
+        toast.error("Brauzer geolokatsiyani qo‘llab-quvvatlamaydi");
+      }
+    };
+
+    getLocation();
+  }, []);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
+      // 1. Login so‘rovi
       const data = { email, password };
       const response = await ApiService.postData("/auth/login/", data);
-      console.log("Login Success:", response);
+      console.log("Login Response:", response);
 
+      // Tokenlarni saqlash
       localStorage.setItem("accessToken", response.access);
       localStorage.setItem("refreshToken", response.refresh);
       localStorage.setItem("userId", response.user_id);
-      login()
-      // Cookies.set("accessToken", response.access, { path: "/", expires: 1 });
-      // Cookies.set("refreshToken", response.refresh, { path: "/", expires: 1 });
-      // Cookies.set("userId", response.user_id, { path: "/", expires: 1 });
-      toast.success("Login successful!");
+      login();
+
+      // 2. Geolokatsiyani API’ga yuborish
+      if (location) {
+        const locationData = {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          user: response.user_id, // user_id qo‘shildi
+        };
+        console.log("Yuborilayotgan locationData:", locationData); // Debugging
+        try {
+          const locationResponse = await ApiService.postData("/auth/location/", locationData);
+          console.log("Location Response:", locationResponse);
+        } catch (locationError) {
+          console.error("Geolokatsiya saqlashda xatolik:", {
+            status: locationError.response?.status,
+            data: locationError.response?.data,
+            message: locationError.message,
+          });
+          toast.error("Joylashuvni saqlashda xatolik yuz berdi!");
+        }
+      } else {
+        throw new Error("Joylashuv mavjud emas");
+      }
+
+      toast.success("Login muvaffaqiyatli!");
       navigate("/dashboard", { replace: true });
     } catch (error) {
-      console.error("Login Failed:", error);
-      setError("Unable to authenticate using provided email and password!");
-      toast.error("Login failed!");
+      console.error("Login Failed:", error.response?.data || error.message);
+      setError(error.response?.data?.detail || "Email yoki parol noto‘g‘ri!");
+      toast.error("Login amalga oshmadi!");
     } finally {
       setLoading(false);
     }
@@ -71,6 +121,21 @@ const LoginPage = () => {
         </div>
         <form className="flex flex-col gap-4 mt-6" onSubmit={handleLogin}>
           {error && <p className="text-red-500">{error}</p>}
+          {/* {location ? (
+            <p className="text-sm text-gray-600">
+              Joylashuv: {location.latitude}, {location.longitude} <br />
+              <a
+                href={`https://www.google.com/maps?q=${location.latitude},${location.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500"
+              >
+                
+              </a>
+            </p>
+          ) : (
+            <p className="text-sm text-gray-600"></p>
+          )} */}
           <div>
             <label className="block text-sm font-semibold text-gray-600" htmlFor="email">
               Email
@@ -84,6 +149,7 @@ const LoginPage = () => {
               name="email"
               placeholder="youremail@gmail.com"
               required
+              disabled={!location}
             />
           </div>
           <div>
@@ -100,11 +166,13 @@ const LoginPage = () => {
                 value={password}
                 name="password"
                 required
+                disabled={!location}
               />
               <button
                 type="button"
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600"
                 onClick={togglePasswordVisibility}
+                disabled={!location}
               >
                 {showPassword ? <FaRegEye /> : <FaRegEyeSlash />}
               </button>
@@ -116,30 +184,26 @@ const LoginPage = () => {
             color="primary"
             fullWidth
             className="w-full bg-primary text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2"
+            disabled={!location}
           >
             Login
           </Button>
-           {/* Forgot Password */}
-        <NavLink
-          to="/forgot-password"
-          className="text-center text-sm text-gray-600"
-        >
-          {t("Forgot Password")}
-        </NavLink>
-         {/* Support Center Terms of Use  •  Privacy Policy */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-          <NavLink to="/support" className="text-xs text-gray-500">
-            {t("Support Center")}
+          <NavLink to="/forgot-password" className="text-center text-sm text-gray-600">
+            {t("Forgot Password")}
           </NavLink>
-          <span className="text-xs text-gray-500">•</span>
-          <NavLink to="/terms" className="text-xs text-gray-500">
-            {t("Terms of Use")}
-          </NavLink>
-          <span className="text-xs text-gray-500">•</span>
-          <NavLink to="/privacy" className="text-xs text-gray-500">
-            {t("Privacy Policy")}
-          </NavLink>
-        </div>
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+            <NavLink to="/support" className="text-xs text-gray-500">
+              {t("Support Center")}
+            </NavLink>
+            <span className="text-xs text-gray-500">•</span>
+            <NavLink to="/terms" className="text-xs text-gray-500">
+              {t("Terms of Use")}
+            </NavLink>
+            <span className="text-xs text-gray-500">•</span>
+            <NavLink to="/privacy" className="text-xs text-gray-500">
+              {t("Privacy Policy")}
+            </NavLink>
+          </div>
         </form>
       </section>
       {loading && (

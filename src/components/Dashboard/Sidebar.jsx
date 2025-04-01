@@ -81,6 +81,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     },
     {
       id: 8,
+      title: t("Users Actives"),
+      icon: <FaUsers />,
+      link: "/users-actives",
+    },
+    {
+      id: 9,
       title: t("Profile"),
       icon: <MdOutlineSupervisedUserCircle />,
       link: "/profile",

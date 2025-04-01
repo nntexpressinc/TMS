@@ -1,3 +1,4 @@
+// src/api/auth.js
 import axios from 'axios';
 
 const API_URL = 'https://api.biznes-armiya.uz/api';
@@ -11,15 +12,19 @@ export const ApiService = {
     });
     return response.data;
   },
-  async postData(endpoint, data) {
+
+  async postData(endpoint, data, customHeaders = {}) {
     const token = localStorage.getItem('accessToken');
     const response = await axios.post(`${API_URL}${endpoint}`, data, {
       headers: {
-        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Authorization: token ? `Bearer ${token}` : undefined,
+        ...customHeaders, // Qo‘shimcha header’larni qo‘shish imkoniyati
       },
     });
     return response.data;
   },
+
   async putData(endpoint, data) {
     const token = localStorage.getItem('accessToken');
     const response = await axios.put(`${API_URL}${endpoint}`, data, {
@@ -29,6 +34,7 @@ export const ApiService = {
     });
     return response.data;
   },
+
   async patchData(endpoint, data) {
     const token = localStorage.getItem('accessToken');
     const response = await axios.patch(`${API_URL}${endpoint}`, data, {
@@ -38,6 +44,7 @@ export const ApiService = {
     });
     return response.data;
   },
+
   async deleteData(endpoint) {
     const token = localStorage.getItem('accessToken');
     const response = await axios.delete(`${API_URL}${endpoint}`, {
@@ -47,6 +54,7 @@ export const ApiService = {
     });
     return response.data;
   },
+
   async postMediaData(endpoint, data) {
     const token = localStorage.getItem('accessToken');
     const response = await axios.post(`${API_URL}${endpoint}`, data, {
@@ -57,6 +65,7 @@ export const ApiService = {
     });
     return response.data;
   },
+
   async putMediaData(endpoint, data) {
     const token = localStorage.getItem('accessToken');
     const response = await axios.put(`${API_URL}${endpoint}`, data, {
@@ -67,6 +76,7 @@ export const ApiService = {
     });
     return response.data;
   },
+
   async patchMediaData(endpoint, data) {
     const token = localStorage.getItem('accessToken');
     const response = await axios.patch(`${API_URL}${endpoint}`, data, {
@@ -77,6 +87,7 @@ export const ApiService = {
     });
     return response.data;
   },
+
   async postRegisterData(endpoint, data) {
     const response = await axios.post(`${API_URL}${endpoint}`, data, {
       headers: {
@@ -85,6 +96,7 @@ export const ApiService = {
     });
     return response.data;
   },
+
   async getRegisterData(endpoint) {
     const response = await axios.get(`${API_URL}${endpoint}`, {
       headers: {
@@ -93,6 +105,7 @@ export const ApiService = {
     });
     return response.data;
   },
+
   async postRegister(endpoint, data) {
     const response = await axios.post(`${API_URL}${endpoint}`, data, {
       headers: {

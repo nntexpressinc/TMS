@@ -1,14 +1,34 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AppBar, Toolbar, IconButton, Typography, InputBase, Badge, Avatar, Box, Button } from '@mui/material';
 import { Search as SearchIcon, Notifications as NotificationsIcon, Settings as SettingsIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSidebar } from '../SidebarContext';
+import { ApiService } from '../../api/auth';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { isSidebarOpen } = useSidebar();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const storedUserId = localStorage.getItem("userId");
+      const storedAccessToken = localStorage.getItem("accessToken");
+
+      if (storedUserId && storedAccessToken) {
+        try {
+          const data = await ApiService.getData(`/auth/users/${storedUserId}/`, storedAccessToken);
+          setUser(data);
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   return (
     <AppBar 
@@ -41,7 +61,7 @@ const Navbar = () => {
           alignItems: 'center',
           gap: 2
         }}>
-          <Box sx={{ 
+          {/* <Box sx={{ 
             position: 'relative',
             borderRadius: '12px',
             backgroundColor: '#f8fafc',
@@ -53,8 +73,8 @@ const Navbar = () => {
             display: 'flex',
             alignItems: 'center',
             px: 2
-          }}>
-            <SearchIcon sx={{ color: '#64748b', mr: 1 }} />
+          }}> */}
+            {/* <SearchIcon sx={{ color: '#64748b', mr: 1 }} />
             <InputBase
               placeholder={`${t('Search')}...`}
               sx={{ 
@@ -64,8 +84,8 @@ const Navbar = () => {
                   padding: '8px 0',
                 }
               }}
-            />
-          </Box>
+            /> */}
+          {/* </Box> */}
           <IconButton 
             sx={{ 
               backgroundColor: '#f8fafc',
@@ -114,7 +134,7 @@ const Navbar = () => {
           }} onClick={() => navigate('/profile')}>
             <Avatar 
               alt="User Profile" 
-              src="/static/images/avatar/1.jpg"
+              src={user?.profile_photo || "/static/images/avatar/1.jpg"}
               sx={{ 
                 width: 36,
                 height: 36,
@@ -127,13 +147,13 @@ const Navbar = () => {
                 fontWeight: 500,
                 color: '#1e293b'
               }}>
-                John Doe
+                {user ? `${user.first_name} ${user.last_name}` : "Loading..."}
               </Typography>
               <Typography sx={{ 
                 fontSize: '0.75rem',
                 color: '#64748b'
               }}>
-                Admin
+                {user?.role || "User"}
               </Typography>
             </Box>
           </Box>
