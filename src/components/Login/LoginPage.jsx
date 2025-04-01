@@ -8,7 +8,7 @@ import Loader1 from "../loader/loader1";
 import { lightLogo } from "../../images";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-
+import { useAuth } from "../../context/AuthContext";
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,7 +17,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
   const navigate = useNavigate();
-
+  const {login}=useAuth()
   const togglePasswordVisibility = (e) => {
     e.preventDefault();
     setShowPassword(!showPassword);
@@ -35,7 +35,10 @@ const LoginPage = () => {
       localStorage.setItem("accessToken", response.access);
       localStorage.setItem("refreshToken", response.refresh);
       localStorage.setItem("userId", response.user_id);
-
+      login()
+      // Cookies.set("accessToken", response.access, { path: "/", expires: 1 });
+      // Cookies.set("refreshToken", response.refresh, { path: "/", expires: 1 });
+      // Cookies.set("userId", response.user_id, { path: "/", expires: 1 });
       toast.success("Login successful!");
       navigate("/dashboard", { replace: true });
     } catch (error) {
