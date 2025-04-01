@@ -9,7 +9,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { 
+import {
   MdLocalShipping,
   MdDirectionsCar,
   MdAssignmentTurnedIn,
@@ -60,7 +60,7 @@ const LoadsPage = () => {
   // Calculate totals for footer
   const calculateTotals = () => {
     if (!filteredLoads || filteredLoads.length === 0) return { totalPay: 0, driverPay: 0, totalMiles: 0 };
-    
+
     return filteredLoads.reduce((acc, load) => ({
       totalPay: acc.totalPay + (parseFloat(load.total_pay) || 0),
       driverPay: acc.driverPay + (parseFloat(load.driver_pay) || 0),
@@ -103,6 +103,8 @@ const LoadsPage = () => {
       if (storedAccessToken) {
         try {
           const data = await ApiService.getData(`/load/`, storedAccessToken);
+          console.log(data, "fetch load log");
+
           const formattedData = data.map(load => {
             return {
               id: load.id,
@@ -182,7 +184,7 @@ const LoadsPage = () => {
 
     const filtered = loads.filter(load => {
       if (searchCategory === "all") {
-        return Object.values(load).some(value => 
+        return Object.values(load).some(value =>
           String(value).toLowerCase().includes(searchTerm.toLowerCase())
         );
       } else {
@@ -210,7 +212,7 @@ const LoadsPage = () => {
   const getStatusStyle = (status) => {
     const statusConfig = loadStatuses.find(s => s.value.toLowerCase() === status?.toLowerCase());
     if (!statusConfig) return {};
-    
+
     return {
       backgroundColor: `${statusConfig.color}15`,
       color: statusConfig.color,
@@ -261,16 +263,16 @@ const LoadsPage = () => {
       align: 'center',
       headerAlign: 'center',
       renderCell: (params) => (
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
           gap: 1,
           width: '100%',
           height: '100%',
           justifyContent: 'center',
           py: '4px'
         }}>
-          <Typography sx={{ 
+          <Typography sx={{
             whiteSpace: 'nowrap',
             overflow: 'visible'
           }}>
@@ -282,7 +284,7 @@ const LoadsPage = () => {
             sx={{
               padding: '4px',
               color: copiedId === params.value ? '#10B981' : '#6B7280',
-              '&:hover': { 
+              '&:hover': {
                 backgroundColor: copiedId === params.value ? '#D1FAE5' : '#F3F4F6'
               }
             }}
@@ -299,13 +301,13 @@ const LoadsPage = () => {
     { field: 'company_name', headerName: 'Company Name', width: 120 },
     { field: 'reference_id', headerName: 'Reference ID', width: 120 },
     // { field: 'instructions', headerName: 'Instructions', width: 150 },
-    { 
-      field: 'created_by', 
-      headerName: 'Created By', 
+    {
+      field: 'created_by',
+      headerName: 'Created By',
       width: 120,
       renderCell: (params) => (
-        <Box 
-          sx={{ 
+        <Box
+          sx={{
             cursor: 'pointer',
             '&:hover': { textDecoration: 'underline' }
           }}
@@ -317,13 +319,13 @@ const LoadsPage = () => {
     },
     { field: 'created_date', headerName: 'Created Date', width: 120 },
     // { field: 'trip_id', headerName: 'Trip ID', width: 100 },
-    { 
-      field: 'customer_broker', 
-      headerName: 'Customer Broker', 
+    {
+      field: 'customer_broker',
+      headerName: 'Customer Broker',
       width: 120,
       renderCell: (params) => (
-        <Box 
-          sx={{ 
+        <Box
+          sx={{
             cursor: 'pointer',
             '&:hover': { textDecoration: 'underline' }
           }}
@@ -333,13 +335,13 @@ const LoadsPage = () => {
         </Box>
       )
     },
-    { 
-      field: 'driver', 
-      headerName: 'Driver', 
+    {
+      field: 'driver',
+      headerName: 'Driver',
       width: 150,
       renderCell: (params) => (
-        <Box 
-          sx={{ 
+        <Box
+          sx={{
             cursor: 'pointer',
             '&:hover': { textDecoration: 'underline' }
           }}
@@ -361,7 +363,7 @@ const LoadsPage = () => {
       renderCell: (params) => {
         const statusConfig = loadStatuses.find(s => s.value.toLowerCase() === params.value?.toLowerCase());
         return (
-          <Box sx={{ 
+          <Box sx={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -370,7 +372,11 @@ const LoadsPage = () => {
             paddingTop: '4px'
           }}>
             <Chip
-              label={params.value}
+              label={
+                statusConfig?.label
+                  ? statusConfig.label.toUpperCase()
+                  : params.value.toUpperCase()
+              }
               icon={statusConfig?.icon}
               sx={{
                 ...getStatusStyle(params.value),
@@ -382,12 +388,13 @@ const LoadsPage = () => {
                   padding: '0 4px',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
-                  textOverflow: 'ellipsis'
+                  textOverflow: 'ellipsis',
+                  textTransform: 'uppercase', // CSS orqali ham uppercase qilish mumkin
                 },
                 '& .MuiChip-icon': {
                   fontSize: '12px',
-                  marginLeft: '2px'
-                }
+                  marginLeft: '2px',
+                },
               }}
             />
           </Box>
@@ -402,7 +409,7 @@ const LoadsPage = () => {
       align: 'center',
       pinned: 'right',
       renderCell: (params) => (
-        <Box sx={{ 
+        <Box sx={{
           display: 'flex',
           gap: 1,
           justifyContent: 'center',
@@ -415,7 +422,7 @@ const LoadsPage = () => {
             <IconButton
               size="small"
               onClick={() => handleEditLoad(params.row.id)}
-              sx={{ 
+              sx={{
                 padding: '6px',
                 color: '#6366F1',
                 '&:hover': { backgroundColor: '#EEF2FF' }
@@ -428,7 +435,7 @@ const LoadsPage = () => {
             <IconButton
               size="small"
               onClick={() => handleViewLoad(params.row.id)}
-              sx={{ 
+              sx={{
                 padding: '6px',
                 color: '#3B82F6',
                 '&:hover': { backgroundColor: '#EFF6FF' }
@@ -440,13 +447,13 @@ const LoadsPage = () => {
         </Box>
       )
     },
-    { 
-      field: 'dispatcher', 
-      headerName: 'Dispatcher', 
+    {
+      field: 'dispatcher',
+      headerName: 'Dispatcher',
       width: 120,
       renderCell: (params) => (
-        <Box 
-          sx={{ 
+        <Box
+          sx={{
             cursor: 'pointer',
             '&:hover': { textDecoration: 'underline' }
           }}
@@ -456,7 +463,7 @@ const LoadsPage = () => {
         </Box>
       )
     },
-  
+
     { field: 'equipment_type', headerName: 'Equipment Type', width: 120 },
     { field: 'trip_status', headerName: 'Trip Status', width: 120 },
     { field: 'invoice_status', headerName: 'Invoice Status', width: 120 },
@@ -480,16 +487,16 @@ const LoadsPage = () => {
     { field: 'bills', headerName: 'Bills', width: 100 },
     { field: 'tags', headerName: 'Tags', width: 100 },
     // { field: 'comercial_invoice', headerName: 'Commercial Invoice', width: 120 }
-  
+
   ];
 
   const CustomFooter = () => {
     const totals = calculateTotals();
-    
+
     return (
-      <Box sx={{ 
-        p: 2, 
-        display: 'flex', 
+      <Box sx={{
+        p: 2,
+        display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         borderTop: '1px solid #E0E0E0'
@@ -516,10 +523,10 @@ const LoadsPage = () => {
         <Typography variant="h5" gutterBottom>
           Loads
         </Typography>
-        <Box sx={{ 
-          display: 'flex', 
+        <Box sx={{
+          display: 'flex',
           width: '80%',
-          gap: 2, 
+          gap: 2,
           alignItems: 'center',
           backgroundColor: 'white',
           padding: '6px',
@@ -531,7 +538,7 @@ const LoadsPage = () => {
             value={searchCategory}
             onChange={(e) => setSearchCategory(e.target.value)}
             variant="outlined"
-            sx={{ 
+            sx={{
               minWidth: '200px',
               '& .MuiOutlinedInput-root': {
                 borderRadius: '8px',
@@ -569,9 +576,9 @@ const LoadsPage = () => {
             }}
           />
 
-          <IconButton 
+          <IconButton
             onClick={handleFilterClick}
-            sx={{ 
+            sx={{
               backgroundColor: '#F9FAFB',
               borderRadius: '8px',
               height: '32px',
@@ -587,10 +594,10 @@ const LoadsPage = () => {
       </Box>
 
       {/* Status Filter Buttons */}
-      <Box sx={{ 
-        display: 'flex', 
-        gap: 1, 
-        mb: 2, 
+      <Box sx={{
+        display: 'flex',
+        gap: 1,
+        mb: 2,
         flexWrap: 'wrap',
         backgroundColor: 'white',
         p: 2,
@@ -696,7 +703,7 @@ const LoadsPage = () => {
           />
         </Box>
 
-       
+
       </Box>
 
       <Popover
@@ -725,7 +732,7 @@ const LoadsPage = () => {
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
             Filter by
           </Typography>
-          
+
           <TextField
             select
             fullWidth
