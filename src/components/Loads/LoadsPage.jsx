@@ -299,7 +299,46 @@ const LoadsPage = () => {
       )
     },
     { field: 'company_name', headerName: 'Company Name', width: 120 },
-    { field: 'reference_id', headerName: 'Reference ID', width: 120 },
+    { field: 'reference_id', headerName: 'Reference ID',
+      width: 200,
+      align: 'center',
+      headerAlign: 'center',
+      renderCell: (params) => (
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          width: '100%',
+          height: '100%',
+          justifyContent: 'center',
+          py: '4px'
+        }}>
+          <Typography sx={{
+            whiteSpace: 'nowrap',
+            overflow: 'visible'
+          }}>
+            {params.value}
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => handleCopyId(params.value)}
+            sx={{
+              padding: '4px',
+              color: copiedId === params.value ? '#10B981' : '#6B7280',
+              '&:hover': {
+                backgroundColor: copiedId === params.value ? '#D1FAE5' : '#F3F4F6'
+              }
+            }}
+          >
+            {copiedId === params.value ? (
+              <CheckIcon sx={{ fontSize: '16px' }} />
+            ) : (
+              <ContentCopyIcon sx={{ fontSize: '16px' }} />
+            )}
+          </IconButton>
+        </Box>
+      )
+    },
     // { field: 'instructions', headerName: 'Instructions', width: 150 },
     {
       field: 'created_by',
