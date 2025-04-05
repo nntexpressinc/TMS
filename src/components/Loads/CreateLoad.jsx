@@ -8,6 +8,10 @@ import {
   Step,
   StepLabel,
   CircularProgress,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import { ApiService } from "../../api/auth";
 import LoadForm from "./LoadForm";
@@ -25,27 +29,6 @@ const steps = [
   "Completed",
   "In Yard",
 ];
-
-const requiredFields = {
-  0: [
-    "load_id",
-    "reference_id",
-    "pickup_time",
-    "delivery_time",
-    "load_pay",
-    "total_pay",
-    "per_mile",
-    "total_miles",
-  ],
-  1: ["reference_id"],
-  2: ["instructions"],
-  3: ["bills"],
-  4: ["driver"],
-  5: ["trip_id"],
-  6: ["unloading_location"],
-  7: ["yard_location"],
-  8: ["delivered_date"],
-};
 
 const LoadPage = () => {
   const [activeStep, setActiveStep] = useState(0);
@@ -92,7 +75,7 @@ const LoadPage = () => {
   const [chatMessages, setChatMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [showCustomerForm, setShowCustomerForm] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // Yuklanish holati
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { isSidebarOpen } = useSidebar();
   const { id } = useParams();
@@ -118,12 +101,11 @@ const LoadPage = () => {
         if (storedAccessToken) {
           try {
             const data = await ApiService.getData(`/load/${id}/`, storedAccessToken);
-            console.log("Fetched load data:", data); // Tekshirish uchun
             setLoadData(prevData => ({
               ...prevData,
-              ...data, // API’dan kelgan ma'lumotlarni birlashtirish
+              ...data,
             }));
-            const stepIndex = steps.findIndex(step => step.toUpperCase().replace(" ", " ") === data.load_status);
+            const stepIndex = steps.findIndex(step => step.toUpperCase() === data.load_status);
             setActiveStep(stepIndex !== -1 ? stepIndex : 0);
           } catch (error) {
             console.error("Error fetching load data:", error);
@@ -138,17 +120,7 @@ const LoadPage = () => {
     fetchLoadData();
   }, [id, isEditMode]);
 
-  const handleNext = async () => {
-    const currentStep = steps[activeStep].toUpperCase().replace(" ", " ");
-    const required = requiredFields[activeStep];
-
-    for (const field of required) {
-      if (!loadData[field]) {
-        alert(`${field.replace("_", " ")} is required to proceed.`);
-        return;
-      }
-    }
-
+  const handleSubmit = async () => {
     try {
       const formData = new FormData();
       Object.keys(loadData).forEach((key) => {
@@ -160,11 +132,13 @@ const LoadPage = () => {
           }
         }
       });
+
+      const currentStep = steps[activeStep].toUpperCase();
       formData.set("load_status", currentStep);
       formData.set("created_by", loadData.created_by || "");
 
-      if (isEditMode) {
-        await ApiService.patchData(`/load/${id}/`, formData);
+      if (isEditMode || loadData.id) {
+        await ApiService.patchData(`/load/${loadData.id || id}/`, formData);
       } else {
         const response = await ApiService.postData("/load/", formData);
         localStorage.setItem("loadId", response.id);
@@ -172,21 +146,16 @@ const LoadPage = () => {
           ...prevData,
           id: response.id,
         }));
-      }
-
-      if (activeStep === steps.length - 1) {
-        navigate("/loads");
-      } else {
-        setActiveStep((prevActiveStep) => prevActiveStep + 1);
+        navigate(`/load/${response.id}`);
       }
     } catch (error) {
-      console.error("Error updating load:", error);
+      console.error("Error submitting load:", error);
       console.error("Response data:", error.response?.data);
     }
   };
 
   const handleBack = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    if (activeStep > 0) setActiveStep((prev) => prev - 1);
   };
 
   const handleChange = async (e) => {
@@ -204,11 +173,7 @@ const LoadPage = () => {
 
       try {
         const loadId = isEditMode ? id : localStorage.getItem("loadId");
-        const response = await ApiService.putMediaData(`/load/${loadId}/`, formData);
-        console.log(response);
-        if (response.status !== 200) {
-          throw new Error("Failed to update load");
-        }
+        await ApiService.putMediaData(`/load/${loadId}/`, formData);
       } catch (error) {
         console.error("Error:", error);
       }
@@ -235,7 +200,6 @@ const LoadPage = () => {
 
       try {
         const response = await ApiService.postMediaData("/chat/", formData);
-        console.log(response);
         if (response.status !== 200) {
           throw new Error("Failed to send message");
         }
@@ -262,8 +226,7 @@ const LoadPage = () => {
 
         try {
           formData.append("file", file.file);
-          const response = await ApiService.postMediaData("/chat/", formData);
-          console.log(`File ${fieldName} upload response:`, response);
+          await ApiService.postMediaData("/chat/", formData);
         } catch (error) {
           console.error(`Error uploading ${fieldName}:`, error);
         }
@@ -274,8 +237,6 @@ const LoadPage = () => {
   const handleToggleCustomerForm = () => {
     setShowCustomerForm(!showCustomerForm);
   };
-
-  const isDetailsComplete = requiredFields[0].every((field) => loadData[field]);
 
   if (isLoading) {
     return (
@@ -290,20 +251,37 @@ const LoadPage = () => {
     <Box sx={{ width: "100%", display: "flex", gap: 2 }}>
       <Box sx={{ width: isSidebarOpen ? "77%" : "87%", pr: 2 }}>
         <Box sx={{ position: "sticky", top: 0, zIndex: 1, backgroundColor: "white" }}>
-          <Stepper activeStep={activeStep} alternativeLabel sx={{ p: 2, mb: 2, width: "100%" }}>
+          <Stepper activeStep={activeStep} alternativeLabel sx={{ p: 2, mb: 2 }}>
             {steps.map((label) => (
               <Step key={label}>
                 <StepLabel>{label}</StepLabel>
               </Step>
             ))}
-            <Button disabled={activeStep === 0} onClick={handleBack} sx={{ mr: 1 }}>
+          </Stepper>
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={activeStep}
+              label="Status"
+              onChange={(e) => setActiveStep(Number(e.target.value))}
+            >
+              {steps.map((label, index) => (
+                <MenuItem key={label} value={index}>
+                  {label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mb: 2 }}>
+            <Button disabled={activeStep === 0} onClick={handleBack}>
               Back
             </Button>
-            <Button variant="contained" color="primary" onClick={handleNext}>
-              {activeStep === steps.length - 1 ? "Complete" : "Next"}
+            <Button variant="contained" color="primary" onClick={handleSubmit}>
+              {isEditMode || loadData.id ? "Save" : "Create"}
             </Button>
-          </Stepper>
+          </Box>
         </Box>
+
         <Box sx={{ overflowY: "auto", maxHeight: "calc(100vh - 200px)" }}>
           <LoadForm
             loadData={loadData}
@@ -312,11 +290,12 @@ const LoadPage = () => {
             activeStep={activeStep}
             showCustomerForm={showCustomerForm}
             handleToggleCustomerForm={handleToggleCustomerForm}
-            isDetailsComplete={isDetailsComplete}
-            isCustomerBrokerComplete={activeStep >= 1}
+            isDetailsComplete={true}
+            isCustomerBrokerComplete={true}
           />
         </Box>
       </Box>
+
       <Box sx={{ width: "20%" }}>
         <ChatBox
           chatMessages={chatMessages}
@@ -325,7 +304,7 @@ const LoadPage = () => {
           handleSendMessage={handleSendMessage}
           loadData={loadData}
           handleChange={handleChange}
-          isDisabled={!isDetailsComplete || activeStep < 1}
+          isDisabled={false}
         />
       </Box>
     </Box>

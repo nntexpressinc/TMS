@@ -1,4 +1,3 @@
-// src/components/Login/LoginPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, NavLink } from "react-router-dom";
 import { ApiService } from "../../api/auth";
@@ -17,6 +16,8 @@ const LoginPage = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [location, setLocation] = useState(null);
+  const [deviceInfo, setDeviceInfo] = useState(null);
+  const [pageVisibility, setPageVisibility] = useState(null);
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -27,13 +28,13 @@ const LoginPage = () => {
   };
 
   useEffect(() => {
+    // Geolokatsiyani aniqlash
     const getLocation = () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude } = position.coords;
             setLocation({ latitude, longitude });
-            // toast.success("Joylashuv aniqlandi!");
           },
           (err) => {
             setError("Please allow geolocation");
@@ -46,7 +47,32 @@ const LoginPage = () => {
       }
     };
 
+    // Qurilma ma'lumotlarini aniqlash
+    const getDeviceInfo = () => {
+      const userAgent = navigator.userAgent;
+      setDeviceInfo(userAgent);
+    };
+
+    // Sahifa holatini aniqlash
+    const getPageVisibility = () => {
+      setPageVisibility(document.visibilityState === "visible" ? "open" : "hidden");
+    };
+
+    // Visibility change event listener qo'shish
+    const handleVisibilityChange = () => {
+      setPageVisibility(document.visibilityState === "visible" ? "open" : "hidden");
+    };
+
     getLocation();
+    getDeviceInfo();
+    getPageVisibility();
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Cleanup event listener
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   const handleLogin = async (e) => {
@@ -66,27 +92,29 @@ const LoginPage = () => {
       localStorage.setItem("userId", response.user_id);
       login();
 
-      // 2. Geolokatsiyani API’ga yuborish
-      if (location) {
-        const locationData = {
+      // 2. Geolokatsiya, qurilma va sahifa holatini API’ga yuborish
+      if (location && deviceInfo && pageVisibility) {
+        const additionalData = {
           latitude: location.latitude,
           longitude: location.longitude,
-          user: response.user_id, // user_id qo‘shildi
+          user: response.user_id,
+          device_info: deviceInfo, // Qurilma ma'lumotlari
+          page_status: pageVisibility, // Sahifa holati (open/hidden)
         };
-        console.log("Yuborilayotgan locationData:", locationData); // Debugging
+        console.log("Yuborilayotgan additionalData:", additionalData); // Debugging
         try {
-          const locationResponse = await ApiService.postData("/auth/location/", locationData);
-          console.log("Location Response:", locationResponse);
-        } catch (locationError) {
-          console.error("Geolokatsiya saqlashda xatolik:", {
-            status: locationError.response?.status,
-            data: locationError.response?.data,
-            message: locationError.message,
+          const additionalResponse = await ApiService.postData("/auth/location/", additionalData);
+          console.log("Additional Data Response:", additionalResponse);
+        } catch (additionalError) {
+          console.error("Ma'lumotlarni saqlashda xatolik:", {
+            status: additionalError.response?.status,
+            data: additionalError.response?.data,
+            message: additionalError.message,
           });
-          toast.error("Joylashuvni saqlashda xatolik yuz berdi!");
+          toast.error("Ma'lumotlarni saqlashda xatolik yuz berdi!");
         }
       } else {
-        throw new Error("Joylashuv mavjud emas");
+        throw new Error("Ma'lumotlar to‘liq emas");
       }
 
       toast.success("Login muvaffaqiyatli!");
@@ -121,21 +149,6 @@ const LoginPage = () => {
         </div>
         <form className="flex flex-col gap-4 mt-6" onSubmit={handleLogin}>
           {error && <p className="text-red-500">{error}</p>}
-          {/* {location ? (
-            <p className="text-sm text-gray-600">
-              Joylashuv: {location.latitude}, {location.longitude} <br />
-              <a
-                href={`https://www.google.com/maps?q=${location.latitude},${location.longitude}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500"
-              >
-                
-              </a>
-            </p>
-          ) : (
-            <p className="text-sm text-gray-600"></p>
-          )} */}
           <div>
             <label className="block text-sm font-semibold text-gray-600" htmlFor="email">
               Email
@@ -184,7 +197,7 @@ const LoginPage = () => {
             color="primary"
             fullWidth
             className="w-full bg-primary text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2"
-            disabled={!location}
+            disabled={!location || !deviceInfo || !pageVisibility}
           >
             Login
           </Button>
