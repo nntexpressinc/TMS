@@ -12,7 +12,6 @@ const DispatcherPage = () => {
     const fetchLocations = async () => {
       setLoading(true);
       try {
-        // Backenddan joylashuvlarni olish
         const data = await ApiService.getData('/auth/my-locations/');
         console.log("Kelgan ma'lumotlar:", data);
         setLocations(data);
@@ -27,11 +26,34 @@ const DispatcherPage = () => {
     fetchLocations();
   }, []);
 
+  // Qurilma nomini ajratib olish funksiyasi
+  const extractDeviceName = (deviceInfo) => {
+    if (!deviceInfo || deviceInfo === 'N/A') return 'N/A';
+    
+    // User-Agent satridan qurilma nomini ajratish
+    const match = deviceInfo.match(/\(([^;]+)(?:;|\))/);
+    return match ? match[1].trim() : deviceInfo; // Agar topilmasa, xom ma'lumot qaytadi
+  };
+
   const columns = [
-    { field: 'user', headerName: 'User ID', width: 100 },  // Agar email kerak bo‘lsa, backendni o‘zgartirish kerak
+    { field: 'user', headerName: 'User ID', width: 100 },
     { field: 'created_at', headerName: 'Created At', width: 200 },
-    { field: 'device_info', headerName: 'Device Info', width: 300 },
-    { field: 'page_status', headerName: 'Page Status', width: 150 },
+    {
+      field: 'device_info',
+      headerName: 'Device Info',
+      width: 300,
+      renderCell: (params) => (
+        <div
+          style={{
+            overflowX: 'auto',
+            whiteSpace: 'nowrap',
+            maxWidth: '100%',
+          }}
+        >
+          {params.value}
+        </div>
+      ),
+    },
     {
       field: 'google_maps_url',
       headerName: 'Google Maps URL',
@@ -45,18 +67,17 @@ const DispatcherPage = () => {
   ];
 
   const rows = locations.map((location, index) => ({
-    id: index + 1, // Har bir qator uchun unikal ID
-    user: location.user, // Agar email kerak bo‘lsa, backenddan email qo‘shish kerak
+    id: index + 1,
+    user: location.user,
     created_at: new Date(location.created_at).toLocaleString('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false, // 24-soat formati
+      hour12: false,
     }),
-    device_info: location.device_info || 'N/A',
-    page_status: location.page_status || 'Unknown',
+    device_info: extractDeviceName(location.device_info), // Filtrlangan qurilma nomi
     google_maps_url: location.google_maps_url,
   }));
 
@@ -77,7 +98,7 @@ const DispatcherPage = () => {
           pageSize={5}
           rowsPerPageOptions={[5, 10, 20]}
           components={{ Toolbar: GridToolbar }}
-          loading={loading} // Yuklanayotgan holatni ko‘rsatish
+          loading={loading}
           disableSelectionOnClick
         />
       </div>
