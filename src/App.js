@@ -17,6 +17,7 @@ import EmployeeCreatePage from "./components/Employee/create/EmployeeCreatePage"
 import TruckTrailerPage from "./components/TruckTrailer/TruckTrailerPage";
 import TruckCreatePage from "./components/TruckTrailer/truck/TruckCreatePage";
 import TrailerCreatePage from "./components/TruckTrailer/trailer/TrailerCreatePage";
+import AccountingPage from "./components/Accounting/AccountingPage";
 import PrivateRoute from "./components/PrivateRoute";
 import Layout from "./components/Layout/Layout";
 import { SidebarProvider } from "./components/SidebarContext";
@@ -180,6 +181,14 @@ const App = () => {
               element={
                 <PrivateRoute>
                   <TrailerCreatePage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="accounting"
+              element={
+                <PrivateRoute>
+                  <AccountingPage />
                 </PrivateRoute>
               }
             />

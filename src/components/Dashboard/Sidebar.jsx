@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { lightLogo } from "../../images";
 import "./sidebar.scss";
 import { useTranslation } from "react-i18next";
-import { MdSpaceDashboard, MdExpandMore, MdExpandLess } from "react-icons/md";
+import { MdSpaceDashboard, MdExpandMore, MdExpandLess, MdAccountBalance } from "react-icons/md";
 import { FaTruckLoading, FaTruck, FaTrailer } from "react-icons/fa";
 import { MdOutlineSupervisedUserCircle } from "react-icons/md";
 import { IoMdLogOut } from "react-icons/io";
@@ -87,6 +87,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     },
     {
       id: 9,
+      title: t("Accounting"),
+      icon: <MdAccountBalance />,
+      link: "/accounting",
+    },
+    {
+      id: 10,
       title: t("Profile"),
       icon: <MdOutlineSupervisedUserCircle />,
       link: "/profile",
