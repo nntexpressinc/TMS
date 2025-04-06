@@ -8,10 +8,6 @@ import {
   Step,
   StepLabel,
   CircularProgress,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
 } from "@mui/material";
 import { ApiService } from "../../api/auth";
 import LoadForm from "./LoadForm";
@@ -29,6 +25,27 @@ const steps = [
   "Completed",
   "In Yard",
 ];
+
+const requiredFields = {
+  0: [
+    "load_id",
+    "reference_id",
+    "pickup_time",
+    "delivery_time",
+    "load_pay",
+    "total_pay",
+    "per_mile",
+    "total_miles",
+  ],
+  1: ["reference_id"],
+  2: ["instructions"],
+  3: ["bills"],
+  4: ["driver"],
+  5: ["trip_id"],
+  6: ["unloading_location"],
+  7: ["yard_location"],
+  8: ["delivered_date"],
+};
 
 const LoadPage = () => {
   const [activeStep, setActiveStep] = useState(0);
@@ -101,11 +118,14 @@ const LoadPage = () => {
         if (storedAccessToken) {
           try {
             const data = await ApiService.getData(`/load/${id}/`, storedAccessToken);
-            setLoadData(prevData => ({
+            console.log("Fetched load data:", data);
+            setLoadData((prevData) => ({
               ...prevData,
               ...data,
             }));
-            const stepIndex = steps.findIndex(step => step.toUpperCase() === data.load_status);
+            const stepIndex = steps.findIndex(
+              (step) => step.toUpperCase().replace(" ", " ") === data.load_status
+            );
             setActiveStep(stepIndex !== -1 ? stepIndex : 0);
           } catch (error) {
             console.error("Error fetching load data:", error);
@@ -120,11 +140,26 @@ const LoadPage = () => {
     fetchLoadData();
   }, [id, isEditMode]);
 
-  const handleSubmit = async () => {
+  const handleNext = async () => {
+    const currentStep = steps[activeStep].toUpperCase().replace(" ", " ");
+    const required = requiredFields[activeStep];
+
+    for (const field of required) {
+      if (!loadData[field]) {
+        alert(`${field.replace("_", " ")} is required to proceed.`);
+        return;
+      }
+    }
+
     try {
       const formData = new FormData();
       Object.keys(loadData).forEach((key) => {
-        if (loadData[key] !== null) {
+        // Skip created_date and updated_date unless they are explicitly set in a valid format
+        if (key === "created_date" || key === "updated_date") {
+          if (loadData[key] && typeof loadData[key] === "string" && loadData[key].includes("T")) {
+            formData.append(key, loadData[key]);
+          }
+        } else if (loadData[key] !== null && loadData[key] !== undefined) {
           if (loadData[key]?.file) {
             formData.append(key, loadData[key].file);
           } else {
@@ -132,13 +167,11 @@ const LoadPage = () => {
           }
         }
       });
-
-      const currentStep = steps[activeStep].toUpperCase();
       formData.set("load_status", currentStep);
       formData.set("created_by", loadData.created_by || "");
 
-      if (isEditMode || loadData.id) {
-        await ApiService.patchData(`/load/${loadData.id || id}/`, formData);
+      if (isEditMode) {
+        await ApiService.patchData(`/load/${id}/`, formData);
       } else {
         const response = await ApiService.postData("/load/", formData);
         localStorage.setItem("loadId", response.id);
@@ -146,16 +179,21 @@ const LoadPage = () => {
           ...prevData,
           id: response.id,
         }));
-        navigate(`/load/${response.id}`);
+      }
+
+      if (activeStep === steps.length - 1) {
+        navigate("/loads");
+      } else {
+        setActiveStep((prevActiveStep) => prevActiveStep + 1);
       }
     } catch (error) {
-      console.error("Error submitting load:", error);
+      console.error("Error updating load:", error);
       console.error("Response data:", error.response?.data);
     }
   };
 
   const handleBack = () => {
-    if (activeStep > 0) setActiveStep((prev) => prev - 1);
+    setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
   const handleChange = async (e) => {
@@ -173,7 +211,11 @@ const LoadPage = () => {
 
       try {
         const loadId = isEditMode ? id : localStorage.getItem("loadId");
-        await ApiService.putMediaData(`/load/${loadId}/`, formData);
+        const response = await ApiService.putMediaData(`/load/${loadId}/`, formData);
+        console.log(response);
+        if (response.status !== 200) {
+          throw new Error("Failed to update load");
+        }
       } catch (error) {
         console.error("Error:", error);
       }
@@ -200,6 +242,7 @@ const LoadPage = () => {
 
       try {
         const response = await ApiService.postMediaData("/chat/", formData);
+        console.log(response);
         if (response.status !== 200) {
           throw new Error("Failed to send message");
         }
@@ -226,7 +269,8 @@ const LoadPage = () => {
 
         try {
           formData.append("file", file.file);
-          await ApiService.postMediaData("/chat/", formData);
+          const response = await ApiService.postMediaData("/chat/", formData);
+          console.log(`File ${fieldName} upload response:`, response);
         } catch (error) {
           console.error(`Error uploading ${fieldName}:`, error);
         }
@@ -237,6 +281,8 @@ const LoadPage = () => {
   const handleToggleCustomerForm = () => {
     setShowCustomerForm(!showCustomerForm);
   };
+
+  const isDetailsComplete = requiredFields[0].every((field) => loadData[field]);
 
   if (isLoading) {
     return (
@@ -251,37 +297,20 @@ const LoadPage = () => {
     <Box sx={{ width: "100%", display: "flex", gap: 2 }}>
       <Box sx={{ width: isSidebarOpen ? "77%" : "87%", pr: 2 }}>
         <Box sx={{ position: "sticky", top: 0, zIndex: 1, backgroundColor: "white" }}>
-          <Stepper activeStep={activeStep} alternativeLabel sx={{ p: 2, mb: 2 }}>
+          <Stepper activeStep={activeStep} alternativeLabel sx={{ p: 2, mb: 2, width: "100%" }}>
             {steps.map((label) => (
               <Step key={label}>
                 <StepLabel>{label}</StepLabel>
               </Step>
             ))}
-          </Stepper>
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Status</InputLabel>
-            <Select
-              value={activeStep}
-              label="Status"
-              onChange={(e) => setActiveStep(Number(e.target.value))}
-            >
-              {steps.map((label, index) => (
-                <MenuItem key={label} value={index}>
-                  {label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mb: 2 }}>
-            <Button disabled={activeStep === 0} onClick={handleBack}>
+            <Button disabled={activeStep === 0} onClick={handleBack} sx={{ mr: 1 }}>
               Back
             </Button>
-            <Button variant="contained" color="primary" onClick={handleSubmit}>
-              {isEditMode || loadData.id ? "Save" : "Create"}
+            <Button variant="contained" color="primary" onClick={handleNext}>
+              {activeStep === steps.length - 1 ? "Complete" : "Next"}
             </Button>
-          </Box>
+          </Stepper>
         </Box>
-
         <Box sx={{ overflowY: "auto", maxHeight: "calc(100vh - 200px)" }}>
           <LoadForm
             loadData={loadData}
@@ -290,12 +319,11 @@ const LoadPage = () => {
             activeStep={activeStep}
             showCustomerForm={showCustomerForm}
             handleToggleCustomerForm={handleToggleCustomerForm}
-            isDetailsComplete={true}
-            isCustomerBrokerComplete={true}
+            isDetailsComplete={isDetailsComplete}
+            isCustomerBrokerComplete={activeStep >= 1}
           />
         </Box>
       </Box>
-
       <Box sx={{ width: "20%" }}>
         <ChatBox
           chatMessages={chatMessages}
@@ -304,7 +332,7 @@ const LoadPage = () => {
           handleSendMessage={handleSendMessage}
           loadData={loadData}
           handleChange={handleChange}
-          isDisabled={false}
+          isDisabled={!isDetailsComplete || activeStep < 1}
         />
       </Box>
     </Box>

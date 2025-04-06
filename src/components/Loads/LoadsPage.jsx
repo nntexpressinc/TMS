@@ -48,7 +48,6 @@ const LoadsPage = () => {
     { value: 'in_yard', label: 'In Yard', icon: <MdHome />, color: '#6B7280' }
   ];
 
-  // Filter handlers
   const handleFilterClick = (event) => {
     setFilterAnchorEl(event.currentTarget);
   };
@@ -57,7 +56,6 @@ const LoadsPage = () => {
     setFilterAnchorEl(null);
   };
 
-  // Calculate totals for footer
   const calculateTotals = () => {
     if (!filteredLoads || filteredLoads.length === 0) return { totalPay: 0, driverPay: 0, totalMiles: 0 };
 
@@ -68,7 +66,6 @@ const LoadsPage = () => {
     }), { totalPay: 0, driverPay: 0, totalMiles: 0 });
   };
 
-  // Status filter handler
   const handleStatusFilter = (status) => {
     setSelectedStatus(status === selectedStatus ? null : status);
     if (status === selectedStatus) {
@@ -175,7 +172,6 @@ const LoadsPage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [isSidebarOpen]);
 
-  // Search function
   useEffect(() => {
     if (searchTerm === "") {
       setFilteredLoads(loads);
@@ -233,7 +229,7 @@ const LoadsPage = () => {
   const handleCopyId = (id) => {
     navigator.clipboard.writeText(id);
     setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000); // 2 sekunddan keyin copy ikonini qaytarish
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleViewDispatcher = (id) => {
@@ -255,7 +251,52 @@ const LoadsPage = () => {
   };
 
   const columns = [
-    // { field: 'id', headerName: 'ID', width: 70 },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 120,
+      headerAlign: 'center',
+      align: 'center',
+      pinned: 'left',
+      renderCell: (params) => (
+        <Box sx={{
+          display: 'flex',
+          gap: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          width: '100%',
+          height: '100%',
+          paddingTop: '4px'
+        }}>
+          <Tooltip title="Edit">
+            <IconButton
+              size="small"
+              onClick={() => handleEditLoad(params.row.id)}
+              sx={{
+                padding: '6px',
+                color: '#6366F1',
+                '&:hover': { backgroundColor: '#EEF2FF' }
+              }}
+            >
+              <EditIcon sx={{ fontSize: '20px' }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="View">
+            <IconButton
+              size="small"
+              onClick={() => handleViewLoad(params.row.id)}
+              sx={{
+                padding: '6px',
+                color: '#3B82F6',
+                '&:hover': { backgroundColor: '#EFF6FF' }
+              }}
+            >
+              <VisibilityIcon sx={{ fontSize: '20px' }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )
+    },
     {
       field: 'load_id',
       headerName: 'Load ID',
@@ -299,7 +340,9 @@ const LoadsPage = () => {
       )
     },
     { field: 'company_name', headerName: 'Company Name', width: 120 },
-    { field: 'reference_id', headerName: 'Reference ID',
+    {
+      field: 'reference_id',
+      headerName: 'Reference ID',
       width: 200,
       align: 'center',
       headerAlign: 'center',
@@ -339,7 +382,6 @@ const LoadsPage = () => {
         </Box>
       )
     },
-    // { field: 'instructions', headerName: 'Instructions', width: 150 },
     {
       field: 'created_by',
       headerName: 'Created By',
@@ -357,7 +399,6 @@ const LoadsPage = () => {
       )
     },
     { field: 'created_date', headerName: 'Created Date', width: 120 },
-    // { field: 'trip_id', headerName: 'Trip ID', width: 100 },
     {
       field: 'customer_broker',
       headerName: 'Customer Broker',
@@ -390,7 +431,6 @@ const LoadsPage = () => {
         </Box>
       )
     },
-    // { field: 'co_driver', headerName: 'Co-Driver', width: 100 },
     { field: 'truck', headerName: 'Truck', width: 100 },
     {
       field: 'load_status',
@@ -400,7 +440,8 @@ const LoadsPage = () => {
       align: 'center',
       pinned: 'right',
       renderCell: (params) => {
-        const statusConfig = loadStatuses.find(s => s.value.toLowerCase() === params.value?.toLowerCase());
+        const statusValue = params.value || 'Unknown';
+        const statusConfig = loadStatuses.find(s => s.value.toLowerCase() === statusValue.toLowerCase());
         return (
           <Box sx={{
             display: 'flex',
@@ -414,11 +455,11 @@ const LoadsPage = () => {
               label={
                 statusConfig?.label
                   ? statusConfig.label.toUpperCase()
-                  : params.value.toUpperCase()
+                  : statusValue.toUpperCase()
               }
               icon={statusConfig?.icon}
               sx={{
-                ...getStatusStyle(params.value),
+                ...getStatusStyle(statusValue),
                 height: '20px',
                 minWidth: 'auto',
                 maxWidth: '100%',
@@ -428,7 +469,7 @@ const LoadsPage = () => {
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  textTransform: 'uppercase', // CSS orqali ham uppercase qilish mumkin
+                  textTransform: 'uppercase',
                 },
                 '& .MuiChip-icon': {
                   fontSize: '12px',
@@ -439,52 +480,6 @@ const LoadsPage = () => {
           </Box>
         );
       }
-    },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 120,
-      headerAlign: 'center',
-      align: 'center',
-      pinned: 'right',
-      renderCell: (params) => (
-        <Box sx={{
-          display: 'flex',
-          gap: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          width: '100%',
-          height: '100%',
-          paddingTop: '4px'
-        }}>
-          <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={() => handleEditLoad(params.row.id)}
-              sx={{
-                padding: '6px',
-                color: '#6366F1',
-                '&:hover': { backgroundColor: '#EEF2FF' }
-              }}
-            >
-              <EditIcon sx={{ fontSize: '20px' }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="View">
-            <IconButton
-              size="small"
-              onClick={() => handleViewLoad(params.row.id)}
-              sx={{
-                padding: '6px',
-                color: '#3B82F6',
-                '&:hover': { backgroundColor: '#EFF6FF' }
-              }}
-            >
-              <VisibilityIcon sx={{ fontSize: '20px' }} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )
     },
     {
       field: 'dispatcher',
@@ -502,7 +497,6 @@ const LoadsPage = () => {
         </Box>
       )
     },
-
     { field: 'equipment_type', headerName: 'Equipment Type', width: 120 },
     { field: 'trip_status', headerName: 'Trip Status', width: 120 },
     { field: 'invoice_status', headerName: 'Invoice Status', width: 120 },
@@ -514,19 +508,9 @@ const LoadsPage = () => {
     { field: 'mile', headerName: 'Mile', width: 100 },
     { field: 'empty_mile', headerName: 'Empty Mile', width: 100 },
     { field: 'total_miles', headerName: 'Total Miles', width: 100 },
-    // { field: 'flagged', headerName: 'Flagged', width: 100 },
-    // { field: 'flagged_reason', headerName: 'Flagged Reason', width: 120 },
-    // { field: 'note', headerName: 'Note', width: 150 },
-    // { field: 'chat', headerName: 'Chat', width: 100 },
-    // { field: 'ai', headerName: 'AI', width: 100 },
-    // { field: 'rate_con', headerName: 'Rate Con', width: 100 },
-    // { field: 'bol', headerName: 'BOL', width: 100 },
-    // { field: 'pod', headerName: 'POD', width: 100 },
     { field: 'document', headerName: 'Document', width: 100 },
     { field: 'bills', headerName: 'Bills', width: 100 },
     { field: 'tags', headerName: 'Tags', width: 100 },
-    // { field: 'comercial_invoice', headerName: 'Commercial Invoice', width: 120 }
-
   ];
 
   const CustomFooter = () => {
@@ -592,7 +576,6 @@ const LoadsPage = () => {
               </MenuItem>
             ))}
           </TextField>
-
           <TextField
             fullWidth
             placeholder="Search loads..."
@@ -614,7 +597,6 @@ const LoadsPage = () => {
               }
             }}
           />
-
           <IconButton
             onClick={handleFilterClick}
             sx={{
@@ -631,8 +613,6 @@ const LoadsPage = () => {
           Create Load
         </Button>
       </Box>
-
-      {/* Status Filter Buttons */}
       <Box sx={{
         display: 'flex',
         gap: 1,
@@ -668,9 +648,7 @@ const LoadsPage = () => {
           />
         ))}
       </Box>
-
       <Box sx={{ display: 'flex', gap: 2, flexGrow: 1, overflow: 'hidden' }}>
-        {/* Main Table */}
         <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
           <DataGrid
             rows={filteredLoads}
@@ -735,16 +713,12 @@ const LoadsPage = () => {
               }
             }}
             onSelectionModelChange={(newSelection) => {
-              // Update selected row for status panel
               const selectedRow = filteredLoads.find(load => load.id === newSelection[0]);
               setSelectedRow(selectedRow);
             }}
           />
         </Box>
-
-
       </Box>
-
       <Popover
         open={Boolean(filterAnchorEl)}
         anchorEl={filterAnchorEl}
@@ -771,7 +745,6 @@ const LoadsPage = () => {
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
             Filter by
           </Typography>
-
           <TextField
             select
             fullWidth
@@ -785,7 +758,6 @@ const LoadsPage = () => {
               </MenuItem>
             ))}
           </TextField>
-
           <TextField
             select
             fullWidth
@@ -800,7 +772,6 @@ const LoadsPage = () => {
             <MenuItem value="isEmpty">Is empty</MenuItem>
             <MenuItem value="isNotEmpty">Is not empty</MenuItem>
           </TextField>
-
           <TextField
             fullWidth
             size="small"
@@ -808,7 +779,6 @@ const LoadsPage = () => {
             variant="outlined"
             placeholder="Filter value"
           />
-
           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 1 }}>
             <Button
               variant="outlined"
