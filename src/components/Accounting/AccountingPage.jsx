@@ -66,8 +66,13 @@ const AccountingPage = () => {
 
   const downloadPDF = async () => {
     try {
+      console.log('PDF yaratish jarayoni boshlandi');
       const blob = await pdf(<PayReportPDF reportData={reportData} />).toBlob();
+      console.log('PDF blob yaratildi:', blob);
+      
       const url = window.URL.createObjectURL(blob);
+      console.log('URL yaratildi:', url);
+      
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `driver-pay-report-${moment().format('YYYY-MM-DD')}.pdf`);
@@ -75,8 +80,10 @@ const AccountingPage = () => {
       link.click();
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
+      console.log('PDF yuklab olish jarayoni yakunlandi');
     } catch (error) {
-      setError(t('Failed to generate PDF'));
+      console.error('PDF yaratishda xatolik:', error);
+      setError(t('Failed to generate PDF: ') + error.message);
     }
   };
 
