@@ -67,6 +67,12 @@ const AccountingPage = () => {
   const downloadPDF = async () => {
     try {
       console.log('PDF yaratish jarayoni boshlandi');
+      console.log('reportData:', reportData);
+      
+      if (!reportData) {
+        throw new Error('Report ma\'lumotlari mavjud emas');
+      }
+      
       const blob = await pdf(<PayReportPDF reportData={reportData} />).toBlob();
       console.log('PDF blob yaratildi:', blob);
       

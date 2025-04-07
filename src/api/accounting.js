@@ -22,6 +22,7 @@ export const getDrivers = async () => {
 
 export const getDriverPayReport = async (data) => {
   try {
+    console.log('getDriverPayReport data:', data);
     const storedAccessToken = localStorage.getItem('accessToken');
     if (!storedAccessToken) {
       throw new Error('No access token found');
@@ -40,6 +41,7 @@ export const getDriverPayReport = async (data) => {
       },
     });
 
+    console.log('getDriverPayReport response:', response.data);
     // Format the response data
     const responseData = response.data;
     const formattedLoads = responseData.loads?.map(load => {
