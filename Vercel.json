@@ -1,6 +1,18 @@
 {
-    "build": {
-        "command": "npm install -g npm@11.2.0 && npm run build"
+    "builds": [
+        {
+            "src": "package.json",
+            "use": "@vercel/node"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "/"
+        }
+    ],
+    "env": {
+        "NODE_OPTIONS": "--openssl-legacy-provider"
     }
 }
   

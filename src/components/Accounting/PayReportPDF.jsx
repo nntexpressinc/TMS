@@ -6,9 +6,9 @@ import moment from 'moment';
 Font.register({
   family: 'Roboto',
   fonts: [
-    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf' },
-    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-medium-webfont.ttf', fontWeight: 500 },
-    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf', fontWeight: 700 },
+    { src: '/fonts/Roboto-Regular.ttf' },
+    { src: '/fonts/Roboto-Medium.ttf', fontWeight: 500 },
+    { src: '/fonts/Roboto-Bold.ttf', fontWeight: 700 },
   ],
 });
 
@@ -131,114 +131,126 @@ const styles = StyleSheet.create({
   },
 });
 
-const PayReportPDF = ({ reportData }) => (
-  <Document>
-    <Page size="A4" style={styles.page}>
-      {/* Company Info */}
-      <View style={styles.companyInfo}>
-        <Text style={styles.companyName}>{reportData.company_info.name}</Text>
-        <Text style={styles.companyDetails}>{reportData.company_info.address}</Text>
-        <Text style={styles.companyDetails}>{reportData.company_info.location}</Text>
-        <Text style={styles.companyDetails}>Phone: {reportData.company_info.phone}</Text>
-        {reportData.company_info.fax && (
-          <Text style={styles.companyDetails}>Fax: {reportData.company_info.fax}</Text>
-        )}
-      </View>
+const PayReportPDF = ({ reportData }) => {
+  if (!reportData) {
+    return (
+      <Document>
+        <Page size="A4" style={styles.page}>
+          <Text>Ma'lumotlar mavjud emas</Text>
+        </Page>
+      </Document>
+    );
+  }
 
-      {/* Driver Info */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Driver Information</Text>
-        <View style={styles.infoGrid}>
-          <View style={styles.infoItem}>
-            <Text style={styles.label}>Name:</Text>
-            <Text style={styles.value}>
-              {reportData.driver_details.first_name} {reportData.driver_details.last_name}
-            </Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.label}>Contact:</Text>
-            <Text style={styles.value}>{reportData.driver_details.contact_number || 'N/A'}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.label}>Address:</Text>
-            <Text style={styles.value}>{reportData.driver_details.address1 || 'N/A'}</Text>
-          </View>
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        {/* Company Info */}
+        <View style={styles.companyInfo}>
+          <Text style={styles.companyName}>{reportData.company_info?.name || 'N/A'}</Text>
+          <Text style={styles.companyDetails}>{reportData.company_info?.address || 'N/A'}</Text>
+          <Text style={styles.companyDetails}>{reportData.company_info?.location || 'N/A'}</Text>
+          <Text style={styles.companyDetails}>Phone: {reportData.company_info?.phone || 'N/A'}</Text>
+          {reportData.company_info?.fax && (
+            <Text style={styles.companyDetails}>Fax: {reportData.company_info.fax}</Text>
+          )}
         </View>
-      </View>
 
-      {/* Report Dates */}
-      <View style={styles.section}>
-        <View style={styles.infoGrid}>
-          <View style={styles.infoItem}>
-            <Text style={styles.label}>Report Date:</Text>
-            <Text style={styles.value}>
-              {moment(reportData.driver_details.report_date).format('YYYY-MM-DD')}
-            </Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.label}>Generation Date:</Text>
-            <Text style={styles.value}>
-              {moment(reportData.driver_details.generate_date).format('YYYY-MM-DD')}
-            </Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.label}>Search Period:</Text>
-            <Text style={styles.value}>
-              {reportData.driver_details.search_from} - {reportData.driver_details.search_to}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Load Details */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Load Details</Text>
-        <View style={styles.table}>
-          {/* Table Header */}
-          <View style={[styles.tableRow, styles.tableHeader]}>
-            <Text style={styles.tableCell}>Load #</Text>
-            <Text style={styles.tableCell}>Pickup</Text>
-            <Text style={styles.tableCell}>Delivery</Text>
-            <Text style={styles.tableCell}>Rate</Text>
-            <Text style={styles.tableCell}>Notes</Text>
-            <Text style={styles.tableCell}>Total Pay</Text>
-          </View>
-
-          {/* Table Body */}
-          {reportData.loads?.map((load, index) => (
-            <View key={index} style={styles.tableRow}>
-              <Text style={styles.tableCell}>{load.load_number}</Text>
-              <View style={[styles.tableCell, styles.loadDetails]}>
-                <Text style={styles.date}>{load.pickup.date}</Text>
-                <Text style={styles.location}>{load.pickup.location}</Text>
-              </View>
-              <View style={[styles.tableCell, styles.loadDetails]}>
-                <Text style={styles.date}>{load.delivery.date}</Text>
-                <Text style={styles.location}>{load.delivery.location}</Text>
-              </View>
-              <View style={[styles.tableCell, styles.rateDetails]}>
-                <Text style={styles.amount}>${load.rate.amount.toFixed(2)}</Text>
-                <Text style={styles.calculation}>* {load.rate.percentage}%</Text>
-                <Text style={styles.total}>${load.rate.total.toFixed(2)}</Text>
-              </View>
-              <Text style={styles.tableCell}>{load.notes}</Text>
-              <Text style={[styles.tableCell, styles.total]}>
-                ${load.total_pay.toFixed(2)}
+        {/* Driver Info */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Driver Information</Text>
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <Text style={styles.label}>Name:</Text>
+              <Text style={styles.value}>
+                {reportData.driver_details?.first_name || 'N/A'} {reportData.driver_details?.last_name || 'N/A'}
               </Text>
             </View>
-          ))}
-
-          {/* Summary Row */}
-          <View style={[styles.tableRow, styles.summaryRow]}>
-            <Text style={[styles.tableCell, { flex: 5 }]}>Total Pay:</Text>
-            <Text style={styles.grandTotal}>
-              ${reportData.total_pay.toFixed(2)} USD
-            </Text>
+            <View style={styles.infoItem}>
+              <Text style={styles.label}>Contact:</Text>
+              <Text style={styles.value}>{reportData.driver_details?.contact_number || 'N/A'}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.label}>Address:</Text>
+              <Text style={styles.value}>{reportData.driver_details?.address1 || 'N/A'}</Text>
+            </View>
           </View>
         </View>
-      </View>
-    </Page>
-  </Document>
-);
+
+        {/* Report Dates */}
+        <View style={styles.section}>
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <Text style={styles.label}>Report Date:</Text>
+              <Text style={styles.value}>
+                {reportData.driver_details?.report_date ? moment(reportData.driver_details.report_date).format('YYYY-MM-DD') : 'N/A'}
+              </Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.label}>Generation Date:</Text>
+              <Text style={styles.value}>
+                {reportData.driver_details?.generate_date ? moment(reportData.driver_details.generate_date).format('YYYY-MM-DD') : 'N/A'}
+              </Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.label}>Search Period:</Text>
+              <Text style={styles.value}>
+                {reportData.driver_details?.search_from || 'N/A'} - {reportData.driver_details?.search_to || 'N/A'}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Load Details */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Load Details</Text>
+          <View style={styles.table}>
+            {/* Table Header */}
+            <View style={[styles.tableRow, styles.tableHeader]}>
+              <Text style={styles.tableCell}>Load #</Text>
+              <Text style={styles.tableCell}>Pickup</Text>
+              <Text style={styles.tableCell}>Delivery</Text>
+              <Text style={styles.tableCell}>Rate</Text>
+              <Text style={styles.tableCell}>Notes</Text>
+              <Text style={styles.tableCell}>Total Pay</Text>
+            </View>
+
+            {/* Table Body */}
+            {reportData.loads?.map((load, index) => (
+              <View key={index} style={styles.tableRow}>
+                <Text style={styles.tableCell}>{load.load_number || 'N/A'}</Text>
+                <View style={[styles.tableCell, styles.loadDetails]}>
+                  <Text style={styles.date}>{load.pickup?.date || 'N/A'}</Text>
+                  <Text style={styles.location}>{load.pickup?.location || 'N/A'}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.loadDetails]}>
+                  <Text style={styles.date}>{load.delivery?.date || 'N/A'}</Text>
+                  <Text style={styles.location}>{load.delivery?.location || 'N/A'}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.rateDetails]}>
+                  <Text style={styles.amount}>${load.rate?.amount?.toFixed(2) || '0.00'}</Text>
+                  <Text style={styles.calculation}>* {load.rate?.percentage || '0'}%</Text>
+                  <Text style={styles.total}>${load.rate?.total?.toFixed(2) || '0.00'}</Text>
+                </View>
+                <Text style={styles.tableCell}>{load.notes || 'N/A'}</Text>
+                <Text style={[styles.tableCell, styles.total]}>
+                  ${load.total_pay?.toFixed(2) || '0.00'}
+                </Text>
+              </View>
+            ))}
+
+            {/* Summary Row */}
+            <View style={[styles.tableRow, styles.summaryRow]}>
+              <Text style={[styles.tableCell, { flex: 5 }]}>Total Pay:</Text>
+              <Text style={styles.grandTotal}>
+                ${reportData.total_pay?.toFixed(2) || '0.00'} USD
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Page>
+    </Document>
+  );
+};
 
 export default PayReportPDF; 

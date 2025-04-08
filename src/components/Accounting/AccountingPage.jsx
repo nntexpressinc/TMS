@@ -73,20 +73,31 @@ const AccountingPage = () => {
         throw new Error('Report ma\'lumotlari mavjud emas');
       }
       
-      const blob = await pdf(<PayReportPDF reportData={reportData} />).toBlob();
-      console.log('PDF blob yaratildi:', blob);
+      let blob;
+      try {
+        blob = await pdf(<PayReportPDF reportData={reportData} />).toBlob();
+        console.log('PDF blob yaratildi:', blob);
+      } catch (pdfError) {
+        console.error('PDF yaratishda xatolik:', pdfError);
+        throw new Error('PDF yaratishda xatolik: ' + pdfError.message);
+      }
       
-      const url = window.URL.createObjectURL(blob);
-      console.log('URL yaratildi:', url);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `driver-pay-report-${moment().format('YYYY-MM-DD')}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      console.log('PDF yuklab olish jarayoni yakunlandi');
+      try {
+        const url = window.URL.createObjectURL(blob);
+        console.log('URL yaratildi:', url);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `driver-pay-report-${moment().format('YYYY-MM-DD')}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        console.log('PDF yuklab olish jarayoni yakunlandi');
+      } catch (downloadError) {
+        console.error('PDF yuklab olishda xatolik:', downloadError);
+        throw new Error('PDF yuklab olishda xatolik: ' + downloadError.message);
+      }
     } catch (error) {
       console.error('PDF yaratishda xatolik:', error);
       setError(t('Failed to generate PDF: ') + error.message);
