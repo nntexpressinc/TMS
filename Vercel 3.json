@@ -1,6 +1,0 @@
-{
-    "build": {
-        "command": "npm install -g npm@11.2.0 && npm run build"
-    }
-}
-  
