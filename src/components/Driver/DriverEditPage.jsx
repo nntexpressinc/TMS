@@ -1,45 +1,46 @@
 import React, { useState, useEffect } from "react";
 import { Box, Button, TextField, Typography, Paper, MenuItem, FormControl, InputLabel, Select, OutlinedInput } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ApiService } from "../../../api/auth";
-import './DriverCreatePage.css';
+import './create.DriverCreatePage.css';
 import TagInput from "./TagInput";
 
-const DriverCreatePage = () => {
+const DriverEditPage = () => {
+  const { id } = useParams();
   const [driverData, setDriverData] = useState({
-    escrow_deposit: 0,  // Yetishmayotgan field qo'shildi
     first_name: "",
     last_name: "",
     contact_number: "",
     birth_date: "",
-    employment_status: "ACTIVE (DF)",
+    employment_status: "",
     telegram_username: "",
-    driver_status: "Available",
+    driver_status: "",
     company_name: "",
     email_address: "",
     password: "",
     driver_license_id: "",
-    dl_class: "Unknown",
-    driver_type: "COMPANY_DRIVER",
-    driver_license_state: "AL",
+    dl_class: "",
+    driver_type: "",
+    driver_license_state: "",
     driver_license_expiration: "",
     address1: "",
     address2: "",
     country: "",
-    state: "AL",
+    state: "",
     city: "",
     zip_code: "",
     other_id: "",
     notes: "",
     tariff: 0,
     mc_number: "",
-    team_driver: "DRIVER_2",
+    team_driver: "",
     permile: 0,
     cost: 0,
     payd: 0,
-    assigned_truck: 0,
-    assigned_trailer: 0,
-    assigned_dispatcher: 0,
+    escrow_deposit: 0,
+    assigned_truck: "",
+    assigned_trailer: "",
+    assigned_dispatcher: "",
     driver_tags: ""
   });
 
@@ -53,6 +54,17 @@ const DriverCreatePage = () => {
       const storedAccessToken = localStorage.getItem("accessToken");
       if (storedAccessToken) {
         try {
+          // Fetch driver data
+          const driverDetails = await ApiService.getData(`/driver/${id}/`, storedAccessToken);
+          setDriverData(prevData => ({
+            ...prevData,
+            ...driverDetails,
+            birth_date: driverDetails.birth_date || "",
+            driver_license_expiration: driverDetails.driver_license_expiration || "",
+            escrow_deposit: driverDetails.escrow_deposit || 0
+          }));
+
+          // Fetch related data
           const trucksData = await ApiService.getData(`/truck/`, storedAccessToken);
           const trailersData = await ApiService.getData(`/trailer/`, storedAccessToken);
           const dispatchersData = await ApiService.getData(`/dispatcher/`, storedAccessToken);
@@ -66,7 +78,7 @@ const DriverCreatePage = () => {
     };
 
     fetchData();
-  }, []);
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -79,12 +91,12 @@ const DriverCreatePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await ApiService.postData("/driver/", driverData);
+      const response = await ApiService.updateData(`/driver/${id}/`, driverData);
       if (response) {
         navigate("/driver");
       }
     } catch (error) {
-      console.error("Error creating driver:", error);
+      console.error("Error updating driver:", error);
     }
   };
 
@@ -92,12 +104,12 @@ const DriverCreatePage = () => {
     <Box className="create-driver-container">
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h4" gutterBottom>
-          Create Driver
+          Edit Driver
         </Typography>
         <TagInput driverData={driverData} handleChange={handleChange} />
       </Box>
       <form onSubmit={handleSubmit}>
-        <Box sx={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'flex-start', gap: 2 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'nowrap', alignItems:'flex-start', gap: 2 }}>
           <Paper sx={{ p: 2, mb: 2, flex: '1 1 45%' }}>
             <Typography variant="h6" gutterBottom>
               Personal Information
@@ -151,15 +163,6 @@ const DriverCreatePage = () => {
               margin="normal"
             />
             <TextField
-              label="Escrow Deposit"
-              name="escrow_deposit"
-              type="number"
-              value={driverData.escrow_deposit}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-            />
-            <TextField
               label="Email Address"
               name="email_address"
               type="email"
@@ -177,7 +180,6 @@ const DriverCreatePage = () => {
               onChange={handleChange}
               fullWidth
               margin="normal"
-              required
             />
           </Paper>
           <Paper sx={{ p: 2, mb: 2, flex: '1 1 45%' }}>
@@ -210,15 +212,67 @@ const DriverCreatePage = () => {
                 <MenuItem value="Other">Other</MenuItem>
               </Select>
             </FormControl>
-            <TextField
-              label="Driver License State"
-              name="driver_license_state"
-              value={driverData.driver_license_state}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-              required
-            />
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Driver License State</InputLabel>
+              <Select
+                name="driver_license_state"
+                value={driverData.driver_license_state}
+                onChange={handleChange}
+                input={<OutlinedInput />}
+              >
+                {/* STATE_CHOICES ni Django modelidan olish kerak */}
+                <MenuItem value="AL">Alabama</MenuItem>
+                <MenuItem value="AK">Alaska</MenuItem>
+                <MenuItem value="AZ">Arizona</MenuItem>
+                <MenuItem value="AR">Arkansas</MenuItem>
+                <MenuItem value="CA">California</MenuItem>
+                <MenuItem value="CO">Colorado</MenuItem>
+                <MenuItem value="CT">Connecticut</MenuItem>
+                <MenuItem value="DE">Delaware</MenuItem>
+                <MenuItem value="FL">Florida</MenuItem>
+                <MenuItem value="GA">Georgia</MenuItem>
+                <MenuItem value="HI">Hawaii</MenuItem>
+                <MenuItem value="ID">Idaho</MenuItem>
+                <MenuItem value="IL">Illinois</MenuItem>
+                <MenuItem value="IN">Indiana</MenuItem>
+                <MenuItem value="IA">Iowa</MenuItem>
+                <MenuItem value="KS">Kansas</MenuItem>
+                <MenuItem value="KY">Kentucky</MenuItem>
+                <MenuItem value="LA">Louisiana</MenuItem>
+                <MenuItem value="ME">Maine</MenuItem>
+                <MenuItem value="MD">Maryland</MenuItem>
+                <MenuItem value="MA">Massachusetts</MenuItem>
+                <MenuItem value="MI">Michigan</MenuItem>
+                <MenuItem value="MN">Minnesota</MenuItem>
+                <MenuItem value="MS">Mississippi</MenuItem>
+                <MenuItem value="MO">Missouri</MenuItem>
+                <MenuItem value="MT">Montana</MenuItem>
+                <MenuItem value="NE">Nebraska</MenuItem>
+                <MenuItem value="NV">Nevada</MenuItem>
+                <MenuItem value="NH">New Hampshire</MenuItem>
+                <MenuItem value="NJ">New Jersey</MenuItem>
+                <MenuItem value="NM">New Mexico</MenuItem>
+                <MenuItem value="NY">New York</MenuItem>
+                <MenuItem value="NC">North Carolina</MenuItem>
+                <MenuItem value="ND">North Dakota</MenuItem>
+                <MenuItem value="OH">Ohio</MenuItem>
+                <MenuItem value="OK">Oklahoma</MenuItem>
+                <MenuItem value="OR">Oregon</MenuItem>
+                <MenuItem value="PA">Pennsylvania</MenuItem>
+                <MenuItem value="RI">Rhode Island</MenuItem>
+                <MenuItem value="SC">South Carolina</MenuItem>
+                <MenuItem value="SD">South Dakota</MenuItem>
+                <MenuItem value="TN">Tennessee</MenuItem>
+                <MenuItem value="TX">Texas</MenuItem>
+                <MenuItem value="UT">Utah</MenuItem>
+                <MenuItem value="VT">Vermont</MenuItem>
+                <MenuItem value="VA">Virginia</MenuItem>
+                <MenuItem value="WA">Washington</MenuItem>
+                <MenuItem value="WV">West Virginia</MenuItem>
+                <MenuItem value="WI">Wisconsin</MenuItem>
+                <MenuItem value="WY">Wyoming</MenuItem>
+              </Select>
+            </FormControl>
             <TextField
               label="Driver License Expiration"
               name="driver_license_expiration"
@@ -390,6 +444,14 @@ const DriverCreatePage = () => {
                 <MenuItem value="RENTAL">Rental</MenuItem>
               </Select>
             </FormControl>
+            <TextField
+              label="Company Name"
+              name="company_name"
+              value={driverData.company_name}
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
+            />
           </Paper>
           <Paper sx={{ p: 2, mb: 2, flex: '1 1 45%' }}>
             <Typography variant="h6" gutterBottom>
@@ -410,6 +472,8 @@ const DriverCreatePage = () => {
               onChange={handleChange}
               fullWidth
               margin="normal"
+              multiline
+              rows={2}
             />
             <TextField
               label="Tariff"
@@ -428,14 +492,19 @@ const DriverCreatePage = () => {
               fullWidth
               margin="normal"
             />
-            <TextField
-              label="Team Driver"
-              name="team_driver"
-              value={driverData.team_driver}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-            />
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Team Driver</InputLabel>
+              <Select
+                name="team_driver"
+                value={driverData.team_driver}
+                onChange={handleChange}
+                input={<OutlinedInput />}
+              >
+                <MenuItem value="DRIVER_2">Driver 2</MenuItem>
+                <MenuItem value="ASSIGNED_DISPATCHER">Assigned Dispatcher</MenuItem>
+                <MenuItem value="PERCENT_SALARY">Percent Salary</MenuItem>
+              </Select>
+            </FormControl>
             <TextField
               label="Per Mile"
               name="permile"
@@ -463,14 +532,24 @@ const DriverCreatePage = () => {
               fullWidth
               margin="normal"
             />
+            <TextField
+              label="Escrow Deposit"
+              name="escrow_deposit"
+              type="number"
+              value={driverData.escrow_deposit}
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
+            />
             <FormControl fullWidth margin="normal">
               <InputLabel>Assigned Truck</InputLabel>
               <Select
                 name="assigned_truck"
-                value={driverData.assigned_truck}
+                value={driverData.assigned_truck || ""}
                 onChange={handleChange}
                 input={<OutlinedInput />}
               >
+                <MenuItem value="">None</MenuItem>
                 {trucks.map((truck) => (
                   <MenuItem key={truck.id} value={truck.id}>
                     {truck.make} {truck.model}
@@ -482,10 +561,11 @@ const DriverCreatePage = () => {
               <InputLabel>Assigned Trailer</InputLabel>
               <Select
                 name="assigned_trailer"
-                value={driverData.assigned_trailer}
+                value={driverData.assigned_trailer || ""}
                 onChange={handleChange}
                 input={<OutlinedInput />}
               >
+                <MenuItem value="">None</MenuItem>
                 {trailers.map((trailer) => (
                   <MenuItem key={trailer.id} value={trailer.id}>
                     {trailer.make} {trailer.model}
@@ -497,10 +577,11 @@ const DriverCreatePage = () => {
               <InputLabel>Assigned Dispatcher</InputLabel>
               <Select
                 name="assigned_dispatcher"
-                value={driverData.assigned_dispatcher}
+                value={driverData.assigned_dispatcher || ""}
                 onChange={handleChange}
                 input={<OutlinedInput />}
               >
+                <MenuItem value="">None</MenuItem>
                 {dispatchers.map((dispatcher) => (
                   <MenuItem key={dispatcher.id} value={dispatcher.id}>
                     {dispatcher.first_name} {dispatcher.last_name}
@@ -511,8 +592,16 @@ const DriverCreatePage = () => {
           </Paper>
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+          <Button 
+            onClick={() => navigate("/driver")} 
+            variant="outlined" 
+            color="secondary" 
+            sx={{ mr: 2 }}
+          >
+            Cancel
+          </Button>
           <Button type="submit" variant="contained" color="primary">
-            Create
+            Update
           </Button>
         </Box>
       </form>
@@ -520,4 +609,4 @@ const DriverCreatePage = () => {
   );
 };
 
-export default DriverCreatePage;
+export default DriverEditPage;

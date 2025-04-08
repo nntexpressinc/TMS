@@ -196,6 +196,7 @@ const DriverPage = () => {
     { field: 'tariff', headerName: 'Tariff', width: 100 },
     { field: 'mc_number', headerName: 'MC Number', width: 150 },
     { field: 'team_driver', headerName: 'Team Driver', width: 150 },
+    { field: 'escrow_deposit', headerName: 'Escrow Deposit', width: 150 },
     { field: 'permile', headerName: 'Per Mile', width: 100 },
     { field: 'cost', headerName: 'Cost', width: 100 },
     { field: 'payd', headerName: 'Payd', width: 100 },
