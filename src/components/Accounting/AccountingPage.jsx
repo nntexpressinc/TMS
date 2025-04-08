@@ -16,18 +16,20 @@ const AccountingPage = () => {
   const [drivers, setDrivers] = useState([]);
   const [error, setError] = useState('');
 
+  // Fetch drivers on mount
   useEffect(() => {
     const fetchDrivers = async () => {
       try {
         const data = await getDrivers();
         setDrivers(data);
-      } catch (error) {
+      } catch (err) {
         setError(t('Failed to fetch drivers'));
       }
     };
     fetchDrivers();
   }, [t]);
 
+  // Validate form fields
   const validateFields = () => {
     if (!dateRange.startDate || !dateRange.endDate) {
       setError(t('Please select a valid date range'));
@@ -41,71 +43,56 @@ const AccountingPage = () => {
     return true;
   };
 
+  // Generate report
   const generateReport = async (e) => {
     e.preventDefault();
     if (!validateFields()) return;
 
     try {
       setLoading(true);
-      const data = {
+      const requestData = {
         pay_from: dateRange.startDate,
         pay_to: dateRange.endDate,
         driver: Number(selectedDriver),
         notes: notes || '',
       };
 
-      const response = await getDriverPayReport(data);
-      setReportData(response);
+      const response = await getDriverPayReport(requestData);
+      console.log('Report data received:', response);
+      setReportData(response); // Set raw API response
       setError('');
-    } catch (error) {
+    } catch (err) {
+      console.error('Error fetching report:', err);
       setError(t('Failed to generate report'));
     } finally {
       setLoading(false);
     }
   };
 
+  // Download PDF
   const downloadPDF = async () => {
     try {
-      console.log('PDF yaratish jarayoni boshlandi');
-      console.log('reportData:', reportData);
-      
       if (!reportData) {
-        throw new Error('Report ma\'lumotlari mavjud emas');
+        throw new Error('No report data available');
       }
-      
-      let blob;
-      try {
-        blob = await pdf(<PayReportPDF reportData={reportData} />).toBlob();
-        console.log('PDF blob yaratildi:', blob);
-      } catch (pdfError) {
-        console.error('PDF yaratishda xatolik:', pdfError);
-        throw new Error('PDF yaratishda xatolik: ' + pdfError.message);
-      }
-      
-      try {
-        const url = window.URL.createObjectURL(blob);
-        console.log('URL yaratildi:', url);
-        
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `driver-pay-report-${moment().format('YYYY-MM-DD')}.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        link.parentNode.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        console.log('PDF yuklab olish jarayoni yakunlandi');
-      } catch (downloadError) {
-        console.error('PDF yuklab olishda xatolik:', downloadError);
-        throw new Error('PDF yuklab olishda xatolik: ' + downloadError.message);
-      }
-    } catch (error) {
-      console.error('PDF yaratishda xatolik:', error);
-      setError(t('Failed to generate PDF: ') + error.message);
+      const blob = await pdf(<PayReportPDF reportData={reportData} />).toBlob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `driver-pay-report-${moment().format('YYYY-MM-DD')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      setError(t('Failed to generate PDF: ') + err.message);
     }
   };
 
   return (
     <div className="accounting-page">
+      {/* Search Section */}
       <div className="search-section">
         <h2 className="section-title">{t('Driver Pay Report')}</h2>
         <form onSubmit={generateReport} className="search-form">
@@ -164,6 +151,7 @@ const AccountingPage = () => {
             </button>
             {reportData && (
               <button
+                type="button"
                 onClick={downloadPDF}
                 className="btn btn-secondary"
                 disabled={loading}
@@ -172,56 +160,77 @@ const AccountingPage = () => {
               </button>
             )}
           </div>
-        </form>
+            </form>
       </div>
 
+      {/* Report Section */}
       {reportData && (
         <div className="report-section">
           <div className="report-header">
+            {/* Company Info */}
             <div className="company-info">
-              <h3>{reportData.company_info.name}</h3>
-              <p>{reportData.company_info.address}</p>
-              <p>{reportData.company_info.location}</p>
-              <p>{t('Phone')}: {reportData.company_info.phone}</p>
-              {reportData.company_info.fax && <p>{t('Fax')}: {reportData.company_info.fax}</p>}
+              <h3>{reportData.user_admin?.company_name || t('N/A')}</h3>
+              <p>{reportData.user_admin?.address || t('N/A')}</p>
+              <p>{reportData.user_admin?.country || t('N/A')}</p>
+              <p>{t('Phone')}: {reportData.user_admin?.telephone || t('N/A')}</p>
+              {reportData.user_admin?.fax && (
+                <p>{t('Fax')}: {reportData.user_admin.fax}</p>
+              )}
+              <p>{t('Email')}: {reportData.user_admin?.email || t('N/A')}</p>
             </div>
 
+            {/* Driver Info */}
             <div className="driver-info">
               <h4>{t('Driver Information')}</h4>
               <div className="info-grid">
                 <div className="info-item">
                   <label>{t('Name')}:</label>
-                  <span>{reportData.driver_details.first_name} {reportData.driver_details.last_name}</span>
+                  <span>
+                    {reportData.driver?.first_name || ''} {reportData.driver?.last_name || ''}
+                  </span>
                 </div>
                 <div className="info-item">
                   <label>{t('Contact')}:</label>
-                  <span>{reportData.driver_details.contact_number || 'N/A'}</span>
+                  <span>{reportData.driver?.contact_number || t('N/A')}</span>
                 </div>
                 <div className="info-item">
                   <label>{t('Address')}:</label>
-                  <span>{reportData.driver_details.address1 || 'N/A'}</span>
+                  <span>{reportData.driver?.address1 || t('N/A')}</span>
                 </div>
               </div>
             </div>
 
+            {/* Report Dates */}
             <div className="report-dates">
               <div className="info-grid">
                 <div className="info-item">
                   <label>{t('Report Date')}:</label>
-                  <span>{moment(reportData.driver_details.report_date).format('YYYY-MM-DD')}</span>
+                  <span>
+                    {reportData.driver?.report_date
+                      ? moment(reportData.driver.report_date).format('YYYY-MM-DD')
+                      : t('N/A')}
+                  </span>
                 </div>
                 <div className="info-item">
                   <label>{t('Generation Date')}:</label>
-                  <span>{moment(reportData.driver_details.generate_date).format('YYYY-MM-DD')}</span>
+                  <span>
+                    {reportData.driver?.generate_date
+                      ? moment(reportData.driver.generate_date).format('YYYY-MM-DD')
+                      : t('N/A')}
+                  </span>
                 </div>
                 <div className="info-item">
                   <label>{t('Search Period')}:</label>
-                  <span>{reportData.driver_details.search_from} - {reportData.driver_details.search_to}</span>
+                  <span>
+                    {reportData.driver?.search_from || t('N/A')} -{' '}
+                    {reportData.driver?.search_to || t('N/A')}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Loads Section */}
           <div className="loads-section">
             <h4>{t('Load Details')}</h4>
             <div className="table-container">
@@ -237,33 +246,18 @@ const AccountingPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {reportData.loads?.map((load, index) => (
-                    <tr key={index}>
-                      <td>{load.load_number}</td>
-                      <td>
-                        <div className="load-details">
-                          <span className="date">{load.pickup.date}</span>
-                          <span className="location">{load.pickup.location}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="load-details">
-                          <span className="date">{load.delivery.date}</span>
-                          <span className="location">{load.delivery.location}</span>
-                        </div>
-                      </td>
-                      <td className="rate">
-                        <div className="rate-details">
-                          <span className="amount">${load.rate.amount.toFixed(2)}</span>
-                          <span className="calculation">* {load.rate.percentage}%</span>
-                          <span className="total">${load.rate.total.toFixed(2)}</span>
-                        </div>
-                      </td>
-                      <td>{load.notes}</td>
-                      <td className="total-pay">${load.total_pay.toFixed(2)}</td>
-                    </tr>
-                  ))}
-                  {(!reportData.loads || reportData.loads.length === 0) && (
+                  {reportData.loads && reportData.loads.length > 0 ? (
+                    reportData.loads.map((load, index) => (
+                      <tr key={index}>
+                        <td>{load['Load #'] || t('N/A')}</td>
+                        <td>{load.Pickup || t('N/A')}</td>
+                        <td>{load.Delivery || t('N/A')}</td>
+                        <td>{load.Rate || t('N/A')}</td>
+                        <td>{load.Notes || '-'}</td>
+                        <td className="total-pay">{load['Total Pay'] || t('N/A')}</td>
+                      </tr>
+                    ))
+                  ) : (
                     <tr>
                       <td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>
                         {t('No loads found for this period')}
@@ -271,13 +265,64 @@ const AccountingPage = () => {
                     </tr>
                   )}
                 </tbody>
-                <tfoot>
-                  <tr className="summary-row">
-                    <td colSpan="5">{t('Total Pay')}:</td>
-                    <td className="grand-total">${reportData.total_pay.toFixed(2)} USD</td>
-                  </tr>
-                </tfoot>
               </table>
+            </div>
+          </div>
+
+          {/* Expenses Section */}
+          <div className="expenses-section">
+            <h4>{t('Expenses and Income')}</h4>
+            <div className="table-container">
+              <table className="expenses-table">
+                <thead>
+                  <tr>
+                    <th>{t('Description')}</th>
+                    <th>{t('Amount')}</th>
+                    <th>{t('Type')}</th>
+                    <th>{t('Date')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.expenses && reportData.expenses.length > 0 ? (
+                    reportData.expenses.map((expense, index) => (
+                      <tr key={index}>
+                        <td>{expense.Description || t('N/A')}</td>
+                        <td>{expense.Amount || t('N/A')}</td>
+                        <td>{expense.Type || t('N/A')}</td>
+                        <td>{expense.Date || t('N/A')}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
+                        {t('No expenses found for this period')}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Summary Section */}
+          <div className="summary-section">
+            <div className="summary-grid">
+              <div className="summary-item">
+                <label>{t('Total Expenses')}:</label>
+                <span>{reportData.total_expenses || t('N/A')}</span>
+              </div>
+              <div className="summary-item">
+                <label>{t('Total Income')}:</label>
+                <span>{reportData.total_income || t('N/A')}</span>
+              </div>
+              <div className="summary-item">
+                <label>{t('Escrow Deduction')}:</label>
+                <span>{reportData.escrow_deduction || t('N/A')}</span>
+              </div>
+              <div className="summary-item total">
+                <label>{t('Total Pay')}:</label>
+                <span>{reportData.total_pay || t('N/A')}</span>
+              </div>
             </div>
           </div>
         </div>

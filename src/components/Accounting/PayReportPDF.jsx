@@ -20,6 +20,13 @@ const styles = StyleSheet.create({
     padding: 40,
     fontFamily: 'Roboto',
   },
+  header: {
+    marginBottom: 30,
+    textAlign: 'center',
+    borderBottom: 1,
+    borderBottomColor: '#e5e7eb',
+    paddingBottom: 20,
+  },
   companyInfo: {
     marginBottom: 20,
     textAlign: 'center',
@@ -28,6 +35,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 700,
     marginBottom: 8,
+    color: '#111827',
   },
   companyDetails: {
     fontSize: 12,
@@ -35,14 +43,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 25,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: 700,
-    marginBottom: 10,
+    marginBottom: 15,
     color: '#111827',
-    paddingBottom: 5,
+    paddingBottom: 8,
     borderBottom: 1,
     borderBottomColor: '#e5e7eb',
   },
@@ -53,16 +61,18 @@ const styles = StyleSheet.create({
   },
   infoItem: {
     width: '33%',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   label: {
     fontSize: 10,
     color: '#6b7280',
-    marginBottom: 2,
+    marginBottom: 4,
+    textTransform: 'uppercase',
   },
   value: {
     fontSize: 12,
     color: '#111827',
+    fontWeight: 500,
   },
   table: {
     display: 'table',
@@ -129,6 +139,65 @@ const styles = StyleSheet.create({
     color: '#059669',
     fontWeight: 700,
   },
+  expensesSection: {
+    marginTop: 20,
+  },
+  expenseRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    padding: 8,
+  },
+  expenseLabel: {
+    flex: 2,
+    fontSize: 10,
+  },
+  expenseAmount: {
+    flex: 1,
+    fontSize: 10,
+    textAlign: 'right',
+  },
+  expenseType: {
+    flex: 1,
+    fontSize: 10,
+    textAlign: 'center',
+  },
+  expenseDate: {
+    flex: 1,
+    fontSize: 10,
+    textAlign: 'right',
+  },
+  finalSummary: {
+    marginTop: 30,
+    padding: 15,
+    backgroundColor: '#f9fafb',
+    borderRadius: 4,
+    border: 1,
+    borderColor: '#e5e7eb',
+  },
+  finalSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  finalSummaryLabel: {
+    fontSize: 12,
+    fontWeight: 500,
+    color: '#374151',
+  },
+  finalSummaryValue: {
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 40,
+    right: 40,
+    textAlign: 'center',
+    fontSize: 10,
+    color: '#6b7280',
+  },
 });
 
 const PayReportPDF = ({ reportData }) => {
@@ -136,7 +205,7 @@ const PayReportPDF = ({ reportData }) => {
     return (
       <Document>
         <Page size="A4" style={styles.page}>
-          <Text>Ma'lumotlar mavjud emas</Text>
+          <Text>No data available</Text>
         </Page>
       </Document>
     );
@@ -145,15 +214,16 @@ const PayReportPDF = ({ reportData }) => {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Company Info */}
-        <View style={styles.companyInfo}>
-          <Text style={styles.companyName}>{reportData.company_info?.name || 'N/A'}</Text>
-          <Text style={styles.companyDetails}>{reportData.company_info?.address || 'N/A'}</Text>
-          <Text style={styles.companyDetails}>{reportData.company_info?.location || 'N/A'}</Text>
-          <Text style={styles.companyDetails}>Phone: {reportData.company_info?.phone || 'N/A'}</Text>
-          {reportData.company_info?.fax && (
-            <Text style={styles.companyDetails}>Fax: {reportData.company_info.fax}</Text>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.companyName}>{reportData.user_admin.company_name}</Text>
+          <Text style={styles.companyDetails}>{reportData.user_admin.address}</Text>
+          <Text style={styles.companyDetails}>{reportData.user_admin.country}</Text>
+          <Text style={styles.companyDetails}>Phone: {reportData.user_admin.telephone}</Text>
+          {reportData.user_admin.fax && (
+            <Text style={styles.companyDetails}>Fax: {reportData.user_admin.fax}</Text>
           )}
+          <Text style={styles.companyDetails}>Email: {reportData.user_admin.email}</Text>
         </View>
 
         {/* Driver Info */}
@@ -163,16 +233,16 @@ const PayReportPDF = ({ reportData }) => {
             <View style={styles.infoItem}>
               <Text style={styles.label}>Name:</Text>
               <Text style={styles.value}>
-                {reportData.driver_details?.first_name || 'N/A'} {reportData.driver_details?.last_name || 'N/A'}
+                {reportData.driver.first_name} {reportData.driver.last_name}
               </Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.label}>Contact:</Text>
-              <Text style={styles.value}>{reportData.driver_details?.contact_number || 'N/A'}</Text>
+              <Text style={styles.value}>{reportData.driver.contact_number}</Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.label}>Address:</Text>
-              <Text style={styles.value}>{reportData.driver_details?.address1 || 'N/A'}</Text>
+              <Text style={styles.value}>{reportData.driver.address1}</Text>
             </View>
           </View>
         </View>
@@ -183,19 +253,19 @@ const PayReportPDF = ({ reportData }) => {
             <View style={styles.infoItem}>
               <Text style={styles.label}>Report Date:</Text>
               <Text style={styles.value}>
-                {reportData.driver_details?.report_date ? moment(reportData.driver_details.report_date).format('YYYY-MM-DD') : 'N/A'}
+                {moment(reportData.driver.report_date).format('YYYY-MM-DD')}
               </Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.label}>Generation Date:</Text>
               <Text style={styles.value}>
-                {reportData.driver_details?.generate_date ? moment(reportData.driver_details.generate_date).format('YYYY-MM-DD') : 'N/A'}
+                {moment(reportData.driver.generate_date).format('YYYY-MM-DD')}
               </Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.label}>Search Period:</Text>
               <Text style={styles.value}>
-                {reportData.driver_details?.search_from || 'N/A'} - {reportData.driver_details?.search_to || 'N/A'}
+                {reportData.driver.search_from} - {reportData.driver.search_to}
               </Text>
             </View>
           </View>
@@ -216,38 +286,72 @@ const PayReportPDF = ({ reportData }) => {
             </View>
 
             {/* Table Body */}
-            {reportData.loads?.map((load, index) => (
+            {reportData.loads.map((load, index) => (
               <View key={index} style={styles.tableRow}>
-                <Text style={styles.tableCell}>{load.load_number || 'N/A'}</Text>
+                <Text style={styles.tableCell}>{load['Load #']}</Text>
                 <View style={[styles.tableCell, styles.loadDetails]}>
-                  <Text style={styles.date}>{load.pickup?.date || 'N/A'}</Text>
-                  <Text style={styles.location}>{load.pickup?.location || 'N/A'}</Text>
+                  <Text style={styles.date}>{load.Pickup}</Text>
                 </View>
                 <View style={[styles.tableCell, styles.loadDetails]}>
-                  <Text style={styles.date}>{load.delivery?.date || 'N/A'}</Text>
-                  <Text style={styles.location}>{load.delivery?.location || 'N/A'}</Text>
+                  <Text style={styles.date}>{load.Delivery}</Text>
                 </View>
                 <View style={[styles.tableCell, styles.rateDetails]}>
-                  <Text style={styles.amount}>${load.rate?.amount?.toFixed(2) || '0.00'}</Text>
-                  <Text style={styles.calculation}>* {load.rate?.percentage || '0'}%</Text>
-                  <Text style={styles.total}>${load.rate?.total?.toFixed(2) || '0.00'}</Text>
+                  <Text style={styles.amount}>{load.Rate}</Text>
                 </View>
-                <Text style={styles.tableCell}>{load.notes || 'N/A'}</Text>
+                <Text style={styles.tableCell}>{load.Notes || '-'}</Text>
                 <Text style={[styles.tableCell, styles.total]}>
-                  ${load.total_pay?.toFixed(2) || '0.00'}
+                  {load['Total Pay']}
                 </Text>
               </View>
             ))}
-
-            {/* Summary Row */}
-            <View style={[styles.tableRow, styles.summaryRow]}>
-              <Text style={[styles.tableCell, { flex: 5 }]}>Total Pay:</Text>
-              <Text style={styles.grandTotal}>
-                ${reportData.total_pay?.toFixed(2) || '0.00'} USD
-              </Text>
-            </View>
           </View>
         </View>
+
+        {/* Expenses Section */}
+        <View style={styles.expensesSection}>
+          <Text style={styles.sectionTitle}>Expenses and Income</Text>
+          <View style={styles.table}>
+            <View style={[styles.tableRow, styles.tableHeader]}>
+              <Text style={styles.tableCell}>Description</Text>
+              <Text style={styles.tableCell}>Amount</Text>
+              <Text style={styles.tableCell}>Type</Text>
+              <Text style={styles.tableCell}>Date</Text>
+            </View>
+            {reportData.expenses.map((expense, index) => (
+              <View key={index} style={styles.expenseRow}>
+                <Text style={styles.expenseLabel}>{expense.Description}</Text>
+                <Text style={styles.expenseAmount}>{expense.Amount}</Text>
+                <Text style={styles.expenseType}>{expense.Type}</Text>
+                <Text style={styles.expenseDate}>{expense.Date}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Final Summary */}
+        <View style={styles.finalSummary}>
+          <View style={styles.finalSummaryRow}>
+            <Text style={styles.finalSummaryLabel}>Total Expenses:</Text>
+            <Text style={styles.finalSummaryValue}>{reportData.total_expenses}</Text>
+          </View>
+          <View style={styles.finalSummaryRow}>
+            <Text style={styles.finalSummaryLabel}>Total Income:</Text>
+            <Text style={styles.finalSummaryValue}>{reportData.total_income}</Text>
+          </View>
+          <View style={styles.finalSummaryRow}>
+            <Text style={styles.finalSummaryLabel}>Escrow Deduction:</Text>
+            <Text style={styles.finalSummaryValue}>{reportData.escrow_deduction}</Text>
+          </View>
+          <View style={[styles.finalSummaryRow, { marginTop: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 10 }]}>
+            <Text style={[styles.finalSummaryLabel, { fontWeight: 700 }]}>Total Pay:</Text>
+            <Text style={[styles.finalSummaryValue, { color: '#059669' }]}>{reportData.total_pay}</Text>
+          </View>
+        </View>
+
+        {/* Footer */}
+        <Text style={styles.footer}>
+          Generated on {moment().format('MMMM D, YYYY')} at {moment().format('h:mm A')}
+        </Text>
       </Page>
     </Document>
   );
