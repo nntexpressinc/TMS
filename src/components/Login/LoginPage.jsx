@@ -5,7 +5,7 @@ import { TextField, Button } from "@mui/material";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import Loader1 from "../loader/loader1";
 import { lightLogo } from "../../images";
-import toast from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 
@@ -42,8 +42,8 @@ const LoginPage = () => {
           }
         );
       } else {
-        setError("Brauzer geolokatsiyani qo‘llab-quvvatlamaydi");
-        toast.error("Brauzer geolokatsiyani qo‘llab-quvvatlamaydi");
+        setError("Brauzer geolokatsiyani qo'llab-quvvatlamaydi");
+        toast.error("Brauzer geolokatsiyani qo'llab-quvvatlamaydi");
       }
     };
 
@@ -81,7 +81,7 @@ const LoginPage = () => {
     setError(null);
 
     try {
-      // 1. Login so‘rovi
+      // 1. Login so'rovi
       const data = { email, password };
       const response = await ApiService.postData("/auth/login/", data);
       console.log("Login Response:", response);
@@ -92,37 +92,35 @@ const LoginPage = () => {
       localStorage.setItem("userId", response.user_id);
       login();
 
-      // 2. Geolokatsiya, qurilma va sahifa holatini API’ga yuborish
+      // 2. Geolokatsiya, qurilma va sahifa holatini API'ga yuborish
       if (location && deviceInfo && pageVisibility) {
         const additionalData = {
           latitude: location.latitude,
           longitude: location.longitude,
           user: response.user_id,
-          device_info: deviceInfo, // Qurilma ma'lumotlari
-          page_status: pageVisibility, // Sahifa holati (open/hidden)
+          device_info: deviceInfo,
+          page_status: pageVisibility,
         };
-        console.log("Yuborilayotgan additionalData:", additionalData); // Debugging
+        console.log("Yuborilayotgan additionalData:", additionalData);
         try {
           const additionalResponse = await ApiService.postData("/auth/location/", additionalData);
           console.log("Additional Data Response:", additionalResponse);
         } catch (additionalError) {
-          console.error("Ma'lumotlarni saqlashda xatolik:", {
-            status: additionalError.response?.status,
-            data: additionalError.response?.data,
-            message: additionalError.message,
-          });
+          console.error("Ma'lumotlarni saqlashda xatolik:", additionalError);
           toast.error("Ma'lumotlarni saqlashda xatolik yuz berdi!");
         }
       } else {
-        throw new Error("Ma'lumotlar to‘liq emas");
+        console.error("Ma'lumotlar to'liq emas");
+        toast.error("Ma'lumotlar to'liq emas!");
       }
 
       toast.success("Login muvaffaqiyatli!");
       navigate("/dashboard", { replace: true });
     } catch (error) {
-      console.error("Login Failed:", error.response?.data || error.message);
-      setError(error.response?.data?.detail || "Email yoki parol noto‘g‘ri!");
-      toast.error("Login amalga oshmadi!");
+      console.error("Login Failed:", error);
+      const errorMessage = error.response?.data?.detail || "Email yoki parol noto'g'ri!";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

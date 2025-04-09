@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import LoginPage from "./components/Login/LoginPage";
 import DashboardPage from "./components/Dashboard/DashboardPage";
 import ProfilePage from "./components/Profile/ProfilePage";
@@ -30,6 +31,7 @@ const App = () => {
 
   return (
     <SidebarProvider>
+      <Toaster position="top-right" />
       <Router>
         <Routes>
           <Route path="/auth/login" element={<LoginPage />} />
