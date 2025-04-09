@@ -32,7 +32,6 @@ export const getDriverPayReport = async (data) => {
       pay_from: data.pay_from,
       pay_to: data.pay_to,
       driver: data.driver,
-      pay: 1,
       notes: data.notes || ''
     }, {
       headers: {

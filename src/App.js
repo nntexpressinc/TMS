@@ -23,7 +23,13 @@ import PrivateRoute from "./components/PrivateRoute";
 import Layout from "./components/Layout/Layout";
 import { SidebarProvider } from "./components/SidebarContext";
 import { useAuth } from "./context/AuthContext";
-import UsersActivesPage from "./components/UsersActives/UsersActivesPage"; // ✅ Import qildik
+import UsersActivesPage from "./components/UsersActives/UsersActivesPage"; 
+import DriverViewPage from "./components/Driver/DriverViewPage";
+import DriverPayCreatePage from "./components/Driver/create/DriverPayCreatePage";
+import DriverExpenseCreatePage from "./components/Driver/create/DriverExpenseCreatePage";
+import DriverEditPage from "./components/Driver/DriverEditPage";
+import DriverPayEditPage from './components/Driver/create/DriverPayEditPage';
+import DriverExpenseEditPage from './components/Driver/create/DriverExpenseEditPage';
 
 const App = () => {
   const { isAuthenticated: isAuth } = useAuth();
@@ -103,6 +109,54 @@ const App = () => {
               element={
                 <PrivateRoute>
                   <DriverCreatePage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="driver/:id"
+              element={
+                <PrivateRoute>
+                  <DriverViewPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="driver/:id/edit"
+              element={
+                <PrivateRoute>
+                  <DriverEditPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="driver/:id/pay/create"
+              element={
+                <PrivateRoute>
+                  <DriverPayCreatePage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="driver/:id/pay/:payId/edit"
+              element={
+                <PrivateRoute>
+                  <DriverPayEditPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="driver/:id/expense/create"
+              element={
+                <PrivateRoute>
+                  <DriverExpenseCreatePage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="driver/:id/expense/:expenseId/edit"
+              element={
+                <PrivateRoute>
+                  <DriverExpenseEditPage />
                 </PrivateRoute>
               }
             />

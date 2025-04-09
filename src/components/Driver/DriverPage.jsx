@@ -146,29 +146,18 @@ const DriverPage = () => {
           justifyContent: 'center',
           py: '4px'
         }}>
-          <Typography sx={{ 
-            whiteSpace: 'nowrap',
-            overflow: 'visible'
-          }}>
+          <Typography
+            sx={{ 
+              whiteSpace: 'nowrap',
+              overflow: 'visible',
+              cursor: 'pointer',
+              color: '#3B82F6',
+              textDecoration: 'underline'
+            }}
+            onClick={() => handleView(params.value)}
+          >
             {params.value}
           </Typography>
-          <IconButton
-            size="small"
-            onClick={() => handleCopyId(params.value)}
-            sx={{
-              padding: '4px',
-              color: copiedId === params.value ? '#10B981' : '#6B7280',
-              '&:hover': { 
-                backgroundColor: copiedId === params.value ? '#D1FAE5' : '#F3F4F6'
-              }
-            }}
-          >
-            {copiedId === params.value ? (
-              <CheckIcon sx={{ fontSize: '16px' }} />
-            ) : (
-              <ContentCopyIcon sx={{ fontSize: '16px' }} />
-            )}
-          </IconButton>
         </Box>
       )
     },
@@ -242,52 +231,6 @@ const DriverPage = () => {
           </Box>
         );
       }
-    },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 120,
-      headerAlign: 'center',
-      align: 'center',
-      pinned: 'right',
-      renderCell: (params) => (
-        <Box sx={{ 
-          display: 'flex',
-          gap: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          width: '100%',
-          height: '100%',
-          paddingTop: '4px'
-        }}>
-          <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={() => handleEdit(params.row.id)}
-              sx={{ 
-                padding: '6px',
-                color: '#6366F1',
-                '&:hover': { backgroundColor: '#EEF2FF' }
-              }}
-            >
-              <EditIcon sx={{ fontSize: '20px' }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="View">
-            <IconButton
-              size="small"
-              onClick={() => handleView(params.row.id)}
-              sx={{ 
-                padding: '6px',
-                color: '#3B82F6',
-                '&:hover': { backgroundColor: '#EFF6FF' }
-              }}
-            >
-              <VisibilityIcon sx={{ fontSize: '20px' }} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )
     }
   ];
 
