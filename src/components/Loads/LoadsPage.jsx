@@ -202,7 +202,7 @@ const LoadsPage = () => {
   };
 
   const handleViewLoad = (loadId) => {
-    console.log('View load:', loadId);
+    navigate(`/loads/view/${loadId}`);
   };
 
   const getStatusStyle = (status) => {

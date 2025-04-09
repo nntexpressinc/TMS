@@ -1,6 +1,7 @@
-import React from 'react';
-import { Box, TextField, Typography, MenuItem, Select, FormControl, InputLabel, Paper, Button, OutlinedInput } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, TextField, Typography, MenuItem, Select, FormControl, InputLabel, Paper, Button, OutlinedInput, Divider } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { ApiService } from '../../api/auth';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -13,11 +14,58 @@ const MenuProps = {
   },
 };
 
-const CustomerBroker = ({ loadData, handleChange, showCustomerForm, handleToggleCustomerForm }) => {
+const CustomerBroker = ({ loadData, handleChange, showCustomerForm, handleToggleCustomerForm, handleAddToLoad }) => {
   const theme = useTheme();
+  const [brokers, setBrokers] = useState([]);
+
+  useEffect(() => {
+    const fetchBrokers = async () => {
+      const storedAccessToken = localStorage.getItem("accessToken");
+      if (storedAccessToken) {
+        try {
+          const data = await ApiService.getData(`/customer_broker/`, storedAccessToken);
+          setBrokers(data);
+        } catch (error) {
+          console.error("Error fetching brokers:", error);
+        }
+      }
+    };
+
+    fetchBrokers();
+  }, []);
+
+  const handleAddCustomer = async () => {
+    const formData = new FormData();
+    formData.append("company_name", loadData.new_customer_company_name || "");
+    formData.append("contact_number", loadData.new_customer_contact_number || "");
+    formData.append("email_address", loadData.new_customer_email_address || "");
+    formData.append("mc_number", loadData.new_customer_mc_number || "");
+    formData.append("address1", loadData.new_customer_address1 || "");
+    formData.append("address2", loadData.new_customer_address2 || "");
+    formData.append("country", loadData.new_customer_country || "");
+    formData.append("state", loadData.new_customer_state || "");
+    formData.append("city", loadData.new_customer_city || "");
+    formData.append("zip_code", loadData.new_customer_zip_code || "");
+
+    try {
+      const response = await ApiService.postData("/customer_broker/", formData);
+      setBrokers([...brokers, response]);
+      handleChange({ target: { name: 'customer_broker', value: response.id } });
+      handleToggleCustomerForm();
+    } catch (error) {
+      console.error("Error creating customer broker:", error);
+    }
+  };
+
+  const selectedBroker = brokers.find(b => b.id === loadData.customer_broker);
+
+  const handleAddToLoadClick = () => {
+    handleChange({ target: { name: 'customer_broker', value: selectedBroker } });
+    handleAddToLoad(selectedBroker);
+  };
 
   return (
-    <Paper sx={{ p: 2, mb: 2, width: '100%', opacity: loadData.id && loadData.company_name && loadData.reference_id && loadData.instructions && loadData.bills ? 1 : 0.5, pointerEvents: loadData.id && loadData.company_name && loadData.reference_id && loadData.instructions && loadData.bills ? 'auto' : 'none' }}>
+    <Paper sx={{ p: 2, mb: 2, width: '100%' }}>
       <Typography variant="h6" gutterBottom>
         Customer Broker
       </Typography>
@@ -25,20 +73,35 @@ const CustomerBroker = ({ loadData, handleChange, showCustomerForm, handleToggle
         <InputLabel>Customer Broker</InputLabel>
         <Select
           name="customer_broker"
-          value={loadData.customer_broker}
-          onChange={handleChange}
+          value={loadData.customer_broker || ''}
+          onChange={(e) => handleChange({ target: { name: 'customer_broker', value: e.target.value } })}
           input={<OutlinedInput />}
           MenuProps={MenuProps}
         >
-          {/* Assuming you have a list of customer brokers */}
-          {/* {customerBrokers.map(broker => (
+          {brokers.map(broker => (
             <MenuItem key={broker.id} value={broker.id}>
               {broker.company_name}
             </MenuItem>
-          ))} */}
+          ))}
         </Select>
       </FormControl>
-      <Button variant="contained" color="primary" onClick={handleToggleCustomerForm}>
+      {selectedBroker && (
+        <Box sx={{ mt: 2, p: 2, border: '1px solid #ccc', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
+          <Typography variant="subtitle1" gutterBottom>Broker Details</Typography>
+          <Divider sx={{ mb: 2 }} />
+          <Typography variant="body2"><strong>Company Name:</strong> {selectedBroker.company_name}</Typography>
+          <Typography variant="body2"><strong>Contact Number:</strong> {selectedBroker.contact_number}</Typography>
+          <Typography variant="body2"><strong>Email:</strong> {selectedBroker.email_address}</Typography>
+          <Typography variant="body2"><strong>MC Number:</strong> {selectedBroker.mc_number}</Typography>
+          <Typography variant="body2"><strong>Address:</strong> {selectedBroker.address1}, {selectedBroker.city}, {selectedBroker.state}, {selectedBroker.zip_code}</Typography>
+          {loadData.customer_broker !== selectedBroker.id && (
+            <Button variant="contained" color="primary" onClick={handleAddToLoadClick} sx={{ mt: 2 }}>
+              Add to Load
+            </Button>
+          )}
+        </Box>
+      )}
+      <Button variant="contained" color="primary" onClick={handleToggleCustomerForm} sx={{ mt: 2 }}>
         {showCustomerForm ? 'Hide Customer Form' : 'Add New Customer'}
       </Button>
       {showCustomerForm && (
@@ -113,7 +176,12 @@ const CustomerBroker = ({ loadData, handleChange, showCustomerForm, handleToggle
             onChange={handleChange}
             sx={{ mb: 2, width: '300px', mr: 2 }}
           />
-          <Button variant="contained" color="primary" sx={{ mt: 2 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleAddCustomer}
+            sx={{ mt: 2 }}
+          >
             Save Customer
           </Button>
         </Box>

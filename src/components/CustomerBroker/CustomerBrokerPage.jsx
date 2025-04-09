@@ -40,6 +40,16 @@ const CustomerBrokerPage = () => {
     { value: "mc_number", label: "MC Number" }
   ];
 
+  // Define a default category
+  const defaultCategory = searchCategories.length > 0 ? searchCategories[0].value : "";
+
+  // Ensure the searchCategory is always set
+  useEffect(() => {
+    if (!searchCategory && searchCategories.length > 0) {
+      setSearchCategory(defaultCategory);
+    }
+  }, [searchCategory, searchCategories]);
+
   useEffect(() => {
     const fetchCustomerBrokersData = async () => {
       const storedAccessToken = localStorage.getItem("accessToken");
@@ -284,7 +294,7 @@ const CustomerBrokerPage = () => {
         }}>
           <TextField
             select
-            value={searchCategory}
+            value={searchCategory || defaultCategory}
             onChange={(e) => setSearchCategory(e.target.value)}
             variant="outlined"
             sx={{ 

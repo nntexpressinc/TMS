@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, TextField, Typography, Button, Paper, Divider } from '@mui/material';
 import FileUploads from './FileUploads';
 
-const ChatBox = ({ chatMessages, newMessage, setNewMessage, handleSendMessage, loadData = {}, handleChange, handleSubmitFiles, isDisabled }) => {
+const ChatBox = ({ chatMessages, newMessage, setNewMessage, handleSendMessage, loadData = {}, handleChange, handleSubmitFiles, isDisabled, isReadOnly = false }) => {
   return (
     <Paper sx={{ p: 2, height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', position: 'fixed', top: '64px', right: 0, width: { xs: '100%', sm: '30%', md: '20%' }, zIndex: 1, opacity: isDisabled ? 0.5 : 1, pointerEvents: isDisabled ? 'none' : 'auto' }}>
       <Typography variant="h6" gutterBottom>
@@ -19,19 +19,26 @@ const ChatBox = ({ chatMessages, newMessage, setNewMessage, handleSendMessage, l
           </Box>
         ))}
       </Box>
-      <Box sx={{ display: 'flex', mb: 2 }}>
-        <TextField
-          label="New Message"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          sx={{ flexGrow: 1, mr: 1 }}
-          size="small"
-          disabled={isDisabled}
-        />
-        <Button variant="contained" color="primary" onClick={handleSendMessage} sx={{ height: '40px' }} disabled={isDisabled}>
-          Send
-        </Button>
-      </Box>
+      {!isReadOnly && !isDisabled && (
+        <Box sx={{ mt: 2 }}>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Type your message..."
+          />
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSendMessage}
+            sx={{ mt: 1 }}
+          >
+            Send Message
+          </Button>
+        </Box>
+      )}
       <FileUploads loadData={loadData} handleChange={handleChange} handleSubmitFiles={handleSubmitFiles} isDisabled={isDisabled} />
     </Paper>
   );

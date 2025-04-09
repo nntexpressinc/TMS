@@ -7,6 +7,7 @@ import {
   Stepper,
   Step,
   StepLabel,
+  TextField,
 } from "@mui/material";
 import { ApiService } from "../../api/auth";
 import LoadForm from "./LoadForm";
@@ -29,21 +30,21 @@ const requiredFields = {
   0: [
     "load_id",
     "reference_id",
-    "pickup_time",
-    "delivery_time",
+    "created_date",
+    "updated_date",
     "load_pay",
     "total_pay",
     "per_mile",
     "total_miles",
   ],
   1: ["reference_id"],
-  2: ["instructions"],
-  3: ["bills"],
-  4: ["driver"],
-  5: ["trip_id"],
-  6: ["unloading_location"],
-  7: ["yard_location"],
-  8: ["delivered_date"],
+  2: ["reference_id"],
+  3: ["reference_id"],
+  4: ["reference_id"],
+  5: ["reference_id"],
+  6: ["reference_id"],
+  7: ["reference_id"],
+  8: ["reference_id"],
 };
 
 const EditLoad = () => {
@@ -55,14 +56,13 @@ const EditLoad = () => {
     instructions: "",
     bills: 0,
     created_by: "",
-    created_date: "",
     load_id: "",
     trip_id: 0,
-    customer_broker: "",
-    driver: "",
+    customer_broker: null,
+    driver: null,
     co_driver: "",
     truck: "",
-    dispatcher: "",
+    dispatcher:null,
     load_status: "OFFER",
     tags: "",
     equipment_type: "DRYVAN",
@@ -93,7 +93,7 @@ const EditLoad = () => {
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const navigate = useNavigate();
   const { isSidebarOpen } = useSidebar();
-  const { id } = useParams(); // URL’dan loadId’ni olish
+  const { id } = useParams(); // URL'dan loadId'ni olish
 
   useEffect(() => {
     const fetchLoadData = async () => {
@@ -101,8 +101,12 @@ const EditLoad = () => {
       if (storedAccessToken && id) {
         try {
           const data = await ApiService.getData(`/load/${id}/`, storedAccessToken);
+          console.log("Fetched load data:", data);
+          // Set pickup_time and delivery_time from created_date and updated_date
+          data.pickup_time = data.created_date ? data.created_date.split('T')[0] : "";
+          data.delivery_time = data.updated_date ? data.updated_date.split('T')[0] : "";
           setLoadData(data);
-          // Load statusga qarab activeStep’ni sozlash
+          // Load statusga qarab activeStep'ni sozlash
           const stepIndex = steps.findIndex(step => step.toUpperCase().replace(" ", " ") === data.load_status);
           setActiveStep(stepIndex !== -1 ? stepIndex : 0);
         } catch (error) {
@@ -141,17 +145,31 @@ const EditLoad = () => {
 
     try {
       const formData = new FormData();
-      Object.keys(loadData).forEach((key) => {
-        if (loadData[key] !== null) {
-          if (loadData[key]?.file) {
-            formData.append(key, loadData[key].file);
+      const processedData = { ...loadData };
+      
+      // Convert string IDs to integers
+      if (processedData.created_by) processedData.created_by = parseInt(processedData.created_by);
+      if (processedData.customer_broker) processedData.customer_broker = parseInt(processedData.customer_broker);
+      if (processedData.dispatcher) processedData.dispatcher = parseInt(processedData.dispatcher);
+      if (processedData.driver) processedData.driver = parseInt(processedData.driver);
+
+      // Check and format pickup_time and delivery_time to YYYY-MM-DD
+      const formattedPickupTime = loadData.pickup_time ? new Date(loadData.pickup_time).toISOString().split('T')[0] : "";
+      const formattedDeliveryTime = loadData.delivery_time ? new Date(loadData.delivery_time).toISOString().split('T')[0] : "";
+      formData.append("created_date", formattedPickupTime);
+      formData.append("updated_date", formattedDeliveryTime);
+
+      Object.keys(processedData).forEach((key) => {
+        if (processedData[key] !== null && key !== "pickup_time" && key !== "delivery_time") {
+          if (processedData[key]?.file) {
+            formData.append(key, processedData[key].file);
           } else {
-            formData.append(key, loadData[key]);
+            formData.append(key, processedData[key]);
           }
         }
       });
       formData.set("load_status", currentStep);
-      formData.set("created_by", loadData.created_by || "");
+      formData.set("created_by", processedData.created_by || "");
 
       await ApiService.patchData(`/load/${id}/`, formData);
 
@@ -250,7 +268,28 @@ const EditLoad = () => {
     }
   };
 
-  const handleToggleCustomerForm = () => {
+  const handleToggleCustomerForm = async () => {
+    if (showCustomerForm) {
+      // If the form is being hidden, submit the data
+      const formData = new FormData();
+      formData.append("company_name", loadData.new_customer_company_name || "");
+      formData.append("contact_number", loadData.new_customer_contact_number || "");
+      formData.append("email_address", loadData.new_customer_email_address || "");
+      formData.append("mc_number", loadData.new_customer_mc_number || "");
+      formData.append("address1", loadData.new_customer_address1 || "");
+      formData.append("address2", loadData.new_customer_address2 || "");
+      formData.append("country", loadData.new_customer_country || "");
+      formData.append("state", loadData.new_customer_state || "");
+      formData.append("city", loadData.new_customer_city || "");
+      formData.append("zip_code", loadData.new_customer_zip_code || "");
+
+      try {
+        const response = await ApiService.postData("/api/customer_broker/", formData);
+        console.log("Customer Broker created:", response);
+      } catch (error) {
+        console.error("Error creating customer broker:", error);
+      }
+    }
     setShowCustomerForm(!showCustomerForm);
   };
 
@@ -260,12 +299,16 @@ const EditLoad = () => {
     <Box sx={{ width: "100%", display: "flex", gap: 2 }}>
       <Box sx={{ width: isSidebarOpen ? "77%" : "87%", pr: 2 }}>
         <Box sx={{ position: "sticky", top: 0, zIndex: 1, backgroundColor: "white" }}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            
+          </Box>
           <Stepper activeStep={activeStep} alternativeLabel sx={{ p: 2, mb: 2, width: "100%" }}>
             {steps.map((label) => (
               <Step key={label}>
                 <StepLabel>{label}</StepLabel>
               </Step>
             ))}
+           
             <Button disabled={activeStep === 0} onClick={handleBack} sx={{ mr: 1 }}>
               Back
             </Button>
@@ -284,6 +327,30 @@ const EditLoad = () => {
             handleToggleCustomerForm={handleToggleCustomerForm}
             isDetailsComplete={isDetailsComplete}
             isCustomerBrokerComplete={activeStep >= 1}
+          />
+          <TextField
+            label="Pickup Date"
+            name="created_date"
+            type="date"
+            value={loadData.created_date}
+            onChange={handleChange}
+            sx={{ mb: 2, width: '300px', mr: 2 }}
+            InputLabelProps={{
+              shrink: true,
+            }}
+            required
+          />
+          <TextField
+            label="Delivery Date"
+            name="updated_date"
+            type="date"
+            value={loadData.updated_date}
+            onChange={handleChange}
+            sx={{ mb: 2, width: '300px', mr: 2 }}
+            InputLabelProps={{
+              shrink: true,
+            }}
+            required
           />
         </Box>
       </Box>

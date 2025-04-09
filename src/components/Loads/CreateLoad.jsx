@@ -8,6 +8,7 @@ import {
   Step,
   StepLabel,
   CircularProgress,
+  TextField,
 } from "@mui/material";
 import { ApiService } from "../../api/auth";
 import LoadForm from "./LoadForm";
@@ -30,21 +31,21 @@ const requiredFields = {
   0: [
     "load_id",
     "reference_id",
-    "pickup_time",
-    "delivery_time",
+    "created_date",
+    "updated_date",
     "load_pay",
     "total_pay",
     "per_mile",
     "total_miles",
   ],
   1: ["reference_id"],
-  2: ["instructions"],
-  3: ["bills"],
-  4: ["driver"],
-  5: ["trip_id"],
-  6: ["unloading_location"],
-  7: ["yard_location"],
-  8: ["delivered_date"],
+  2: ["reference_id"],
+  3: ["reference_id"],
+  4: ["reference_id"],
+  5: ["reference_id"],
+  6: ["reference_id"],
+  7: ["reference_id"],
+  8: ["reference_id"],
 };
 
 const LoadPage = () => {
@@ -122,6 +123,7 @@ const LoadPage = () => {
             setLoadData((prevData) => ({
               ...prevData,
               ...data,
+              customer_broker: data.customer_broker ? data.customer_broker.id : "",
             }));
             const stepIndex = steps.findIndex(
               (step) => step.toUpperCase().replace(" ", " ") === data.load_status
@@ -153,22 +155,35 @@ const LoadPage = () => {
 
     try {
       const formData = new FormData();
-      Object.keys(loadData).forEach((key) => {
+      const processedData = { ...loadData };
+
+      // Extract only the 'id' from objects
+      if (processedData.created_by && typeof processedData.created_by === 'object') processedData.created_by = processedData.created_by.id;
+      if (processedData.customer_broker && typeof processedData.customer_broker === 'object') processedData.customer_broker = processedData.customer_broker.id;
+      if (processedData.dispatcher && typeof processedData.dispatcher === 'object') processedData.dispatcher = processedData.dispatcher.id;
+      if (processedData.driver && typeof processedData.driver === 'object') processedData.driver = processedData.driver.id;
+
+      Object.keys(processedData).forEach((key) => {
         // Skip created_date and updated_date unless they are explicitly set in a valid format
         if (key === "created_date" || key === "updated_date") {
-          if (loadData[key] && typeof loadData[key] === "string" && loadData[key].includes("T")) {
-            formData.append(key, loadData[key]);
+          if (processedData[key] && typeof processedData[key] === "string" && processedData[key].includes("T")) {
+            formData.append(key, processedData[key]);
           }
-        } else if (loadData[key] !== null && loadData[key] !== undefined) {
-          if (loadData[key]?.file) {
-            formData.append(key, loadData[key].file);
+        } else if (processedData[key] !== null && processedData[key] !== undefined && key !== "pickup_time" && key !== "delivery_time") {
+          if (processedData[key]?.file) {
+            formData.append(key, processedData[key].file);
           } else {
-            formData.append(key, loadData[key]);
+            formData.append(key, processedData[key]);
           }
         }
       });
+      // Format created_date and updated_date to YYYY-MM-DD
+      const formattedCreatedDate = loadData.created_date ? new Date(loadData.created_date).toISOString().split('T')[0] : "";
+      const formattedUpdatedDate = loadData.updated_date ? new Date(loadData.updated_date).toISOString().split('T')[0] : "";
+      formData.set("created_date", formattedCreatedDate);
+      formData.set("updated_date", formattedUpdatedDate);
       formData.set("load_status", currentStep);
-      formData.set("created_by", loadData.created_by || "");
+      formData.set("created_by", processedData.created_by || "");
 
       if (isEditMode) {
         await ApiService.patchData(`/load/${id}/`, formData);
@@ -203,6 +218,13 @@ const LoadPage = () => {
       [name]: files ? { name: files[0].name, file: files[0] } : value,
     };
     setLoadData(updatedLoadData);
+
+    if (name === 'customer_broker' && typeof value === 'object') {
+      setLoadData((prevData) => ({
+        ...prevData,
+        customer_broker: value,
+      }));
+    }
 
     if (files) {
       const formData = new FormData();
@@ -284,6 +306,25 @@ const LoadPage = () => {
 
   const isDetailsComplete = requiredFields[0].every((field) => loadData[field]);
 
+  const handleAddToLoad = async (broker) => {
+    const updatedLoadData = {
+      ...loadData,
+      customer_broker: broker.id,
+    };
+    setLoadData(updatedLoadData);
+
+    const formData = new FormData();
+    formData.append('customer_broker', broker.id);
+
+    try {
+      const loadId = isEditMode ? id : localStorage.getItem('loadId');
+      await ApiService.putData(`/load/${loadId}/`, formData);
+      console.log('Broker added to load successfully');
+    } catch (error) {
+      console.error('Error adding broker to load:', error);
+    }
+  };
+
   if (isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
@@ -303,6 +344,14 @@ const LoadPage = () => {
                 <StepLabel>{label}</StepLabel>
               </Step>
             ))}
+             <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => navigate(`/loads/view/${id}`)}
+              sx={{ mr: 1 }}
+            >
+              View Load
+            </Button>
             <Button disabled={activeStep === 0} onClick={handleBack} sx={{ mr: 1 }}>
               Back
             </Button>
@@ -321,6 +370,7 @@ const LoadPage = () => {
             handleToggleCustomerForm={handleToggleCustomerForm}
             isDetailsComplete={isDetailsComplete}
             isCustomerBrokerComplete={activeStep >= 1}
+            handleAddToLoad={handleAddToLoad}
           />
         </Box>
       </Box>

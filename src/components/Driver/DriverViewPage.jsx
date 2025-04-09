@@ -156,7 +156,6 @@ const DriverViewPage = () => {
 
   const expenseColumns = [
     { field: 'id', headerName: 'ID', width: 70 },
-    { field: 'transaction_type', headerName: 'Transaction Type', width: 130 },
     { field: 'description', headerName: 'Description', width: 200 },
     { field: 'amount', headerName: 'Amount', width: 100 },
     { field: 'expense_date', headerName: 'Date', width: 120 },
@@ -209,8 +208,8 @@ const DriverViewPage = () => {
         <Tabs value={tabValue} onChange={handleTabChange}>
           <Tab label="Driver Information" />
           <Tab label="Payments" />
-          <Tab label="INCOME" />
-          <Tab label="EXPENSE" />
+          <Tab label="ADDITION" />
+          <Tab label="DEDUCTION" />
         </Tabs>
 
         {tabValue === 0 && (

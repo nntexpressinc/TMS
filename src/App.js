@@ -30,6 +30,7 @@ import DriverExpenseCreatePage from "./components/Driver/create/DriverExpenseCre
 import DriverEditPage from "./components/Driver/DriverEditPage";
 import DriverPayEditPage from './components/Driver/create/DriverPayEditPage';
 import DriverExpenseEditPage from './components/Driver/create/DriverExpenseEditPage';
+import LoadViewPage from './components/Loads/LoadViewPage'; // Import LoadViewPage
 
 const App = () => {
   const { isAuthenticated: isAuth } = useAuth();
@@ -80,6 +81,7 @@ const App = () => {
               }
             />
             <Route path="/loads/edit/:id" element={<LoadPage />} />
+            <Route path="/loads/view/:id" element={<LoadViewPage />} />
             <Route
               path="customer_broker"
               element={
