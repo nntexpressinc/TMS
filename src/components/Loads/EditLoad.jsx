@@ -88,6 +88,7 @@ const EditLoad = () => {
     comercial_invoice: null,
   });
   const [drivers, setDrivers] = useState([]);
+  const [dispatchers, setDispatchers] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [showCustomerForm, setShowCustomerForm] = useState(false);
@@ -127,8 +128,21 @@ const EditLoad = () => {
       }
     };
 
+    const fetchDispatchers = async () => {
+      const storedAccessToken = localStorage.getItem("accessToken");
+      if (storedAccessToken) {
+        try {
+          const data = await ApiService.getData(`/dispatcher/`, storedAccessToken);
+          setDispatchers(data);
+        } catch (error) {
+          console.error("Error fetching dispatchers data:", error);
+        }
+      }
+    };
+
     fetchLoadData();
     fetchDrivers();
+    fetchDispatchers();
   }, [id]);
 
   const handleNext = async () => {
@@ -321,6 +335,7 @@ const EditLoad = () => {
           <LoadForm
             loadData={loadData}
             drivers={drivers}
+            dispatchers={dispatchers}
             handleChange={handleChange}
             activeStep={activeStep}
             showCustomerForm={showCustomerForm}

@@ -160,7 +160,7 @@ const AccountingPage = () => {
               </button>
             )}
           </div>
-            </form>
+        </form>
       </div>
 
       {/* Report Section */}
@@ -241,25 +241,53 @@ const AccountingPage = () => {
                     <th>{t('Pickup')}</th>
                     <th>{t('Delivery')}</th>
                     <th>{t('Rate')}</th>
+                    <th>{t('Load Total Pay')}</th>
+                    <th>{t('Chargebag')}</th>
                     <th>{t('Notes')}</th>
-                    <th>{t('Total Pay')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {reportData.loads && reportData.loads.length > 0 ? (
                     reportData.loads.map((load, index) => (
-                      <tr key={index}>
-                        <td>{load['Load #'] || t('N/A')}</td>
-                        <td>{load.Pickup || t('N/A')}</td>
-                        <td>{load.Delivery || t('N/A')}</td>
-                        <td>{load.Rate || t('N/A')}</td>
-                        <td>{load.Notes || '-'}</td>
-                        <td className="total-pay">{load['Total Pay'] || t('N/A')}</td>
-                      </tr>
+                      <>
+                        <tr key={`load-${index}`}>
+                          <td>{load['Load #'] || t('N/A')}</td>
+                          <td>{load.Pickup || t('N/A')}</td>
+                          <td>{load.Delivery || t('N/A')}</td>
+                          <td>{load.Rate || t('N/A')}</td>
+                          <td className="total-pay">{load['Load Total Pay'] || t('N/A')}</td>
+                          <td className="chargebag">
+                            {load['Chargebag Deduction'] && (
+                              <span className="negative-amount">
+                                - {load['Chargebag Deduction']}
+                              </span>
+                            )}
+                          </td>
+                          <td>{load.Notes || '-'}</td>
+                        </tr>
+                        {load['Other Payments'] && load['Other Payments'].length > 0 && (
+                          <tr className="other-payments">
+                            <td colSpan="7">
+                              <div className="other-payments-container">
+                                {load['Other Payments'].map((payment, pIndex) => (
+                                  <div key={`payment-${pIndex}`} className="payment-item">
+                                    <span className="payment-type">{payment.pay_type}</span>
+                                    <span className={`payment-amount ${payment.calculating.startsWith('-') ? 'negative' : 'positive'}`}>
+                                      {payment.calculating.startsWith('-') ? '- ' : '+ '}
+                                      {payment.amount}
+                                    </span>
+                                    {payment.note && <span className="payment-note">({payment.note})</span>}
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>
                         {t('No loads found for this period')}
                       </td>
                     </tr>
@@ -269,9 +297,10 @@ const AccountingPage = () => {
             </div>
           </div>
 
-          {/* Expenses Section */}
+          {/* Expenses and Income Section */}
           <div className="expenses-section">
-            <h4>{t('Expenses and Income')}</h4>
+            {/* Additions Table */}
+            <h4>{t('Additions')}</h4>
             <div className="table-container">
               <table className="expenses-table">
                 <thead>
@@ -283,19 +312,56 @@ const AccountingPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {reportData.expenses && reportData.expenses.length > 0 ? (
-                    reportData.expenses.map((expense, index) => (
-                      <tr key={index}>
-                        <td>{expense.Description || t('N/A')}</td>
-                        <td>{expense.Amount || t('N/A')}</td>
-                        <td>{expense.Type || t('N/A')}</td>
-                        <td>{expense.Date || t('N/A')}</td>
-                      </tr>
-                    ))
+                  {reportData.expenses && reportData.expenses.filter(item => item.Type === 'Income').length > 0 ? (
+                    reportData.expenses
+                      .filter(item => item.Type === 'Income')
+                      .map((expense, index) => (
+                        <tr key={index}>
+                          <td>{expense.Description || t('N/A')}</td>
+                          <td className="positive-amount">+ {expense.Amount || t('N/A')}</td>
+                          <td>Addition</td>
+                          <td>{expense.Date || t('N/A')}</td>
+                        </tr>
+                      ))
                   ) : (
                     <tr>
                       <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
-                        {t('No expenses found for this period')}
+                        {t('No additions found for this period')}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Deductions Table */}
+            <h4 style={{ marginTop: '20px' }}>{t('Deductions')}</h4>
+            <div className="table-container">
+              <table className="expenses-table">
+                <thead>
+                  <tr>
+                    <th>{t('Description')}</th>
+                    <th>{t('Amount')}</th>
+                    <th>{t('Type')}</th>
+                    <th>{t('Date')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.expenses && reportData.expenses.filter(item => item.Type === 'Expense').length > 0 ? (
+                    reportData.expenses
+                      .filter(item => item.Type === 'Expense')
+                      .map((expense, index) => (
+                        <tr key={index}>
+                          <td>{expense.Description || t('N/A')}</td>
+                          <td className="negative-amount">- {expense.Amount || t('N/A')}</td>
+                          <td>Deduction</td>
+                          <td>{expense.Date || t('N/A')}</td>
+                        </tr>
+                      ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
+                        {t('No deductions found for this period')}
                       </td>
                     </tr>
                   )}
@@ -308,25 +374,85 @@ const AccountingPage = () => {
           <div className="summary-section">
             <div className="summary-grid">
               <div className="summary-item">
-                <label>{t('Total Expenses')}:</label>
-                <span>{reportData.total_expenses || t('N/A')}</span>
+                <label>{t('Total Load Pays')}:</label>
+                <span className="positive-amount">+ {reportData.total_load_pays}</span>
               </div>
               <div className="summary-item">
-                <label>{t('Total Income')}:</label>
-                <span>{reportData.total_income || t('N/A')}</span>
+                <label>{t('Total Other Pays')}:</label>
+                <span className="positive-amount">+ {reportData.total_other_pays}</span>
+              </div>
+              <div className="summary-item">
+                <label>{t('Total Deductions')}:</label>
+                <span className="negative-amount">- {reportData.total_expenses}</span>
+              </div>
+              <div className="summary-item">
+                <label>{t('Total Additions')}:</label>
+                <span className="positive-amount">+ {reportData.total_income}</span>
               </div>
               <div className="summary-item">
                 <label>{t('Escrow Deduction')}:</label>
-                <span>{reportData.escrow_deduction || t('N/A')}</span>
+                <span className="negative-amount">- {reportData.escrow_deduction}</span>
               </div>
               <div className="summary-item total">
                 <label>{t('Total Pay')}:</label>
-                <span>{reportData.total_pay || t('N/A')}</span>
+                <span className="final-amount">{reportData.total_pay}</span>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        .other-payments-container {
+          padding: 8px 16px;
+          background-color: #f9fafb;
+          border-left: 4px solid #e5e7eb;
+        }
+        
+        .payment-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin: 4px 0;
+        }
+        
+        .payment-type {
+          font-weight: 500;
+          color: #6b7280;
+          min-width: 100px;
+        }
+        
+        .payment-amount {
+          font-weight: 600;
+        }
+        
+        .payment-amount.positive {
+          color: #059669;
+        }
+        
+        .payment-amount.negative {
+          color: #dc2626;
+        }
+        
+        .payment-note {
+          color: #6b7280;
+          font-style: italic;
+        }
+        
+        .negative-amount {
+          color: #dc2626;
+        }
+        
+        .positive-amount {
+          color: #059669;
+        }
+        
+        .final-amount {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #059669;
+        }
+      `}</style>
     </div>
   );
 };

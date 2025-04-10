@@ -15,13 +15,14 @@ const MenuProps = {
   },
 };
 
-const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) => {
+const Details = ({ loadData, handleChange, isDetailsComplete, drivers = []}) => {
   const theme = useTheme();
   const { id } = useParams();
   const [otherPays, setOtherPays] = useState([]);
   const [newOtherPay, setNewOtherPay] = useState({ amount: '', pay_type: '', note: '' });
   const [showOtherPayModal, setShowOtherPayModal] = useState(false);
   const [isOtherPayCreated, setIsOtherPayCreated] = useState(false);
+  const [dispatchers, setDispatchers] = useState([]);
 
   useEffect(() => {
     const fetchOtherPays = async () => {
@@ -39,12 +40,39 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) =>
     fetchOtherPays();
   }, [id]);
 
+  useEffect(() => {
+    const fetchDispatchers = async () => {
+      try {
+        const data = await ApiService.getData(`/dispatcher/`);
+        setDispatchers(data);
+      } catch (error) {
+        console.error("Error fetching dispatchers data:", error);
+      }
+    };
+
+    fetchDispatchers();
+  }, []);
+
   const handleDriverChange = (e) => {
     const selectedDriver = drivers.find(d => d.id === e.target.value);
     handleChange({
       target: {
         name: 'driver',
         value: selectedDriver ? { id: selectedDriver.id, first_name: selectedDriver.first_name, last_name: selectedDriver.last_name } : ''
+      }
+    });
+  };
+
+  const handleDispatcherChange = (e) => {
+    const selectedDispatcher = dispatchers.find(d => d.id === e.target.value);
+    handleChange({
+      target: {
+        name: 'dispatcher',
+        value: selectedDispatcher ? { 
+          id: selectedDispatcher.id, 
+          first_name: selectedDispatcher.first_name, 
+          last_name: selectedDispatcher.last_name,
+        } : ''
       }
     });
   };
@@ -183,22 +211,37 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) =>
           }}
           required
         />
-         <FormControl sx={{ mb: 1, width: '250px', mr: 1 }} required>
-         <InputLabel>Driver</InputLabel>
-        <Select
-          label="Delivery Date"
-          name="driver"
-          value={loadData.driver?.id || ''}
-          onChange={handleDriverChange}
-          input={<OutlinedInput />}
-          MenuProps={MenuProps}
-        >
-          {drivers.map((driver) => (
-            <MenuItem key={driver.id} value={driver.id}>
-              {`${driver.first_name} ${driver.last_name}`}
-            </MenuItem>
-          ))}
-        </Select>
+        <FormControl sx={{ mb: 1, width: '250px', mr: 1 }} required>
+          <InputLabel>Dispatcher</InputLabel>
+          <Select
+            name="dispatcher"
+            value={loadData.dispatcher?.id || ''}
+            onChange={handleDispatcherChange}
+            input={<OutlinedInput />}
+            MenuProps={MenuProps}
+          >
+            {dispatchers.map((dispatcher) => (
+              <MenuItem key={dispatcher.id} value={dispatcher.id}>
+                {`${dispatcher.first_name} ${dispatcher.last_name}`}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl sx={{ mb: 1, width: '250px', mr: 1 }} required>
+          <InputLabel>Driver</InputLabel>
+          <Select
+            name="driver"
+            value={loadData.driver?.id || ''}
+            onChange={handleDriverChange}
+            input={<OutlinedInput />}
+            MenuProps={MenuProps}
+          >
+            {drivers.map((driver) => (
+              <MenuItem key={driver.id} value={driver.id}>
+                {`${driver.first_name} ${driver.last_name}`}
+              </MenuItem>
+            ))}
+          </Select>
         </FormControl>
       </Box>
       <hr />

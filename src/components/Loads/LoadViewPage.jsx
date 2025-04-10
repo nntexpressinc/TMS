@@ -68,6 +68,7 @@ const LoadViewPage = () => {
     comercial_invoice: null,
   });
   const [drivers, setDrivers] = useState([]);
+  const [dispatchers, setDispatchers] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const { isSidebarOpen } = useSidebar();
@@ -107,8 +108,21 @@ const LoadViewPage = () => {
       }
     };
 
+    const fetchDispatchers = async () => {
+      const storedAccessToken = localStorage.getItem("accessToken");
+      if (storedAccessToken) {
+        try {
+          const data = await ApiService.getData(`/dispatcher/`, storedAccessToken);
+          setDispatchers(data);
+        } catch (error) {
+          console.error("Error fetching dispatchers data:", error);
+        }
+      }
+    };
+
     fetchLoadData();
     fetchDrivers();
+    fetchDispatchers();
   }, [id]);
 
   if (isLoading) {
@@ -146,6 +160,7 @@ const LoadViewPage = () => {
           <LoadForm
             loadData={loadData}
             drivers={drivers}
+            dispatchers={dispatchers}
             isReadOnly={true}
             activeStep={activeStep}
           />

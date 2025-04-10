@@ -20,6 +20,24 @@ export const getDrivers = async () => {
   }
 };
 
+export const getDispatchers = async () => {
+  try {
+    const storedAccessToken = localStorage.getItem('accessToken');
+    if (!storedAccessToken) {
+      throw new Error('No access token found');
+    }
+    const response = await axios.get(`${API_URL}/dispatcher/`, {
+      headers: {
+        Authorization: `Bearer ${storedAccessToken}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching dispatchers:', error);
+    throw error;
+  }
+};
+
 export const getDriverPayReport = async (data) => {
   try {
     console.log('getDriverPayReport data:', data);

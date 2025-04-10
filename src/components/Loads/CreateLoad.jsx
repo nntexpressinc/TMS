@@ -95,6 +95,7 @@ const LoadPage = () => {
     comercial_invoice: null,
   });
   const [drivers, setDrivers] = useState([]);
+  const [dispatchers, setDispatchers] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [showCustomerForm, setShowCustomerForm] = useState(false);
@@ -117,6 +118,17 @@ const LoadPage = () => {
         }
       }
     };
+    const fetchDispatchers = async () => {
+      const storedAccessToken = localStorage.getItem("accessToken");
+      if (storedAccessToken) {
+        try {
+          const data = await ApiService.getData(`/dispatcher/`, storedAccessToken);
+          setDispatchers(data);
+        } catch (error) {
+          console.error("Error fetching dispatchers data:", error);
+        }
+      }
+    };
 
     const fetchLoadData = async () => {
       if (isEditMode) {
@@ -130,6 +142,7 @@ const LoadPage = () => {
               ...prevData,
               ...data,
               customer_broker: data.customer_broker ? data.customer_broker.id : "",
+              dispatcher: data.dispatcher ? data.dispatcher.id : "",
             }));
             const stepIndex = steps.findIndex(
               (step) => step.toUpperCase().replace(" ", " ") === data.load_status
@@ -146,7 +159,10 @@ const LoadPage = () => {
 
     fetchDrivers();
     fetchLoadData();
+    fetchDispatchers();
   }, [id, isEditMode]);
+
+
 
   const handleNext = async () => {
     const currentStep = steps[activeStep].toUpperCase().replace(" ", " ");
@@ -268,6 +284,13 @@ const LoadPage = () => {
       setLoadData((prevData) => ({
         ...prevData,
         customer_broker: value,
+      }));
+    }
+
+    if (name === 'dispatcher' && typeof value === 'object') {
+      setLoadData((prevData) => ({
+        ...prevData,
+        dispatcher: value.id,
       }));
     }
 
@@ -491,6 +514,7 @@ const LoadPage = () => {
           <LoadForm
             loadData={loadData}
             drivers={drivers}
+            dispatchers={dispatchers}
             handleChange={handleChange}
             activeStep={activeStep}
             showCustomerForm={showCustomerForm}

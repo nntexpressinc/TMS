@@ -4,7 +4,7 @@ import Details from './Details';
 import CustomerBroker from './CustomerBroker';
 import Stops from './Stops';
 
-const LoadForm = ({ loadData, drivers, handleChange, activeStep, showCustomerForm, handleToggleCustomerForm, isDetailsComplete, isCustomerBrokerComplete, isReadOnly = false, handleAddToLoad, handleAddOtherPay }) => {
+const LoadForm = ({ loadData, drivers, dispatchers, handleChange, activeStep, showCustomerForm, handleToggleCustomerForm, isDetailsComplete, isCustomerBrokerComplete, isReadOnly = false, handleAddToLoad, handleAddOtherPay }) => {
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
       <Details 
@@ -12,6 +12,7 @@ const LoadForm = ({ loadData, drivers, handleChange, activeStep, showCustomerFor
         handleChange={handleChange} 
         isDetailsComplete={isDetailsComplete}
         drivers={drivers}
+        dispatchers={dispatchers}
         handleAddOtherPay={handleAddOtherPay}
       />
       <CustomerBroker loadData={loadData} handleChange={handleChange} showCustomerForm={showCustomerForm} handleToggleCustomerForm={handleToggleCustomerForm} handleAddToLoad={handleAddToLoad} />

@@ -198,6 +198,43 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#6b7280',
   },
+  otherPayments: {
+    marginLeft: 20,
+    paddingLeft: 10,
+    borderLeft: 1,
+    borderLeftColor: '#e5e7eb',
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  paymentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+    fontSize: 9,
+  },
+  paymentType: {
+    width: 100,
+    color: '#6b7280',
+  },
+  paymentAmount: {
+    width: 80,
+    textAlign: 'right',
+  },
+  paymentNote: {
+    color: '#6b7280',
+    fontStyle: 'italic',
+    marginLeft: 8,
+  },
+  positiveAmount: {
+    color: '#059669',
+  },
+  negativeAmount: {
+    color: '#dc2626',
+  },
+  chargebagDeduction: {
+    color: '#dc2626',
+    fontWeight: 500,
+  },
 });
 
 const PayReportPDF = ({ reportData }) => {
@@ -275,41 +312,58 @@ const PayReportPDF = ({ reportData }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Load Details</Text>
           <View style={styles.table}>
-            {/* Table Header */}
             <View style={[styles.tableRow, styles.tableHeader]}>
               <Text style={styles.tableCell}>Load #</Text>
               <Text style={styles.tableCell}>Pickup</Text>
               <Text style={styles.tableCell}>Delivery</Text>
               <Text style={styles.tableCell}>Rate</Text>
+              <Text style={styles.tableCell}>Load Total Pay</Text>
+              <Text style={styles.tableCell}>Chargebag</Text>
               <Text style={styles.tableCell}>Notes</Text>
-              <Text style={styles.tableCell}>Total Pay</Text>
             </View>
 
-            {/* Table Body */}
             {reportData.loads.map((load, index) => (
-              <View key={index} style={styles.tableRow}>
-                <Text style={styles.tableCell}>{load['Load #']}</Text>
-                <View style={[styles.tableCell, styles.loadDetails]}>
-                  <Text style={styles.date}>{load.Pickup}</Text>
+              <View key={index}>
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableCell}>{load['Load #']}</Text>
+                  <Text style={styles.tableCell}>{load.Pickup}</Text>
+                  <Text style={styles.tableCell}>{load.Delivery}</Text>
+                  <Text style={styles.tableCell}>{load.Rate}</Text>
+                  <Text style={[styles.tableCell, styles.amount]}>{load['Load Total Pay']}</Text>
+                  <Text style={[styles.tableCell, styles.chargebagDeduction]}>
+                    {load['Chargebag Deduction'] ? `- ${load['Chargebag Deduction']}` : ''}
+                  </Text>
+                  <Text style={styles.tableCell}>{load.Notes || '-'}</Text>
                 </View>
-                <View style={[styles.tableCell, styles.loadDetails]}>
-                  <Text style={styles.date}>{load.Delivery}</Text>
-                </View>
-                <View style={[styles.tableCell, styles.rateDetails]}>
-                  <Text style={styles.amount}>{load.Rate}</Text>
-                </View>
-                <Text style={styles.tableCell}>{load.Notes || '-'}</Text>
-                <Text style={[styles.tableCell, styles.total]}>
-                  {load['Total Pay']}
-                </Text>
+                
+                {load['Other Payments'] && load['Other Payments'].length > 0 && (
+                  <View style={styles.otherPayments}>
+                    {load['Other Payments'].map((payment, pIndex) => (
+                      <View key={pIndex} style={styles.paymentItem}>
+                        <Text style={styles.paymentType}>{payment.pay_type}</Text>
+                        <Text style={[
+                          styles.paymentAmount,
+                          payment.calculating.startsWith('-') ? styles.negativeAmount : styles.positiveAmount
+                        ]}>
+                          {payment.calculating.startsWith('-') ? '- ' : '+ '}
+                          {payment.amount}
+                        </Text>
+                        {payment.note && (
+                          <Text style={styles.paymentNote}>({payment.note})</Text>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
             ))}
           </View>
         </View>
 
-        {/* Expenses Section */}
+        {/* Expenses and Income Section */}
         <View style={styles.expensesSection}>
-          <Text style={styles.sectionTitle}>Expenses and Income</Text>
+          {/* Additions Table */}
+          <Text style={styles.sectionTitle}>Additions</Text>
           <View style={styles.table}>
             <View style={[styles.tableRow, styles.tableHeader]}>
               <Text style={styles.tableCell}>Description</Text>
@@ -317,34 +371,79 @@ const PayReportPDF = ({ reportData }) => {
               <Text style={styles.tableCell}>Type</Text>
               <Text style={styles.tableCell}>Date</Text>
             </View>
-            {reportData.expenses.map((expense, index) => (
-              <View key={index} style={styles.expenseRow}>
-                <Text style={styles.expenseLabel}>{expense.Description}</Text>
-                <Text style={styles.expenseAmount}>{expense.Amount}</Text>
-                <Text style={styles.expenseType}>{expense.Type}</Text>
-                <Text style={styles.expenseDate}>{expense.Date}</Text>
-              </View>
-            ))}
+            {reportData.expenses
+              .filter(expense => expense.Type === 'Income')
+              .map((expense, index) => (
+                <View key={index} style={styles.expenseRow}>
+                  <Text style={styles.expenseLabel}>{expense.Description}</Text>
+                  <Text style={[styles.expenseAmount, styles.positiveAmount]}>+ {expense.Amount}</Text>
+                  <Text style={styles.expenseType}>Addition</Text>
+                  <Text style={styles.expenseDate}>{expense.Date}</Text>
+                </View>
+              ))}
+          </View>
+        </View>
+
+        {/* Deductions Table */}
+        <View style={[styles.expensesSection, { marginTop: 20 }]}>
+          <Text style={styles.sectionTitle}>Deductions</Text>
+          <View style={styles.table}>
+            <View style={[styles.tableRow, styles.tableHeader]}>
+              <Text style={styles.tableCell}>Description</Text>
+              <Text style={styles.tableCell}>Amount</Text>
+              <Text style={styles.tableCell}>Type</Text>
+              <Text style={styles.tableCell}>Date</Text>
+            </View>
+            {reportData.expenses
+              .filter(expense => expense.Type === 'Expense')
+              .map((expense, index) => (
+                <View key={index} style={styles.expenseRow}>
+                  <Text style={styles.expenseLabel}>{expense.Description}</Text>
+                  <Text style={[styles.expenseAmount, styles.negativeAmount]}>- {expense.Amount}</Text>
+                  <Text style={styles.expenseType}>Deduction</Text>
+                  <Text style={styles.expenseDate}>{expense.Date}</Text>
+                </View>
+              ))}
           </View>
         </View>
 
         {/* Final Summary */}
         <View style={styles.finalSummary}>
           <View style={styles.finalSummaryRow}>
-            <Text style={styles.finalSummaryLabel}>Total Expenses:</Text>
-            <Text style={styles.finalSummaryValue}>{reportData.total_expenses}</Text>
+            <Text style={styles.finalSummaryLabel}>Total Load Pays:</Text>
+            <Text style={[styles.finalSummaryValue, styles.positiveAmount]}>
+              + {reportData.total_load_pays}
+            </Text>
           </View>
           <View style={styles.finalSummaryRow}>
-            <Text style={styles.finalSummaryLabel}>Total Income:</Text>
-            <Text style={styles.finalSummaryValue}>{reportData.total_income}</Text>
+            <Text style={styles.finalSummaryLabel}>Total Other Pays:</Text>
+            <Text style={[styles.finalSummaryValue, styles.positiveAmount]}>
+              + {reportData.total_other_pays}
+            </Text>
+          </View>
+          <View style={styles.finalSummaryRow}>
+            <Text style={styles.finalSummaryLabel}>Total Deductions:</Text>
+            <Text style={[styles.finalSummaryValue, styles.negativeAmount]}>
+              - {reportData.total_expenses}
+            </Text>
+          </View>
+          <View style={styles.finalSummaryRow}>
+            <Text style={styles.finalSummaryLabel}>Total Additions:</Text>
+            <Text style={[styles.finalSummaryValue, styles.positiveAmount]}>
+              + {reportData.total_income}
+            </Text>
           </View>
           <View style={styles.finalSummaryRow}>
             <Text style={styles.finalSummaryLabel}>Escrow Deduction:</Text>
-            <Text style={styles.finalSummaryValue}>{reportData.escrow_deduction}</Text>
+            <Text style={[styles.finalSummaryValue, styles.negativeAmount]}>
+              - {reportData.escrow_deduction}
+            </Text>
           </View>
           <View style={[styles.finalSummaryRow, { marginTop: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 10 }]}>
             <Text style={[styles.finalSummaryLabel, { fontWeight: 700 }]}>Total Pay:</Text>
-            <Text style={[styles.finalSummaryValue, { color: '#059669' }]}>{reportData.total_pay}</Text>
+            <Text style={[styles.finalSummaryValue, { color: '#059669', fontSize: 14, fontWeight: 700 }]}>
+              {reportData.total_pay}
+            </Text>
           </View>
         </View>
 
