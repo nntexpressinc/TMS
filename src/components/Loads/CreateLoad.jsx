@@ -9,11 +9,16 @@ import {
   StepLabel,
   CircularProgress,
   TextField,
+  IconButton,
 } from "@mui/material";
 import { ApiService } from "../../api/auth";
 import LoadForm from "./LoadForm";
 import ChatBox from "./ChatBox";
 import { useSidebar } from "../SidebarContext";
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import SaveIcon from '@mui/icons-material/Save';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 const steps = [
   "Open",
@@ -98,6 +103,7 @@ const LoadPage = () => {
   const { isSidebarOpen } = useSidebar();
   const { id } = useParams();
   const isEditMode = !!id;
+  const [isChanged, setIsChanged] = useState(false);
 
   useEffect(() => {
     const fetchDrivers = async () => {
@@ -211,6 +217,44 @@ const LoadPage = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
+  const handleSave = async () => {
+    try {
+      const formData = new FormData();
+      const processedData = { ...loadData };
+
+      if (processedData.created_by && typeof processedData.created_by === 'object') processedData.created_by = processedData.created_by.id;
+      if (processedData.customer_broker && typeof processedData.customer_broker === 'object') processedData.customer_broker = processedData.customer_broker.id;
+      if (processedData.dispatcher && typeof processedData.dispatcher === 'object') processedData.dispatcher = processedData.dispatcher.id;
+      if (processedData.driver && typeof processedData.driver === 'object') processedData.driver = processedData.driver.id;
+
+      Object.keys(processedData).forEach((key) => {
+        if (key === "created_date" || key === "updated_date") {
+          if (processedData[key] && typeof processedData[key] === "string" && processedData[key].includes("T")) {
+            formData.append(key, processedData[key]);
+          }
+        } else if (processedData[key] !== null && processedData[key] !== undefined && key !== "pickup_time" && key !== "delivery_time") {
+          if (processedData[key]?.file) {
+            formData.append(key, processedData[key].file);
+          } else {
+            formData.append(key, processedData[key]);
+          }
+        }
+      });
+
+      const formattedCreatedDate = loadData.created_date ? new Date(loadData.created_date).toISOString().split('T')[0] : "";
+      const formattedUpdatedDate = loadData.updated_date ? new Date(loadData.updated_date).toISOString().split('T')[0] : "";
+      formData.set("created_date", formattedCreatedDate);
+      formData.set("updated_date", formattedUpdatedDate);
+
+      const loadId = isEditMode ? id : localStorage.getItem('loadId');
+      await ApiService.putData(`/load/${loadId}/`, formData);
+      console.log('Load saved successfully');
+      setIsChanged(false);
+    } catch (error) {
+      console.error('Error saving load:', error);
+    }
+  };
+
   const handleChange = async (e) => {
     const { name, files, value } = e.target;
     const updatedLoadData = {
@@ -218,6 +262,7 @@ const LoadPage = () => {
       [name]: files ? { name: files[0].name, file: files[0] } : value,
     };
     setLoadData(updatedLoadData);
+    setIsChanged(true);
 
     if (name === 'customer_broker' && typeof value === 'object') {
       setLoadData((prevData) => ({
@@ -325,6 +370,45 @@ const LoadPage = () => {
     }
   };
 
+  const handleAddOtherPay = async (newOtherPay) => {
+    const formData = new FormData();
+    formData.append('amount', newOtherPay.amount);
+    formData.append('pay_type', newOtherPay.pay_type);
+    formData.append('note', newOtherPay.note);
+    formData.append('load', loadData.id);
+
+    try {
+      const response = await ApiService.postMediaData('/api/otherpay/', formData);
+      setLoadData((prevData) => ({
+        ...prevData,
+        otherPays: [...(prevData.otherPays || []), response],
+      }));
+      alert('Other Pay successfully created!');
+      console.log('Other Pay added:', response);
+    } catch (error) {
+      alert('Failed to create Other Pay. Please try again.');
+      console.error('Error adding other pay:', error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchOtherPays = async () => {
+      try {
+        const response = await ApiService.getData(`/load/${loadData.id}/otherpays/`);
+        setLoadData((prevData) => ({
+          ...prevData,
+          otherPays: response,
+        }));
+      } catch (error) {
+        console.error('Error fetching other pays:', error);
+      }
+    };
+
+    if (loadData.id) {
+      fetchOtherPays();
+    }
+  }, [loadData.id]);
+
   if (isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
@@ -337,28 +421,28 @@ const LoadPage = () => {
   return (
     <Box sx={{ width: "100%", display: "flex", gap: 2 }}>
       <Box sx={{ width: isSidebarOpen ? "77%" : "87%", pr: 2 }}>
-        <Box sx={{ position: "sticky", top: 0, zIndex: 1, backgroundColor: "white" }}>
-          <Stepper activeStep={activeStep} alternativeLabel sx={{ p: 2, mb: 2, width: "100%" }}>
+        <Box sx={{ position: "sticky", top: 0, zIndex: 1, backgroundColor: "white", display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Stepper activeStep={activeStep} alternativeLabel sx={{ p: 2, mb: 2, flexGrow: 1 }}>
             {steps.map((label) => (
               <Step key={label}>
                 <StepLabel>{label}</StepLabel>
               </Step>
             ))}
-             <Button
-              variant="outlined"
-              color="primary"
-              onClick={() => navigate(`/loads/view/${id}`)}
-              sx={{ mr: 1 }}
-            >
+          </Stepper>
+          <Box sx={{ display: 'flex',marginRight: '10px', justifyContent: 'center', alignItems: 'center', gap: 2, p: 1, border: '1px solid #ccc', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
+            <Button onClick={() => navigate(`/loads/view/${id}`)} color="primary" startIcon={<VisibilityIcon />} sx={{ textTransform: 'none' }}>
               View Load
             </Button>
-            <Button disabled={activeStep === 0} onClick={handleBack} sx={{ mr: 1 }}>
+            <Button disabled={activeStep === 0} onClick={handleBack} color="primary" startIcon={<ArrowBackIcon />} sx={{ textTransform: 'none' }}>
               Back
             </Button>
-            <Button variant="contained" color="primary" onClick={handleNext}>
-              {activeStep === steps.length - 1 ? "Complete" : "Next"}
+            <Button onClick={handleNext} color="primary" startIcon={<ArrowForwardIcon />} sx={{ textTransform: 'none' }}>
+              Next
             </Button>
-          </Stepper>
+            <Button onClick={handleSave} color="primary" startIcon={<SaveIcon />} disabled={!isChanged} sx={{ textTransform: 'none' }}>
+              Save
+            </Button>
+          </Box>
         </Box>
         <Box sx={{ overflowY: "auto", maxHeight: "calc(100vh - 200px)" }}>
           <LoadForm
@@ -371,6 +455,7 @@ const LoadPage = () => {
             isDetailsComplete={isDetailsComplete}
             isCustomerBrokerComplete={activeStep >= 1}
             handleAddToLoad={handleAddToLoad}
+            handleAddOtherPay={handleAddOtherPay}
           />
         </Box>
       </Box>

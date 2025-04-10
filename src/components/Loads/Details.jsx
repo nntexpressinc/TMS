@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, TextField, Typography, Paper, FormControl, InputLabel, Select, MenuItem, OutlinedInput, Button, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableHead, TableBody, TableRow, TableCell, TableContainer } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { ApiService } from '../../api/auth';
+import { useParams } from 'react-router-dom';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -19,6 +21,21 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) =>
   const [newOtherPay, setNewOtherPay] = useState({ amount: '', pay_type: '', note: '' });
   const [showOtherPayModal, setShowOtherPayModal] = useState(false);
 
+  useEffect(() => {
+    const fetchOtherPays = async () => {
+      try {
+        const response = await ApiService.getData('/otherpay/');
+        // Filter other pays for load ID 2
+        const filteredOtherPays = response.filter(pay => pay.load === 2);
+        setOtherPays(filteredOtherPays);
+      } catch (error) {
+        console.error('Error fetching other pays:', error);
+      }
+    };
+
+    fetchOtherPays();
+  }, []);
+
   const handleDriverChange = (e) => {
     const selectedDriver = drivers.find(d => d.id === e.target.value);
     handleChange({
@@ -34,12 +51,34 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) =>
     setNewOtherPay((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddOtherPay = () => {
-    setOtherPays([...otherPays, { ...newOtherPay, id: otherPays.length + 1 }]);
-    setNewOtherPay({ amount: '', pay_type: '', note: '' });
+  const handleAddOtherPay = (pay) => {
+    setOtherPays([...otherPays, pay]);
   };
 
   const totalOtherPay = otherPays.reduce((acc, pay) => acc + parseFloat(pay.amount || 0), 0);
+  const totalPay = parseFloat(loadData.load_pay || 0) + totalOtherPay;
+
+  const handleAddOtherPayClick = async () => {
+    try {
+      const formData = new FormData();
+      formData.append('amount', newOtherPay.amount);
+      formData.append('pay_type', newOtherPay.pay_type);
+      formData.append('note', newOtherPay.note);
+      formData.append('load', '2'); // Hardcoded load ID
+
+      const response = await ApiService.postMediaData('/otherpay/', formData);
+      setOtherPays([...otherPays, response]);
+      setShowOtherPayModal(false);
+      setNewOtherPay({ amount: '', pay_type: '', note: '' });
+    } catch (error) {
+      console.error('Error adding other pay:', error);
+      if (error.response?.data?.load) {
+        alert(error.response.data.load[0]);
+      } else {
+        alert('Failed to add other pay. Please try again.');
+      }
+    }
+  };
 
   return (
     <Paper sx={{ p: 2, mb: 2, width: '100%' }}>
@@ -163,13 +202,14 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) =>
           label="Total Pay"
           name="total_pay"
           type="number"
-          value={loadData.total_pay}
+          value={totalPay}
           onChange={handleChange}
           sx={{ mb: 1, width: '250px', mr: 1 }}
           required
+          InputProps={{
+            readOnly: true,
+          }}
         />
-        
-         
         <TextField
           label="Total Other Pay (USD)"
           value={`$${totalOtherPay.toFixed(2)}`}
@@ -229,7 +269,7 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) =>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setShowOtherPayModal(false)}>Cancel</Button>
-            <Button onClick={handleAddOtherPay} variant="contained" color="primary">Add</Button>
+            <Button onClick={handleAddOtherPayClick} variant="contained" color="primary">Add</Button>
           </DialogActions>
         </Dialog>
         <TableContainer component={Paper} sx={{ mt: 2 }}>
