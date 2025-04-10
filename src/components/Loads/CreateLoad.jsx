@@ -409,6 +409,29 @@ const LoadPage = () => {
     }
   }, [loadData.id]);
 
+  const handleCreate = async () => {
+    try {
+      const formData = new FormData();
+      const processedData = { ...loadData, load_status: 'COVERED' };
+
+      // Ensure driver is sent as an ID
+      if (processedData.driver && typeof processedData.driver === 'object') {
+        processedData.driver = processedData.driver.id;
+      }
+
+      Object.keys(processedData).forEach((key) => {
+        if (processedData[key] !== null && processedData[key] !== undefined) {
+          formData.append(key, processedData[key]);
+        }
+      });
+
+      const response = await ApiService.postData('/load/', formData);
+      navigate(`/loads/edit/${response.id}`);
+    } catch (error) {
+      console.error('Error creating load:', error);
+    }
+  };
+
   if (isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
@@ -429,19 +452,39 @@ const LoadPage = () => {
               </Step>
             ))}
           </Stepper>
-          <Box sx={{ display: 'flex',marginRight: '10px', justifyContent: 'center', alignItems: 'center', gap: 2, p: 1, border: '1px solid #ccc', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
-            <Button onClick={() => navigate(`/loads/view/${id}`)} color="primary" startIcon={<VisibilityIcon />} sx={{ textTransform: 'none' }}>
-              View Load
-            </Button>
-            <Button disabled={activeStep === 0} onClick={handleBack} color="primary" startIcon={<ArrowBackIcon />} sx={{ textTransform: 'none' }}>
-              Back
-            </Button>
-            <Button onClick={handleNext} color="primary" startIcon={<ArrowForwardIcon />} sx={{ textTransform: 'none' }}>
-              Next
-            </Button>
-            <Button onClick={handleSave} color="primary" startIcon={<SaveIcon />} disabled={!isChanged} sx={{ textTransform: 'none' }}>
-              Save
-            </Button>
+          <Box sx={{ display: 'flex', marginRight: '10px', justifyContent: 'center', alignItems: 'center', gap: 2, p: 1, border: '1px solid #ccc', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
+            {!isEditMode && (
+              <Button onClick={handleCreate} color="primary" sx={{
+                textTransform: 'none',
+                backgroundColor: '#1976d2',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: '#115293',
+                },
+                borderRadius: '8px',
+                padding: '8px 16px',
+                fontWeight: 'bold',
+                boxShadow: '0 3px 5px 2px rgba(25, 118, 210, .3)'
+              }}>
+                Create
+              </Button>
+            )}
+            {isEditMode && (
+              <>
+                <Button onClick={() => navigate(`/loads/view/${id}`)} color="primary" startIcon={<VisibilityIcon />} sx={{ textTransform: 'none' }}>
+                  View Load
+                </Button>
+                <Button disabled={activeStep === 0} onClick={handleBack} color="primary" startIcon={<ArrowBackIcon />} sx={{ textTransform: 'none' }}>
+                  Back
+                </Button>
+                <Button onClick={handleNext} color="primary" startIcon={<ArrowForwardIcon />} sx={{ textTransform: 'none' }}>
+                  Next
+                </Button>
+                <Button onClick={handleSave} color="primary" startIcon={<SaveIcon />} disabled={!isChanged} sx={{ textTransform: 'none' }}>
+                  Save
+                </Button>
+              </>
+            )}
           </Box>
         </Box>
         <Box sx={{ overflowY: "auto", maxHeight: "calc(100vh - 200px)" }}>

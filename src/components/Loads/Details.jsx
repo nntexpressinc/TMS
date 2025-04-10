@@ -17,24 +17,27 @@ const MenuProps = {
 
 const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) => {
   const theme = useTheme();
+  const { id } = useParams();
   const [otherPays, setOtherPays] = useState([]);
   const [newOtherPay, setNewOtherPay] = useState({ amount: '', pay_type: '', note: '' });
   const [showOtherPayModal, setShowOtherPayModal] = useState(false);
+  const [isOtherPayCreated, setIsOtherPayCreated] = useState(false);
 
   useEffect(() => {
     const fetchOtherPays = async () => {
       try {
         const response = await ApiService.getData('/otherpay/');
-        // Filter other pays for load ID 2
-        const filteredOtherPays = response.filter(pay => pay.load === 2);
+        // Filter other pays for current load ID
+        const filteredOtherPays = response.filter(pay => pay.load === parseInt(id));
         setOtherPays(filteredOtherPays);
+        setIsOtherPayCreated(filteredOtherPays.length > 0);
       } catch (error) {
         console.error('Error fetching other pays:', error);
       }
     };
 
     fetchOtherPays();
-  }, []);
+  }, [id]);
 
   const handleDriverChange = (e) => {
     const selectedDriver = drivers.find(d => d.id === e.target.value);
@@ -56,7 +59,15 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) =>
   };
 
   const totalOtherPay = otherPays.reduce((acc, pay) => acc + parseFloat(pay.amount || 0), 0);
-  const totalPay = parseFloat(loadData.load_pay || 0) + totalOtherPay;
+
+  const additionalLoadPay = otherPays.reduce((acc, pay) => {
+    if (pay.pay_type === 'DETENTION' || pay.pay_type === 'LAYOVER' || pay.pay_type === 'EXTRAMILES') {
+      return acc + parseFloat(pay.amount || 0);
+    }
+    return acc;
+  }, 0);
+
+  const totalPay = isOtherPayCreated ? parseFloat(loadData.load_pay || 0) + totalOtherPay : loadData.total_pay;
 
   const handleAddOtherPayClick = async () => {
     try {
@@ -64,12 +75,13 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) =>
       formData.append('amount', newOtherPay.amount);
       formData.append('pay_type', newOtherPay.pay_type);
       formData.append('note', newOtherPay.note);
-      formData.append('load', '2'); // Hardcoded load ID
+      formData.append('load', id);
 
       const response = await ApiService.postMediaData('/otherpay/', formData);
       setOtherPays([...otherPays, response]);
       setShowOtherPayModal(false);
       setNewOtherPay({ amount: '', pay_type: '', note: '' });
+      setIsOtherPayCreated(true);
     } catch (error) {
       console.error('Error adding other pay:', error);
       if (error.response?.data?.load) {
@@ -77,6 +89,18 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) =>
       } else {
         alert('Failed to add other pay. Please try again.');
       }
+    }
+  };
+
+  const handleDeleteOtherPay = async (payId) => {
+    try {
+      await ApiService.deleteData(`/otherpay/${payId}/`);
+      const updatedOtherPays = otherPays.filter(p => p.id !== payId);
+      setOtherPays(updatedOtherPays);
+      setIsOtherPayCreated(updatedOtherPays.length > 0);
+    } catch (error) {
+      console.error('Error deleting other pay:', error);
+      alert('Failed to delete other pay. Please try again.');
     }
   };
 
@@ -193,10 +217,13 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) =>
           label="Load Pay"
           name="load_pay"
           type="number"
-          value={loadData.load_pay}
+          value={parseFloat(loadData.load_pay || 0) + additionalLoadPay}
           onChange={handleChange}
           sx={{ mb: 1, width: '250px', mr: 1 }}
           required
+          InputProps={{
+            readOnly: isOtherPayCreated,
+          }}
         />
         <TextField
           label="Total Pay"
@@ -207,7 +234,7 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) =>
           sx={{ mb: 1, width: '250px', mr: 1 }}
           required
           InputProps={{
-            readOnly: true,
+            readOnly: isOtherPayCreated,
           }}
         />
         <TextField
@@ -224,7 +251,7 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) =>
       </Box>
       <hr />
       <Box sx={{ mb: 2 }}>
-      <Typography variant="subtitle1" gutterBottom>Other Pay</Typography>
+        <Typography variant="subtitle1" gutterBottom>Other Pay</Typography>
         <Dialog open={showOtherPayModal} onClose={() => setShowOtherPayModal(false)}>
           <DialogTitle>Add Other Pay</DialogTitle>
           <DialogContent>
@@ -280,6 +307,7 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) =>
                 <TableCell>Amount</TableCell>
                 <TableCell>Pay Type</TableCell>
                 <TableCell>Note</TableCell>
+                <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -289,6 +317,16 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) =>
                   <TableCell>{pay.amount}</TableCell>
                   <TableCell>{pay.pay_type}</TableCell>
                   <TableCell>{pay.note}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="small"
+                      onClick={() => handleDeleteOtherPay(pay.id)}
+                    >
+                      Delete
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
