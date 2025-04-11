@@ -153,6 +153,7 @@ const DashboardPage = () => {
   const StatCard = ({ title, total, active, icon, color, onClick }) => {
     // Safely format numbers
     const formatNumber = (num) => {
+      if (typeof num !== 'number' && typeof num !== 'string') return '0';
       const number = Number(num);
       if (isNaN(number)) return '0';
       return number.toLocaleString();
