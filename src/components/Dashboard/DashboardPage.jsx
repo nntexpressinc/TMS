@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { ApiService } from "../../api/auth";
 import { useNavigate } from "react-router-dom";
+
 import {
   BarChart,
   Bar,
@@ -44,6 +45,8 @@ import {
   TrendingUp,
   CalendarMonth
 } from '@mui/icons-material';
+
+window.isNumber = window.isNumber || ((value) => typeof value === 'number' && !isNaN(value));
 
 const formatLoadStatusData = (loadStatuses) => {
   return [
