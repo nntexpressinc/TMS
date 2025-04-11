@@ -269,13 +269,14 @@ const LoadSection = ({ load, index }) => (
         <View style={[styles.tableRow, styles.tableHeader]}>
           <Text style={[styles.tableCol, { width: '25%' }]}>Payment Type</Text>
           <Text style={[styles.tableCol, { width: '35%' }]}>Formula</Text>
-          <Text style={[styles.tableCol, { width: '20%' }]}>Amount</Text>
           <Text style={[styles.tableCol, { width: '20%' }]}>Note</Text>
+          <Text style={[styles.tableCol, { width: '20%' }]}>Amount</Text>
         </View>
         {load['Other Payments'].map((payment, pIndex) => (
           <View key={pIndex} style={styles.tableRow}>
             <Text style={[styles.tableCol, { width: '25%' }]}>{payment.pay_type}</Text>
             <Text style={[styles.tableCol, { width: '35%' }]}>{payment.formula}</Text>
+            <Text style={[styles.tableCol, { width: '20%' }]}>{payment.note || '-'}</Text>
             <Text style={[
               styles.tableCol,
               styles.amount,
@@ -284,7 +285,6 @@ const LoadSection = ({ load, index }) => (
             ]}>
               {payment.result}
             </Text>
-            <Text style={[styles.tableCol, { width: '20%' }]}>{payment.note || '-'}</Text>
           </View>
         ))}
       </View>

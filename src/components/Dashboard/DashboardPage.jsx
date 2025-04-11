@@ -45,6 +45,45 @@ import {
   CalendarMonth
 } from '@mui/icons-material';
 
+const formatLoadStatusData = (loadStatuses) => {
+  return [
+    { name: 'COVERED', value: Number(loadStatuses.COVERED) || 0, color: '#10B981' },
+    { name: 'DELIVERED', value: Number(loadStatuses.DELIVERED) || 0, color: '#6366F1' },
+    { name: 'PICKED UP', value: Number(loadStatuses.PICKED_UP) || 0, color: '#F59E0B' },
+    { name: 'POSTED', value: Number(loadStatuses.POSTED) || 0, color: '#3B82F6' },
+    { name: 'CANCELLED', value: Number(loadStatuses.CANCELLED) || 0, color: '#EF4444' }
+  ];
+};
+
+const formatDriverPerformanceData = (driverPerformance) => {
+  return Object.values(driverPerformance)
+    .map(driver => ({
+      ...driver,
+      totalLoads: Number(driver.totalLoads) || 0,
+      completedLoads: Number(driver.completedLoads) || 0,
+      cancelledLoads: Number(driver.cancelledLoads) || 0,
+      totalMiles: Number(driver.totalMiles) || 0,
+      totalRevenue: Number(driver.totalRevenue) || 0,
+      efficiency: Number(driver.efficiency) || 0
+    }))
+    .sort((a, b) => b.efficiency - a.efficiency)
+    .slice(0, 5);
+};
+
+const formatTopBrokersData = (topBrokers) => {
+  return Object.values(topBrokers)
+    .map(broker => ({
+      ...broker,
+      totalLoads: Number(broker.totalLoads) || 0,
+      activeLoads: Number(broker.activeLoads) || 0,
+      completedLoads: Number(broker.completedLoads) || 0,
+      revenue: Number(broker.revenue) || 0,
+      averageRate: Number(broker.averageRate) || 0
+    }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 5);
+};
+
 const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('month');
@@ -237,13 +276,7 @@ const DashboardPage = () => {
           });
 
           // Load status data for pie chart
-          setLoadStatusData([
-            { name: 'COVERED', value: loadStatuses.COVERED, color: '#10B981' },
-            { name: 'DELIVERED', value: loadStatuses.DELIVERED, color: '#6366F1' },
-            { name: 'PICKED UP', value: loadStatuses.PICKED_UP, color: '#F59E0B' },
-            { name: 'POSTED', value: loadStatuses.POSTED, color: '#3B82F6' },
-            { name: 'CANCELLED', value: loadStatuses.CANCELLED, color: '#EF4444' }
-          ]);
+          setLoadStatusData(formatLoadStatusData(loadStatuses));
 
           // Load trend data
           setLoadTrendData(Object.values(loadTrends).sort((a, b) => 
@@ -251,18 +284,10 @@ const DashboardPage = () => {
           ));
 
           // Driver performance data
-          setDriverPerformanceData(
-            Object.values(driverPerformance)
-              .sort((a, b) => b.efficiency - a.efficiency)
-              .slice(0, 5)
-          );
+          setDriverPerformanceData(formatDriverPerformanceData(driverPerformance));
 
           // Top brokers data
-          setTopBrokersData(
-            Object.values(topBrokers)
-              .sort((a, b) => b.revenue - a.revenue)
-              .slice(0, 5)
-          );
+          setTopBrokersData(formatTopBrokersData(topBrokers));
 
           setLoading(false);
         } catch (error) {
@@ -275,58 +300,68 @@ const DashboardPage = () => {
     fetchDashboardData();
   }, [timeRange]);
 
-  const StatCard = ({ title, total, active, icon, color, onClick }) => (
-    <Paper
-      sx={{
-        p: 3,
-        borderRadius: 4,
-        bgcolor: 'background.paper',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-        cursor: 'pointer',
-        transition: 'transform 0.2s',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: '0 8px 12px -1px rgba(0, 0, 0, 0.15)'
-        }
-      }}
-      onClick={onClick}
-    >
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-        <IconButton sx={{ bgcolor: `${color}15`, color: color }}>
-          {icon}
-        </IconButton>
-        <ArrowForward sx={{ color: 'text.secondary' }} />
-      </Box>
-      <Typography variant="h4" sx={{ mb: 1, fontWeight: 'bold' }}>
-        {total}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {title}
-      </Typography>
-      <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            Active
-          </Typography>
-          <Typography variant="body2" color="text.primary">
-            {active} ({Math.round((active/total) * 100 || 0)}%)
-          </Typography>
+  const StatCard = ({ title, total, active, icon, color, onClick }) => {
+    // Safely format numbers
+    const formatNumber = (num) => {
+      if (typeof num !== 'number') return '0';
+      return num.toLocaleString();
+    };
+
+    const activePercentage = total > 0 ? Math.round((active/total) * 100) : 0;
+
+    return (
+      <Paper
+        sx={{
+          p: 3,
+          borderRadius: 4,
+          bgcolor: 'background.paper',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          cursor: 'pointer',
+          transition: 'transform 0.2s',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 8px 12px -1px rgba(0, 0, 0, 0.15)'
+          }
+        }}
+        onClick={onClick}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+          <IconButton sx={{ bgcolor: `${color}15`, color: color }}>
+            {icon}
+          </IconButton>
+          <ArrowForward sx={{ color: 'text.secondary' }} />
         </Box>
-        <LinearProgress 
-          variant="determinate" 
-          value={(active/total) * 100 || 0}
-          sx={{ 
-            height: 6, 
-            borderRadius: 3,
-            bgcolor: `${color}15`,
-            '& .MuiLinearProgress-bar': {
-              bgcolor: color
-            }
-          }} 
-        />
-      </Box>
-    </Paper>
-  );
+        <Typography variant="h4" sx={{ mb: 1, fontWeight: 'bold' }}>
+          {formatNumber(total)}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          {title}
+        </Typography>
+        <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              Active
+            </Typography>
+            <Typography variant="body2" color="text.primary">
+              {formatNumber(active)} ({activePercentage}%)
+            </Typography>
+          </Box>
+          <LinearProgress 
+            variant="determinate" 
+            value={activePercentage}
+            sx={{ 
+              height: 6, 
+              borderRadius: 3,
+              bgcolor: `${color}15`,
+              '& .MuiLinearProgress-bar': {
+                bgcolor: color
+              }
+            }} 
+          />
+        </Box>
+      </Paper>
+    );
+  };
 
   if (loading) {
     return (

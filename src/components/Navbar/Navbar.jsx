@@ -63,7 +63,6 @@ const Navbar = () => {
             fontSize: '1.25rem'
           }}
         >
-          {t('Dashboard Overview')}
         </Typography>
         <Box sx={{ 
           display: 'flex', 
