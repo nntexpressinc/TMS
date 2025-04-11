@@ -153,8 +153,9 @@ const DashboardPage = () => {
   const StatCard = ({ title, total, active, icon, color, onClick }) => {
     // Safely format numbers
     const formatNumber = (num) => {
-      if (typeof num !== 'number') return '0';
-      return num.toLocaleString();
+      const number = Number(num);
+      if (isNaN(number)) return '0';
+      return number.toLocaleString();
     };
 
     const activePercentage = total > 0 ? Math.round((active/total) * 100) : 0;
