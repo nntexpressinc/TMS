@@ -103,201 +103,51 @@ const DashboardPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      const storedAccessToken = localStorage.getItem("accessToken");
-      if (storedAccessToken) {
-        try {
-          setLoading(true);
-          
-          // Loads statistics
-          const loadsData = await ApiService.getData('/load/');
-          const loadStatuses = {
-            COVERED: 0,
-            DELIVERED: 0,
-            PICKED_UP: 0,
-            POSTED: 0,
-            CANCELLED: 0
-          };
-          
-          // Calculate load statistics
-          loadsData.forEach(load => {
-            if (loadStatuses.hasOwnProperty(load.load_status)) {
-              loadStatuses[load.load_status]++;
-            }
-          });
+    // Remove API calls and use static data
+    setStats({
+      loads: { total: 150, active: 45, revenue: 125000, averageRate: 2.5 },
+      dispatchers: { total: 12, active: 8 },
+      drivers: { total: 25, active: 18, efficiency: 85 },
+      trucks: { total: 30, active: 22, utilization: 75 },
+      trailers: { total: 35, active: 28, utilization: 80 },
+      brokers: { total: 50, active: 35, topPerformer: "ABC Logistics" }
+    });
 
-          // Calculate revenue and performance metrics
-          const revenueMetrics = {
-            totalRevenue: 0,
-            totalDriverPay: 0,
-            totalMiles: 0,
-            averageRatePerMile: 0,
-            completedLoads: 0
-          };
+    setLoadStatusData([
+      { name: 'COVERED', value: 45, color: '#10B981' },
+      { name: 'DELIVERED', value: 60, color: '#6366F1' },
+      { name: 'PICKED UP', value: 25, color: '#F59E0B' },
+      { name: 'POSTED', value: 15, color: '#3B82F6' },
+      { name: 'CANCELLED', value: 5, color: '#EF4444' }
+    ]);
 
-          loadsData.forEach(load => {
-            revenueMetrics.totalRevenue += parseFloat(load.load_pay || 0);
-            revenueMetrics.totalDriverPay += parseFloat(load.driver_pay || 0);
-            revenueMetrics.totalMiles += load.total_miles || 0;
-            if (load.load_status === 'DELIVERED') {
-              revenueMetrics.completedLoads++;
-            }
-          });
+    setLoadTrendData([
+      { date: '2024-01-01', total: 10, active: 5, delivered: 3, cancelled: 1, revenue: 8500 },
+      { date: '2024-01-02', total: 12, active: 6, delivered: 4, cancelled: 0, revenue: 10200 },
+      { date: '2024-01-03', total: 8, active: 4, delivered: 2, cancelled: 1, revenue: 6800 },
+      { date: '2024-01-04', total: 15, active: 7, delivered: 5, cancelled: 0, revenue: 12750 },
+      { date: '2024-01-05', total: 11, active: 5, delivered: 4, cancelled: 1, revenue: 9350 },
+      { date: '2024-01-06', total: 9, active: 4, delivered: 3, cancelled: 0, revenue: 7650 },
+      { date: '2024-01-07', total: 13, active: 6, delivered: 5, cancelled: 1, revenue: 11050 }
+    ]);
 
-          revenueMetrics.averageRatePerMile = revenueMetrics.totalMiles > 0 
-            ? revenueMetrics.totalRevenue / revenueMetrics.totalMiles 
-            : 0;
+    setDriverPerformanceData([
+      { name: 'John Smith', totalLoads: 25, completedLoads: 22, cancelledLoads: 2, totalMiles: 12500, totalRevenue: 31250, efficiency: 88 },
+      { name: 'Mike Johnson', totalLoads: 20, completedLoads: 18, cancelledLoads: 1, totalMiles: 10000, totalRevenue: 25000, efficiency: 90 },
+      { name: 'Sarah Williams', totalLoads: 18, completedLoads: 16, cancelledLoads: 1, totalMiles: 9000, totalRevenue: 22500, efficiency: 89 },
+      { name: 'David Brown', totalLoads: 22, completedLoads: 19, cancelledLoads: 2, totalMiles: 11000, totalRevenue: 27500, efficiency: 86 },
+      { name: 'Emily Davis', totalLoads: 15, completedLoads: 14, cancelledLoads: 0, totalMiles: 7500, totalRevenue: 18750, efficiency: 93 }
+    ]);
 
-          // Load trend data
-          const loadTrends = {};
-          loadsData.forEach(load => {
-            const date = new Date(load.created_date).toLocaleDateString();
-            if (!loadTrends[date]) {
-              loadTrends[date] = {
-                date,
-                total: 0,
-                active: 0,
-                delivered: 0,
-                cancelled: 0,
-                revenue: 0
-              };
-            }
-            loadTrends[date].total++;
-            loadTrends[date].revenue += parseFloat(load.load_pay || 0);
-            if (['COVERED', 'PICKED_UP'].includes(load.load_status)) {
-              loadTrends[date].active++;
-            }
-            if (load.load_status === 'DELIVERED') {
-              loadTrends[date].delivered++;
-            }
-            if (load.load_status === 'CANCELLED') {
-              loadTrends[date].cancelled++;
-            }
-          });
-          
-          // Drivers statistics
-          const driversData = await ApiService.getData('/driver/');
-          const driverStatuses = {
-            ACTIVE: 0,
-            INACTIVE: 0
-          };
-          
-          driversData.forEach(driver => {
-            if (driver.employment_status === 'ACTIVE (DF)') {
-              driverStatuses.ACTIVE++;
-            } else {
-              driverStatuses.INACTIVE++;
-            }
-          });
+    setTopBrokersData([
+      { name: 'ABC Logistics', totalLoads: 35, activeLoads: 12, completedLoads: 20, revenue: 87500, averageRate: 2.5 },
+      { name: 'XYZ Transport', totalLoads: 30, activeLoads: 10, completedLoads: 18, revenue: 75000, averageRate: 2.5 },
+      { name: 'Global Shipping', totalLoads: 25, activeLoads: 8, completedLoads: 15, revenue: 62500, averageRate: 2.5 },
+      { name: 'Fast Freight', totalLoads: 20, activeLoads: 6, completedLoads: 12, revenue: 50000, averageRate: 2.5 },
+      { name: 'Premium Logistics', totalLoads: 15, activeLoads: 5, completedLoads: 9, revenue: 37500, averageRate: 2.5 }
+    ]);
 
-          // Driver performance metrics
-          const driverPerformance = {};
-          driversData.forEach(driver => {
-            const driverLoads = loadsData.filter(load => load.driver?.id === driver.id);
-            driverPerformance[`${driver.first_name} ${driver.last_name}`] = {
-              name: `${driver.first_name} ${driver.last_name}`,
-              totalLoads: driverLoads.length,
-              completedLoads: driverLoads.filter(load => load.load_status === 'DELIVERED').length,
-              cancelledLoads: driverLoads.filter(load => load.load_status === 'CANCELLED').length,
-              totalMiles: driverLoads.reduce((sum, load) => sum + (load.total_miles || 0), 0),
-              totalRevenue: driverLoads.reduce((sum, load) => sum + parseFloat(load.load_pay || 0), 0),
-              efficiency: driverLoads.length > 0 
-                ? (driverLoads.filter(load => load.load_status === 'DELIVERED').length / driverLoads.length) * 100 
-                : 0
-            };
-          });
-          
-          // Trucks and trailers statistics
-          const trucksData = await ApiService.getData('/truck/');
-          const trailersData = await ApiService.getData('/trailer/');
-          
-          // Brokers statistics
-          const brokersData = await ApiService.getData('/customer_broker/');
-          
-          // Top brokers analysis
-          const topBrokers = {};
-          loadsData.forEach(load => {
-            if (load.customer_broker) {
-              const brokerName = load.customer_broker.company_name;
-              if (!topBrokers[brokerName]) {
-                topBrokers[brokerName] = {
-                  name: brokerName,
-                  totalLoads: 0,
-                  activeLoads: 0,
-                  completedLoads: 0,
-                  revenue: 0,
-                  averageRate: 0
-                };
-              }
-              topBrokers[brokerName].totalLoads++;
-              if (['COVERED', 'PICKED_UP'].includes(load.load_status)) {
-                topBrokers[brokerName].activeLoads++;
-              }
-              if (load.load_status === 'DELIVERED') {
-                topBrokers[brokerName].completedLoads++;
-              }
-              const loadPay = parseFloat(load.load_pay || 0);
-              topBrokers[brokerName].revenue += loadPay;
-              topBrokers[brokerName].averageRate = topBrokers[brokerName].revenue / topBrokers[brokerName].totalLoads;
-            }
-          });
-
-          setStats({
-            loads: { 
-              total: loadsData.length, 
-              active: loadStatuses.COVERED + loadStatuses.PICKED_UP,
-              revenue: revenueMetrics.totalRevenue,
-              averageRate: revenueMetrics.averageRatePerMile
-            },
-            dispatchers: { 
-              total: (await ApiService.getData('/dispatcher/')).length, 
-              active: (await ApiService.getData('/employee/')).length 
-            },
-            drivers: { 
-              total: driversData.length, 
-              active: driverStatuses.ACTIVE,
-              efficiency: Object.values(driverPerformance).reduce((sum, driver) => sum + driver.efficiency, 0) / Object.keys(driverPerformance).length
-            },
-            trucks: { 
-              total: trucksData.length, 
-              active: trucksData.filter(t => t.status === 'ACTIVE').length,
-              utilization: (loadsData.filter(l => l.truck).length / trucksData.length) * 100
-            },
-            trailers: { 
-              total: trailersData.length, 
-              active: trailersData.filter(t => t.status === 'ACTIVE').length,
-              utilization: (loadsData.filter(l => l.trailer).length / trailersData.length) * 100
-            },
-            brokers: { 
-              total: brokersData.length, 
-              active: Object.values(topBrokers).filter(b => b.activeLoads > 0).length,
-              topPerformer: Object.values(topBrokers).sort((a, b) => b.revenue - a.revenue)[0]?.name
-            }
-          });
-
-          // Load status data for pie chart
-          setLoadStatusData(formatLoadStatusData(loadStatuses));
-
-          // Load trend data
-          setLoadTrendData(Object.values(loadTrends).sort((a, b) => 
-            new Date(a.date) - new Date(b.date)
-          ));
-
-          // Driver performance data
-          setDriverPerformanceData(formatDriverPerformanceData(driverPerformance));
-
-          // Top brokers data
-          setTopBrokersData(formatTopBrokersData(topBrokers));
-
-          setLoading(false);
-        } catch (error) {
-          console.error("Error fetching dashboard data:", error);
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchDashboardData();
+    setLoading(false);
   }, [timeRange]);
 
   const StatCard = ({ title, total, active, icon, color, onClick }) => {
