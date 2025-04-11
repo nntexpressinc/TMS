@@ -31,7 +31,7 @@ const DriverPayEditPage = () => {
         });
         setLoading(false);
       } catch (err) {
-        setError('To\'lov ma\'lumotlarini yuklashda xatolik yuz berdi');
+        setError('Error loading payment information');
         setLoading(false);
       }
     };
@@ -56,23 +56,23 @@ const DriverPayEditPage = () => {
         navigate(`/driver/${id}`);
       }, 2000);
     } catch (err) {
-      setError('To\'lov ma\'lumotini saqlashda xatolik yuz berdi');
+      setError('Error occurred while saving payment information');
     }
   };
 
-  if (loading) return <Typography>Yuklanmoqda...</Typography>;
+  if (loading) return <Typography>Loading...</Typography>;
   if (error) return <Alert severity="error">{error}</Alert>;
 
   return (
     <Box sx={{ p: 3 }}>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h5" gutterBottom>
-          To'lov ma'lumotlarini tahrirlash
+          Edit Payment Information
         </Typography>
 
         {success && (
           <Alert severity="success" sx={{ mb: 2 }}>
-            To'lov ma'lumoti muvaffaqiyatli saqlandi
+            Payment information saved successfully
           </Alert>
         )}
 
@@ -80,7 +80,7 @@ const DriverPayEditPage = () => {
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>To'lov turi</InputLabel>
+                <InputLabel>Payment Type</InputLabel>
                 <Select
                   name="pay_type"
                   value={formData.pay_type || ''}
@@ -97,7 +97,7 @@ const DriverPayEditPage = () => {
 
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>Valyuta</InputLabel>
+                <InputLabel>Currency</InputLabel>
                 <Select
                   name="currency"
                   value={formData.currency || ''}
@@ -114,7 +114,7 @@ const DriverPayEditPage = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Standart"
+                label="Standard"
                 name="standart"
                 type="number"
                 value={formData.standart || ''}
@@ -128,7 +128,7 @@ const DriverPayEditPage = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Qo'shimcha to'lovlar"
+                label="Additional Charges"
                 name="additional_charges"
                 type="number"
                 value={formData.additional_charges || ''}
@@ -142,7 +142,7 @@ const DriverPayEditPage = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Olish uchun"
+                label="For Picks"
                 name="picks_per"
                 type="number"
                 value={formData.picks_per || ''}
@@ -157,7 +157,7 @@ const DriverPayEditPage = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Tushirish uchun"
+                label="For Drops"
                 name="drops_per"
                 type="number"
                 value={formData.drops_per || ''}
@@ -172,7 +172,7 @@ const DriverPayEditPage = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Kutish vaqti"
+                label="Wait Time"
                 name="wait_time"
                 type="number"
                 value={formData.wait_time || ''}
@@ -190,14 +190,14 @@ const DriverPayEditPage = () => {
                   variant="outlined"
                   onClick={() => navigate(`/driver/${id}`)}
                 >
-                  Bekor qilish
+                  Cancel
                 </Button>
                 <Button
                   type="submit"
                   variant="contained"
                   color="primary"
                 >
-                  Saqlash
+                  Save
                 </Button>
               </Box>
             </Grid>

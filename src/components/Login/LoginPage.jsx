@@ -28,7 +28,7 @@ const LoginPage = () => {
   };
 
   useEffect(() => {
-    // Geolokatsiyani aniqlash
+    // Get geolocation
     const getLocation = () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -38,27 +38,27 @@ const LoginPage = () => {
           },
           (err) => {
             setError("Please allow geolocation");
-            toast.error("Joylashuvni aniqlash uchun ruxsat kerak!");
+            toast.error("Please allow location access!");
           }
         );
       } else {
-        setError("Brauzer geolokatsiyani qo'llab-quvvatlamaydi");
-        toast.error("Brauzer geolokatsiyani qo'llab-quvvatlamaydi");
+        setError("Browser does not support geolocation");
+        toast.error("Browser does not support geolocation");
       }
     };
 
-    // Qurilma ma'lumotlarini aniqlash
+    // Get device information
     const getDeviceInfo = () => {
       const userAgent = navigator.userAgent;
       setDeviceInfo(userAgent);
     };
 
-    // Sahifa holatini aniqlash
+    // Get page visibility status
     const getPageVisibility = () => {
       setPageVisibility(document.visibilityState === "visible" ? "open" : "hidden");
     };
 
-    // Visibility change event listener qo'shish
+    // Add visibility change event listener
     const handleVisibilityChange = () => {
       setPageVisibility(document.visibilityState === "visible" ? "open" : "hidden");
     };
@@ -106,19 +106,19 @@ const LoginPage = () => {
           const additionalResponse = await ApiService.postData("/auth/location/", additionalData);
           console.log("Additional Data Response:", additionalResponse);
         } catch (additionalError) {
-          console.error("Ma'lumotlarni saqlashda xatolik:", additionalError);
-          toast.error("Ma'lumotlarni saqlashda xatolik yuz berdi!");
+          console.error("Error saving data:", additionalError);
+          toast.error("Error occurred while saving data!");
         }
       } else {
-        console.error("Ma'lumotlar to'liq emas");
-        toast.error("Ma'lumotlar to'liq emas!");
+        console.error("Incomplete data");
+        toast.error("Incomplete data!");
       }
 
-      toast.success("Login muvaffaqiyatli!");
+      toast.success("Login successful!");
       navigate("/dashboard", { replace: true });
     } catch (error) {
       console.error("Login Failed:", error);
-      const errorMessage = error.response?.data?.detail || "Email yoki parol noto'g'ri!";
+      const errorMessage = error.response?.data?.detail || "Incorrect email or password!";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {

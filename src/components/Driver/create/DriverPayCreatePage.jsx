@@ -37,7 +37,7 @@ const DriverPayCreatePage = () => {
         navigate(`/driver/${id}`);
       }, 2000);
     } catch (err) {
-      setError('To\'lov ma\'lumotini saqlashda xatolik yuz berdi');
+      setError('Error occurred while saving payment information');
     }
   };
 
@@ -45,12 +45,12 @@ const DriverPayCreatePage = () => {
     <Box sx={{ p: 3 }}>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h5" gutterBottom>
-          Yangi to'lov qo'shish
+          Add New Payment
         </Typography>
 
         {success && (
           <Alert severity="success" sx={{ mb: 2 }}>
-            To'lov ma'lumoti muvaffaqiyatli qo'shildi
+            Payment information added successfully
           </Alert>
         )}
 
@@ -64,7 +64,7 @@ const DriverPayCreatePage = () => {
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>To'lov turi</InputLabel>
+                <InputLabel>Payment Type</InputLabel>
                 <Select
                   name="pay_type"
                   value={formData.pay_type || ''}
@@ -81,7 +81,7 @@ const DriverPayCreatePage = () => {
 
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>Valyuta</InputLabel>
+                <InputLabel>Currency</InputLabel>
                 <Select
                   name="currency"
                   value={formData.currency || ''}
@@ -98,7 +98,7 @@ const DriverPayCreatePage = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Standart"
+                label="Standard"
                 name="standart"
                 type="number"
                 value={formData.standart || ''}
@@ -112,7 +112,7 @@ const DriverPayCreatePage = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Qo'shimcha to'lovlar"
+                label="Additional Charges"
                 name="additional_charges"
                 type="number"
                 value={formData.additional_charges || ''}
@@ -126,7 +126,7 @@ const DriverPayCreatePage = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Olish uchun"
+                label="For Picks"
                 name="picks_per"
                 type="number"
                 value={formData.picks_per || ''}
@@ -141,7 +141,7 @@ const DriverPayCreatePage = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Tushirish uchun"
+                label="For Drops"
                 name="drops_per"
                 type="number"
                 value={formData.drops_per || ''}
@@ -156,7 +156,7 @@ const DriverPayCreatePage = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Kutish vaqti"
+                label="Wait Time"
                 name="wait_time"
                 type="number"
                 value={formData.wait_time || ''}
@@ -174,14 +174,14 @@ const DriverPayCreatePage = () => {
                   variant="outlined"
                   onClick={() => navigate(`/driver/${id}`)}
                 >
-                  Bekor qilish
+                  Cancel
                 </Button>
                 <Button
                   type="submit"
                   variant="contained"
                   color="primary"
                 >
-                  Saqlash
+                  Save
                 </Button>
               </Box>
             </Grid>

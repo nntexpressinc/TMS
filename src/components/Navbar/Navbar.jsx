@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { AppBar, Toolbar, IconButton, Typography, InputBase, Badge, Avatar, Box, Button } from '@mui/material';
-import { Search as SearchIcon, Notifications as NotificationsIcon, Settings as SettingsIcon } from '@mui/icons-material';
+import { AppBar, Toolbar, IconButton, Typography, Badge, Avatar, Box, Button } from '@mui/material';
+import { Notifications as NotificationsIcon, Settings as SettingsIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSidebar } from '../SidebarContext';
@@ -19,7 +19,7 @@ const Navbar = () => {
 
       if (storedUserId && storedAccessToken) {
         try {
-          const data = await ApiService.getData(`/auth/users/${storedUserId}/`, storedAccessToken);
+          const data = await ApiService.getData(`/auth/users/${storedUserId}/`);
           setUser(data);
         } catch (error) {
           console.error("Error fetching user data:", error);
@@ -37,67 +37,53 @@ const Navbar = () => {
         zIndex: 1201,
         width: isSidebarOpen ? 'calc(100% - 250px)' : 'calc(100% - 60px)',
         ml: isSidebarOpen ? '250px' : '60px',
-        transition: 'width 0.3s, margin-left 0.3s',
-        background: '#ffffff',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
-        borderBottom: '1px solid #e2e8f0'
+        transition: 'all 0.3s ease',
+        backgroundColor: '#0093E9',
+        backgroundImage: 'linear-gradient(160deg, #0093E9 0%, #772a9a 100%)',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        height: '64px'
       }}
     >
-      <Toolbar sx={{ minHeight: '64px !important', px: 3 }}>
+      <Toolbar 
+        sx={{ 
+          minHeight: '64px !important',
+          height: '64px',
+          px: 3 
+        }}
+      >
         <Typography 
           variant="h6" 
           noWrap 
           component="div" 
           sx={{ 
             flexGrow: 1,
-            color: '#1e293b',
+            color: '#ffffff',
             fontWeight: 600,
             fontSize: '1.25rem'
           }}
         >
+          {t('Dashboard Overview')}
         </Typography>
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center',
           gap: 2
         }}>
-          {/* <Box sx={{ 
-            position: 'relative',
-            borderRadius: '12px',
-            backgroundColor: '#f8fafc',
-            '&:hover': { 
-              backgroundColor: '#f1f5f9'
-            },
-            width: '300px',
-            height: '40px',
-            display: 'flex',
-            alignItems: 'center',
-            px: 2
-          }}> */}
-            {/* <SearchIcon sx={{ color: '#64748b', mr: 1 }} />
-            <InputBase
-              placeholder={`${t('Search')}...`}
-              sx={{ 
-                color: '#1e293b',
-                width: '100%',
-                '& input': {
-                  padding: '8px 0',
-                }
-              }}
-            /> */}
-          {/* </Box> */}
           <IconButton 
             sx={{ 
-              backgroundColor: '#f8fafc',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
               '&:hover': { 
-                backgroundColor: '#f1f5f9'
+                backgroundColor: 'rgba(255, 255, 255, 0.2)'
               },
-              color: '#1e3d9d'
+              color: '#ffffff',
+              borderRadius: '12px',
+              padding: '8px'
             }}
           >
             <Badge badgeContent={4} sx={{ 
               '& .MuiBadge-badge': {
-                backgroundColor: '#1e3d9d',
+                backgroundColor: '#ef4444',
                 color: 'white'
               }
             }}>
@@ -105,31 +91,32 @@ const Navbar = () => {
             </Badge>
           </IconButton>
           <Button
-            variant="outlined"
+            variant="text"
             startIcon={<SettingsIcon />}
             sx={{
               borderRadius: '12px',
               textTransform: 'none',
-              borderColor: '#e2e8f0',
-              color: '#64748b',
+              color: 'rgba(255, 255, 255, 0.7)',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              padding: '8px 16px',
               '&:hover': {
-                borderColor: '#1e3d9d',
-                color: '#1e3d9d',
-                backgroundColor: '#f8fafc'
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                color: '#ffffff'
               }
             }}
           >
-            Settings
+            {t('Settings')}
           </Button>
           <Box sx={{ 
             display: 'flex', 
             alignItems: 'center',
-            gap: 1,
+            gap: 2,
             cursor: 'pointer',
-            padding: '4px 8px',
+            padding: '6px 12px',
             borderRadius: '12px',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
             '&:hover': {
-              backgroundColor: '#f8fafc'
+              backgroundColor: 'rgba(255, 255, 255, 0.2)'
             }
           }} onClick={() => navigate('/profile')}>
             <Avatar 
@@ -138,22 +125,22 @@ const Navbar = () => {
               sx={{ 
                 width: 36,
                 height: 36,
-                border: '2px solid #e2e8f0'
+                border: '2px solid rgba(255, 255, 255, 0.2)'
               }}
             />
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
               <Typography sx={{ 
                 fontSize: '0.875rem',
                 fontWeight: 500,
-                color: '#1e293b'
+                color: '#ffffff'
               }}>
                 {user ? `${user.first_name} ${user.last_name}` : "Loading..."}
               </Typography>
               <Typography sx={{ 
                 fontSize: '0.75rem',
-                color: '#64748b'
+                color: 'rgba(255, 255, 255, 0.7)'
               }}>
-                {user?.role || ""}
+                {user?.role || "Admin"}
               </Typography>
             </Box>
           </Box>

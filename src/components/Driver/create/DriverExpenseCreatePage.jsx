@@ -27,36 +27,36 @@ const DriverExpenseCreatePage = () => {
     e.preventDefault();
     try {
       await ApiService.postData('/driver/expense/', formData);
-      toast.success('Xarajat ma\'lumoti muvaffaqiyatli qo\'shildi');
+      toast.success('Expense information added successfully');
       navigate(`/driver/${id}`);
     } catch (error) {
-      toast.error('Xarajat ma\'lumotini qo\'shishda xatolik yuz berdi');
+      toast.error('Error occurred while adding expense information');
     }
   };
 
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Yangi xarajat qo'shish
+        Add New Expense
       </Typography>
       <Paper sx={{ p: 3 }}>
         <form onSubmit={handleSubmit}>
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
             <TextField
               select
-              label="Tranzaksiya turi"
+              label="Transaction Type"
               name="transaction_type"
               value={formData.transaction_type}
               onChange={handleChange}
               fullWidth
               required
             >
-              <MenuItem value="+">Qarz (+)</MenuItem>
-              <MenuItem value="-">Xarajat (-)</MenuItem>
+              <MenuItem value="+">Debt (+)</MenuItem>
+              <MenuItem value="-">Expense (-)</MenuItem>
             </TextField>
 
             <TextField
-              label="Tavsif"
+              label="Description"
               name="description"
               value={formData.description}
               onChange={handleChange}
@@ -65,7 +65,7 @@ const DriverExpenseCreatePage = () => {
             />
 
             <TextField
-              label="Miqdor"
+              label="Amount"
               name="amount"
               type="number"
               value={formData.amount}
@@ -75,7 +75,7 @@ const DriverExpenseCreatePage = () => {
             />
 
             <TextField
-              label="Sana"
+              label="Date"
               name="expense_date"
               type="date"
               value={formData.expense_date}
@@ -93,14 +93,14 @@ const DriverExpenseCreatePage = () => {
               variant="outlined"
               onClick={() => navigate(`/driver/${id}`)}
             >
-              Bekor qilish
+              Cancel
             </Button>
             <Button
               type="submit"
               variant="contained"
               color="primary"
             >
-              Saqlash
+              Save
             </Button>
           </Box>
         </form>

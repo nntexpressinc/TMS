@@ -28,7 +28,7 @@ const DriverExpenseEditPage = () => {
         });
         setLoading(false);
       } catch (err) {
-        setError('Xarajat ma\'lumotlarini yuklashda xatolik yuz berdi');
+        setError('Error loading expense information');
         setLoading(false);
       }
     };
@@ -53,23 +53,23 @@ const DriverExpenseEditPage = () => {
         navigate(`/driver/${id}`);
       }, 2000);
     } catch (err) {
-      setError('Xarajat ma\'lumotini saqlashda xatolik yuz berdi');
+      setError('Error occurred while saving expense information');
     }
   };
 
-  if (loading) return <Typography>Yuklanmoqda...</Typography>;
+  if (loading) return <Typography>Loading...</Typography>;
   if (error) return <Alert severity="error">{error}</Alert>;
 
   return (
     <Box sx={{ p: 3 }}>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h5" gutterBottom>
-          Xarajat ma'lumotlarini tahrirlash
+          Edit Expense Information
         </Typography>
 
         {success && (
           <Alert severity="success" sx={{ mb: 2 }}>
-            Xarajat ma'lumoti muvaffaqiyatli saqlandi
+            Expense information saved successfully
           </Alert>
         )}
 
@@ -77,15 +77,15 @@ const DriverExpenseEditPage = () => {
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>Tranzaksiya turi</InputLabel>
+                <InputLabel>Transaction Type</InputLabel>
                 <Select
                   name="transaction_type"
                   value={formData.transaction_type}
                   onChange={handleChange}
                   input={<OutlinedInput />}
                 >
-                  <MenuItem value="INCOME">Kirim</MenuItem>
-                  <MenuItem value="EXPENSE">Chiqim</MenuItem>
+                  <MenuItem value="INCOME">Income</MenuItem>
+                  <MenuItem value="EXPENSE">Expense</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -93,7 +93,7 @@ const DriverExpenseEditPage = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Miqdor"
+                label="Amount"
                 name="amount"
                 type="number"
                 value={formData.amount}
@@ -107,7 +107,7 @@ const DriverExpenseEditPage = () => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Tavsif"
+                label="Description"
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
@@ -119,7 +119,7 @@ const DriverExpenseEditPage = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Sana"
+                label="Date"
                 name="expense_date"
                 type="date"
                 value={formData.expense_date}
@@ -136,14 +136,14 @@ const DriverExpenseEditPage = () => {
                   variant="outlined"
                   onClick={() => navigate(`/driver/${id}`)}
                 >
-                  Bekor qilish
+                  Cancel
                 </Button>
                 <Button
                   type="submit"
                   variant="contained"
                   color="primary"
                 >
-                  Saqlash
+                  Save
                 </Button>
               </Box>
             </Grid>

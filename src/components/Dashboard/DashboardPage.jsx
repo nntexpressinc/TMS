@@ -70,151 +70,173 @@ const DashboardPage = () => {
         try {
           setLoading(true);
           
-          // Loads statistikasi
-          const loadsData = await ApiService.getData('/load/', storedAccessToken);
+          // Loads statistics
+          const loadsData = await ApiService.getData('/load/');
           const loadStatuses = {
-            OPEN: 0,
             COVERED: 0,
-            DISPATCHED: 0,
             DELIVERED: 0,
             PICKED_UP: 0,
             POSTED: 0,
             CANCELLED: 0
           };
           
+          // Calculate load statistics
           loadsData.forEach(load => {
-            if (loadStatuses.hasOwnProperty(load.status)) {
-              loadStatuses[load.status]++;
+            if (loadStatuses.hasOwnProperty(load.load_status)) {
+              loadStatuses[load.load_status]++;
             }
           });
 
-          // Load trend ma'lumotlarini tayyorlash
+          // Calculate revenue and performance metrics
+          const revenueMetrics = {
+            totalRevenue: 0,
+            totalDriverPay: 0,
+            totalMiles: 0,
+            averageRatePerMile: 0,
+            completedLoads: 0
+          };
+
+          loadsData.forEach(load => {
+            revenueMetrics.totalRevenue += parseFloat(load.load_pay || 0);
+            revenueMetrics.totalDriverPay += parseFloat(load.driver_pay || 0);
+            revenueMetrics.totalMiles += load.total_miles || 0;
+            if (load.load_status === 'DELIVERED') {
+              revenueMetrics.completedLoads++;
+            }
+          });
+
+          revenueMetrics.averageRatePerMile = revenueMetrics.totalMiles > 0 
+            ? revenueMetrics.totalRevenue / revenueMetrics.totalMiles 
+            : 0;
+
+          // Load trend data
           const loadTrends = {};
           loadsData.forEach(load => {
-            const date = new Date(load.created_at).toLocaleDateString();
+            const date = new Date(load.created_date).toLocaleDateString();
             if (!loadTrends[date]) {
               loadTrends[date] = {
                 date,
                 total: 0,
                 active: 0,
                 delivered: 0,
-                cancelled: 0
+                cancelled: 0,
+                revenue: 0
               };
             }
             loadTrends[date].total++;
-            if (['COVERED', 'PICKED_UP', 'DISPATCHED'].includes(load.status)) {
+            loadTrends[date].revenue += parseFloat(load.load_pay || 0);
+            if (['COVERED', 'PICKED_UP'].includes(load.load_status)) {
               loadTrends[date].active++;
             }
-            if (load.status === 'DELIVERED') {
+            if (load.load_status === 'DELIVERED') {
               loadTrends[date].delivered++;
             }
-            if (load.status === 'CANCELLED') {
+            if (load.load_status === 'CANCELLED') {
               loadTrends[date].cancelled++;
             }
           });
           
-          // Dispatcherlar statistikasi
-          const dispatchersData = await ApiService.getData('/dispatcher/', storedAccessToken);
-          const dispatcherStatuses = {
-            ACTIVE: 0,
-            TERMINATE: 0,
-            APPLICANT: 0
-          };
-          
-          dispatchersData.forEach(dispatcher => {
-            if (dispatcherStatuses.hasOwnProperty(dispatcher.status)) {
-              dispatcherStatuses[dispatcher.status]++;
-            }
-          });
-          
-          // Haydovchilar statistikasi
-          const driversData = await ApiService.getData('/driver/', storedAccessToken);
+          // Drivers statistics
+          const driversData = await ApiService.getData('/driver/');
           const driverStatuses = {
             ACTIVE: 0,
             INACTIVE: 0
           };
           
           driversData.forEach(driver => {
-            if (driverStatuses.hasOwnProperty(driver.status)) {
-              driverStatuses[driver.status]++;
+            if (driver.employment_status === 'ACTIVE (DF)') {
+              driverStatuses.ACTIVE++;
+            } else {
+              driverStatuses.INACTIVE++;
             }
           });
 
-          // Haydovchilar ishlash statistikasi
+          // Driver performance metrics
           const driverPerformance = {};
           driversData.forEach(driver => {
-            if (driver.loads) {
-              driverPerformance[driver.name] = {
-                name: driver.name,
-                totalLoads: driver.loads.length,
-                completedLoads: driver.loads.filter(load => load.status === 'DELIVERED').length,
-                cancelledLoads: driver.loads.filter(load => load.status === 'CANCELLED').length,
-                onTimeDelivery: driver.loads.filter(load => load.status === 'DELIVERED' && !load.delayed).length
-              };
-            }
+            const driverLoads = loadsData.filter(load => load.driver?.id === driver.id);
+            driverPerformance[`${driver.first_name} ${driver.last_name}`] = {
+              name: `${driver.first_name} ${driver.last_name}`,
+              totalLoads: driverLoads.length,
+              completedLoads: driverLoads.filter(load => load.load_status === 'DELIVERED').length,
+              cancelledLoads: driverLoads.filter(load => load.load_status === 'CANCELLED').length,
+              totalMiles: driverLoads.reduce((sum, load) => sum + (load.total_miles || 0), 0),
+              totalRevenue: driverLoads.reduce((sum, load) => sum + parseFloat(load.load_pay || 0), 0),
+              efficiency: driverLoads.length > 0 
+                ? (driverLoads.filter(load => load.load_status === 'DELIVERED').length / driverLoads.length) * 100 
+                : 0
+            };
           });
           
-          // Yuk mashinalar va tirkamalar statistikasi
-          const trucksData = await ApiService.getData('/truck/', storedAccessToken);
-          const trailersData = await ApiService.getData('/trailer/', storedAccessToken);
+          // Trucks and trailers statistics
+          const trucksData = await ApiService.getData('/truck/');
+          const trailersData = await ApiService.getData('/trailer/');
           
-          // Brokerlar statistikasi
-          const brokersData = await ApiService.getData('/customer-broker/', storedAccessToken);
+          // Brokers statistics
+          const brokersData = await ApiService.getData('/customer_broker/');
           
-          // Top brokerlar statistikasi
+          // Top brokers analysis
           const topBrokers = {};
           loadsData.forEach(load => {
-            if (load.broker) {
-              if (!topBrokers[load.broker.name]) {
-                topBrokers[load.broker.name] = {
-                  name: load.broker.name,
+            if (load.customer_broker) {
+              const brokerName = load.customer_broker.company_name;
+              if (!topBrokers[brokerName]) {
+                topBrokers[brokerName] = {
+                  name: brokerName,
                   totalLoads: 0,
                   activeLoads: 0,
                   completedLoads: 0,
-                  revenue: 0
+                  revenue: 0,
+                  averageRate: 0
                 };
               }
-              topBrokers[load.broker.name].totalLoads++;
-              if (['COVERED', 'PICKED_UP', 'DISPATCHED'].includes(load.status)) {
-                topBrokers[load.broker.name].activeLoads++;
+              topBrokers[brokerName].totalLoads++;
+              if (['COVERED', 'PICKED_UP'].includes(load.load_status)) {
+                topBrokers[brokerName].activeLoads++;
               }
-              if (load.status === 'DELIVERED') {
-                topBrokers[load.broker.name].completedLoads++;
+              if (load.load_status === 'DELIVERED') {
+                topBrokers[brokerName].completedLoads++;
               }
-              if (load.rate) {
-                topBrokers[load.broker.name].revenue += load.rate;
-              }
+              const loadPay = parseFloat(load.load_pay || 0);
+              topBrokers[brokerName].revenue += loadPay;
+              topBrokers[brokerName].averageRate = topBrokers[brokerName].revenue / topBrokers[brokerName].totalLoads;
             }
           });
 
           setStats({
             loads: { 
               total: loadsData.length, 
-              active: loadStatuses.COVERED + loadStatuses.PICKED_UP + loadStatuses.DISPATCHED
+              active: loadStatuses.COVERED + loadStatuses.PICKED_UP,
+              revenue: revenueMetrics.totalRevenue,
+              averageRate: revenueMetrics.averageRatePerMile
             },
             dispatchers: { 
-              total: dispatchersData.length, 
-              active: dispatcherStatuses.ACTIVE 
+              total: (await ApiService.getData('/dispatcher/')).length, 
+              active: (await ApiService.getData('/employee/')).length 
             },
             drivers: { 
               total: driversData.length, 
-              active: driverStatuses.ACTIVE 
+              active: driverStatuses.ACTIVE,
+              efficiency: Object.values(driverPerformance).reduce((sum, driver) => sum + driver.efficiency, 0) / Object.keys(driverPerformance).length
             },
             trucks: { 
               total: trucksData.length, 
-              active: trucksData.filter(t => t.status === 'ACTIVE').length 
+              active: trucksData.filter(t => t.status === 'ACTIVE').length,
+              utilization: (loadsData.filter(l => l.truck).length / trucksData.length) * 100
             },
             trailers: { 
               total: trailersData.length, 
-              active: trailersData.filter(t => t.status === 'ACTIVE').length 
+              active: trailersData.filter(t => t.status === 'ACTIVE').length,
+              utilization: (loadsData.filter(l => l.trailer).length / trailersData.length) * 100
             },
             brokers: { 
               total: brokersData.length, 
-              active: brokersData.filter(b => b.status === 'ACTIVE').length 
+              active: Object.values(topBrokers).filter(b => b.activeLoads > 0).length,
+              topPerformer: Object.values(topBrokers).sort((a, b) => b.revenue - a.revenue)[0]?.name
             }
           });
 
-          // Yuklar statusi uchun data
+          // Load status data for pie chart
           setLoadStatusData([
             { name: 'COVERED', value: loadStatuses.COVERED, color: '#10B981' },
             { name: 'DELIVERED', value: loadStatuses.DELIVERED, color: '#6366F1' },
@@ -229,7 +251,11 @@ const DashboardPage = () => {
           ));
 
           // Driver performance data
-          setDriverPerformanceData(Object.values(driverPerformance));
+          setDriverPerformanceData(
+            Object.values(driverPerformance)
+              .sort((a, b) => b.efficiency - a.efficiency)
+              .slice(0, 5)
+          );
 
           // Top brokers data
           setTopBrokersData(
@@ -237,22 +263,6 @@ const DashboardPage = () => {
               .sort((a, b) => b.revenue - a.revenue)
               .slice(0, 5)
           );
-
-          // Revenue data (example - real data should come from backend)
-          setRevenueData([
-            { month: 'Jan', amount: 45000 },
-            { month: 'Feb', amount: 52000 },
-            { month: 'Mar', amount: 48000 },
-            { month: 'Apr', amount: 61000 },
-            { month: 'May', amount: 55000 },
-            { month: 'Jun', amount: 67000 },
-            { month: 'Jul', amount: 72000 },
-            { month: 'Aug', amount: 69000 },
-            { month: 'Sep', amount: 78000 },
-            { month: 'Oct', amount: 82000 },
-            { month: 'Nov', amount: 76000 },
-            { month: 'Dec', amount: 85000 }
-          ]);
 
           setLoading(false);
         } catch (error) {
@@ -580,7 +590,7 @@ const DashboardPage = () => {
                     <Legend />
                     <Bar dataKey="completedLoads" name="Completed" fill="#10B981" />
                     <Bar dataKey="cancelledLoads" name="Cancelled" fill="#EF4444" />
-                    <Bar dataKey="onTimeDelivery" name="On Time" fill="#3B82F6" />
+                    <Bar dataKey="efficiency" name="Efficiency" fill="#3B82F6" />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>
