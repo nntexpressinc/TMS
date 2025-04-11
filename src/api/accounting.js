@@ -69,7 +69,7 @@ export const getDriverPayReport = async (data) => {
     throw error;
   }
 };
-
+// salom
 export const downloadPayReportPDF = async (data) => {
   try {
     const storedAccessToken = localStorage.getItem('accessToken');
