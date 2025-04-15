@@ -15,7 +15,7 @@ const MenuProps = {
   },
 };
 
-const Details = ({ loadData, handleChange, isDetailsComplete, drivers = []}) => {
+const Details = ({ loadData, handleChange, isDetailsComplete, drivers = [] }) => {
   const theme = useTheme();
   const { id } = useParams();
   const [otherPays, setOtherPays] = useState([]);
@@ -68,9 +68,9 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = []}) => 
     handleChange({
       target: {
         name: 'dispatcher',
-        value: selectedDispatcher ? { 
-          id: selectedDispatcher.id, 
-          first_name: selectedDispatcher.first_name, 
+        value: selectedDispatcher ? {
+          id: selectedDispatcher.id,
+          first_name: selectedDispatcher.first_name,
           last_name: selectedDispatcher.last_name,
         } : ''
       }
@@ -375,6 +375,50 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = []}) => 
             </TableBody>
           </Table>
         </TableContainer>
+      </Box>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>Route Information</Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <TextField
+            fullWidth
+            label="Pickup Location"
+            name="pickup_location"
+            value={loadData.pickup_location || ""}
+            onChange={handleChange}
+            variant="outlined"
+          />
+
+          <TextField
+            label="Pickup Date"
+            type="date"
+            name="pickup_date"
+            value={loadData.pickup_date ? new Date(loadData.pickup_date).toISOString().split('T')[0] : ""}
+            onChange={handleChange}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+            variant="outlined"
+          />
+
+          <TextField
+            fullWidth
+            label="Delivery Location"
+            name="delivery_location"
+            value={loadData.delivery_location || ""}
+            onChange={handleChange}
+            variant="outlined"
+          />
+
+          <TextField
+            label="Delivery Date"
+            type="date"
+            name="delivery_date"
+            value={loadData.delivery_date ? new Date(loadData.delivery_date).toISOString().split('T')[0] : ""}
+            onChange={handleChange}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+            variant="outlined"
+          />
+        </Box>
       </Box>
     </Paper>
   );
