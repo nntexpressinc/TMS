@@ -89,7 +89,7 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = []}) => 
   const totalOtherPay = otherPays.reduce((acc, pay) => acc + parseFloat(pay.amount || 0), 0);
 
   const additionalLoadPay = otherPays.reduce((acc, pay) => {
-    if (pay.pay_type === 'DETENTION' || pay.pay_type === 'LAYOVER' || pay.pay_type === 'EXTRAMILES') {
+    if (pay.pay_type === 'DETENTION' || pay.pay_type === '' || pay.pay_type === 'EXTRAMILES') {
       return acc + parseFloat(pay.amount || 0);
     }
     return acc;
@@ -319,11 +319,11 @@ const Details = ({ loadData, handleChange, isDetailsComplete, drivers = []}) => 
                 <MenuItem value="EQUIPMENT">Equipment</MenuItem>
                 <MenuItem value="LAYOVER">Layover</MenuItem>
                 <MenuItem value="LUMPER">Lumper</MenuItem>
-                <MenuItem value="DRIVERASSISTANCE">Driver Assistance</MenuItem>
+                <MenuItem value="DRIVERASSIST">Driver Assist</MenuItem>
                 <MenuItem value="TRAILERWASH">Trailer Wash</MenuItem>
-                <MenuItem value="EXCORTFEE">Excort Fee</MenuItem>
+                <MenuItem value="ESCORTFEE">Escort Fee</MenuItem>
                 <MenuItem value="BONUS">Bonus</MenuItem>
-                <MenuItem value="CHARGEBAG">Charge Bag</MenuItem>
+                <MenuItem value="CHARGEBACK">Charge Back</MenuItem>
                 <MenuItem value="OTHER">Other</MenuItem>
               </Select>
             </FormControl>
