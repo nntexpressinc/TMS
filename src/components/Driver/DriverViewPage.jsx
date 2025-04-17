@@ -14,6 +14,7 @@ const DriverViewPage = () => {
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
   const [driverData, setDriverData] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [payData, setPayData] = useState([]);
   const [expenseData, setExpenseData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,10 +33,15 @@ const DriverViewPage = () => {
         ]);
         
         setDriverData(driver);
+
+        if (driver.user) {
+          const user = await ApiService.getData(`/auth/user/${driver.user}/`);
+          setUserData(user);
+        }
+
         setPayData(pay);
         setExpenseData(expense);
 
-        // Fetch related data if IDs exist
         if (driver.assigned_truck) {
           const truck = await ApiService.getData(`/truck/${driver.assigned_truck}/`);
           setTruckData(truck);
@@ -206,70 +212,122 @@ const DriverViewPage = () => {
 
       <Paper sx={{ width: '100%', mb: 2 }}>
         <Tabs value={tabValue} onChange={handleTabChange}>
+          <Tab label="User Information" />
           <Tab label="Driver Information" />
           <Tab label="Payments" />
           <Tab label="ADDITION" />
           <Tab label="DEDUCTION" />
         </Tabs>
 
-        {tabValue === 0 && (
+        {tabValue === 0 && userData && (
+          <Box sx={{ p: 3 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6} md={4}>
+                <Typography variant="subtitle2" color="text.secondary">Email</Typography>
+                <Typography variant="body1">{userData.email || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Typography variant="subtitle2" color="text.secondary">Company Name</Typography>
+                <Typography variant="body1">{userData.company_name || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Typography variant="subtitle2" color="text.secondary">First Name</Typography>
+                <Typography variant="body1">{userData.first_name || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Typography variant="subtitle2" color="text.secondary">Last Name</Typography>
+                <Typography variant="body1">{userData.last_name || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Typography variant="subtitle2" color="text.secondary">Phone</Typography>
+                <Typography variant="body1">{userData.telephone || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Typography variant="subtitle2" color="text.secondary">Mobile Phone</Typography>
+                <Typography variant="body1">{userData.callphone || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Typography variant="subtitle2" color="text.secondary">Address</Typography>
+                <Typography variant="body1">{userData.address || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Typography variant="subtitle2" color="text.secondary">City</Typography>
+                <Typography variant="body1">{userData.city || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Typography variant="subtitle2" color="text.secondary">State</Typography>
+                <Typography variant="body1">{userData.state || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Typography variant="subtitle2" color="text.secondary">Country</Typography>
+                <Typography variant="body1">{userData.country || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Typography variant="subtitle2" color="text.secondary">Postal/Zip Code</Typography>
+                <Typography variant="body1">{userData.postal_zip || '-'}</Typography>
+              </Grid>
+            </Grid>
+          </Box>
+        )}
+
+        {tabValue === 1 && driverData && (
           <Box sx={{ p: 3 }}>
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">First Name</Typography>
-                <Typography variant="body1">{driverData?.first_name || '-'}</Typography>
+                <Typography variant="body1">{driverData.first_name || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Last Name</Typography>
-                <Typography variant="body1">{driverData?.last_name || '-'}</Typography>
+                <Typography variant="body1">{driverData.last_name || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Phone</Typography>
-                <Typography variant="body1">{driverData?.contact_number || '-'}</Typography>
+                <Typography variant="body1">{driverData.contact_number || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Email</Typography>
-                <Typography variant="body1">{driverData?.email_address || '-'}</Typography>
+                <Typography variant="body1">{driverData.email_address || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Driver Status</Typography>
-                <Chip label={driverData?.driver_status || '-'} color={driverData?.driver_status === 'Available' ? 'success' : 'default'} />
+                <Chip label={driverData.driver_status || '-'} color={driverData.driver_status === 'Available' ? 'success' : 'default'} />
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Driver Type</Typography>
-                <Typography variant="body1">{driverData?.driver_type || '-'}</Typography>
+                <Typography variant="body1">{driverData.driver_type || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">License ID</Typography>
-                <Typography variant="body1">{driverData?.driver_license_id || '-'}</Typography>
+                <Typography variant="body1">{driverData.driver_license_id || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">License Expiration</Typography>
-                <Typography variant="body1">{driverData?.driver_license_expiration || '-'}</Typography>
+                <Typography variant="body1">{driverData.driver_license_expiration || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">DL Class</Typography>
-                <Typography variant="body1">{driverData?.dl_class || '-'}</Typography>
+                <Typography variant="body1">{driverData.dl_class || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">DL State</Typography>
-                <Typography variant="body1">{driverData?.driver_license_state || '-'}</Typography>
+                <Typography variant="body1">{driverData.driver_license_state || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Address 1</Typography>
-                <Typography variant="body1">{driverData?.address1 || '-'}</Typography>
+                <Typography variant="body1">{driverData.address1 || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Address 2</Typography>
-                <Typography variant="body1">{driverData?.address2 || '-'}</Typography>
+                <Typography variant="body1">{driverData.address2 || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Country</Typography>
-                <Typography variant="body1">{driverData?.country || '-'}</Typography>
+                <Typography variant="body1">{driverData.country || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Employment Status</Typography>
-                <Typography variant="body1">{driverData?.employment_status || '-'}</Typography>
+                <Typography variant="body1">{driverData.employment_status || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Assigned Truck</Typography>
@@ -291,45 +349,45 @@ const DriverViewPage = () => {
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Other ID</Typography>
-                <Typography variant="body1">{driverData?.other_id || '-'}</Typography>
+                <Typography variant="body1">{driverData.other_id || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Notes</Typography>
-                <Typography variant="body1">{driverData?.notes || '-'}</Typography>
+                <Typography variant="body1">{driverData.notes || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Tariff</Typography>
-                <Typography variant="body1">{driverData?.tariff || '-'}</Typography>
+                <Typography variant="body1">{driverData.tariff || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">MC Number</Typography>
-                <Typography variant="body1">{driverData?.mc_number || '-'}</Typography>
+                <Typography variant="body1">{driverData.mc_number || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Team Driver</Typography>
-                <Typography variant="body1">{driverData?.team_driver || '-'}</Typography>
+                <Typography variant="body1">{driverData.team_driver || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Per Mile</Typography>
-                <Typography variant="body1">{driverData?.permile || '-'}</Typography>
+                <Typography variant="body1">{driverData.permile || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Cost</Typography>
-                <Typography variant="body1">{driverData?.cost || '-'}</Typography>
+                <Typography variant="body1">{driverData.cost || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Payd</Typography>
-                <Typography variant="body1">{driverData?.payd || '-'}</Typography>
+                <Typography variant="body1">{driverData.payd || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Typography variant="subtitle2" color="text.secondary">Escrow Deposit</Typography>
-                <Typography variant="body1">{driverData?.escrow_deposit || '-'}</Typography>
+                <Typography variant="body1">{driverData.escrow_deposit || '-'}</Typography>
               </Grid>
             </Grid>
           </Box>
         )}
 
-        {tabValue === 1 && (
+        {tabValue === 2 && (
           <Box sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
               <Button
@@ -350,7 +408,7 @@ const DriverViewPage = () => {
           </Box>
         )}
 
-        {tabValue === 2 && (
+        {tabValue === 3 && (
           <Box sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
               <Button
@@ -371,7 +429,7 @@ const DriverViewPage = () => {
           </Box>
         )}
 
-        {tabValue === 3 && (
+        {tabValue === 4 && (
           <Box sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
               <Button

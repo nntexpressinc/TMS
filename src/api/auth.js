@@ -13,13 +13,11 @@ export const ApiService = {
     return response.data;
   },
 
-  async postData(endpoint, data, customHeaders = {}) {
-    const token = localStorage.getItem('accessToken');
+  async postData(endpoint, data, token) {
     const response = await axios.post(`${API_URL}${endpoint}`, data, {
       headers: {
         'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : undefined,
-        ...customHeaders, // Qo‘shimcha header’larni qo‘shish imkoniyati
+        'Authorization': `Bearer ${token}`
       },
     });
     return response.data;

@@ -133,7 +133,7 @@ const DriverPage = () => {
     {
       field: 'id',
       headerName: 'ID',
-      width: 150,
+      width: 80,
       align: 'center',
       headerAlign: 'center',
       renderCell: (params) => (
@@ -161,38 +161,98 @@ const DriverPage = () => {
         </Box>
       )
     },
-    { field: 'first_name', headerName: 'First Name', width: 120 },
-    { field: 'last_name', headerName: 'Last Name', width: 120 },
-    { field: 'contact_number', headerName: 'Contact Number', width: 150 },
-    { field: 'birth_date', headerName: 'Birth Date', width: 150 },
+    // User Information
+    { 
+      field: 'user_email', 
+      headerName: 'Email', 
+      width: 200,
+      valueGetter: (params) => params.row.user?.email || '-'
+    },
+    { 
+      field: 'user_company', 
+      headerName: 'Company Name', 
+      width: 150,
+      valueGetter: (params) => params.row.user?.company_name || '-'
+    },
+    { 
+      field: 'user_first_name', 
+      headerName: 'First Name', 
+      width: 120,
+      valueGetter: (params) => params.row.user?.first_name || '-'
+    },
+    { 
+      field: 'user_last_name', 
+      headerName: 'Last Name', 
+      width: 120,
+      valueGetter: (params) => params.row.user?.last_name || '-'
+    },
+    { 
+      field: 'user_telephone', 
+      headerName: 'Phone', 
+      width: 130,
+      valueGetter: (params) => params.row.user?.telephone || '-'
+    },
+    { 
+      field: 'user_city', 
+      headerName: 'City', 
+      width: 120,
+      valueGetter: (params) => params.row.user?.city || '-'
+    },
+    { 
+      field: 'user_address', 
+      headerName: 'Address', 
+      width: 150,
+      valueGetter: (params) => params.row.user?.address || '-'
+    },
+    { 
+      field: 'user_country', 
+      headerName: 'Country', 
+      width: 120,
+      valueGetter: (params) => params.row.user?.country || '-'
+    },
+    { 
+      field: 'user_state', 
+      headerName: 'State', 
+      width: 120,
+      valueGetter: (params) => params.row.user?.state || '-'
+    },
+    // Driver Information
+    { field: 'birth_date', headerName: 'Birth Date', width: 120 },
     { field: 'employment_status', headerName: 'Employment Status', width: 150 },
-    { field: 'telegram_username', headerName: 'Telegram Username', width: 150 },
-    { field: 'company_name', headerName: 'Company Name', width: 150 },
-    { field: 'email_address', headerName: 'Email Address', width: 200 },
-    { field: 'driver_license_id', headerName: 'Driver License ID', width: 150 },
+    { field: 'telegram_username', headerName: 'Telegram', width: 120 },
+    { field: 'driver_license_id', headerName: 'License ID', width: 120 },
     { field: 'dl_class', headerName: 'DL Class', width: 100 },
-    { field: 'driver_type', headerName: 'Driver Type', width: 150 },
-    { field: 'driver_license_state', headerName: 'Driver License State', width: 150 },
-    { field: 'driver_license_expiration', headerName: 'Driver License Expiration', width: 200 },
-    { field: 'address1', headerName: 'Address 1', width: 200 },
-    { field: 'address2', headerName: 'Address 2', width: 200 },
-    { field: 'country', headerName: 'Country', width: 150 },
-    { field: 'state', headerName: 'State', width: 100 },
-    { field: 'city', headerName: 'City', width: 150 },
-    { field: 'zip_code', headerName: 'Zip Code', width: 150 },
-    { field: 'other_id', headerName: 'Other ID', width: 150 },
-    { field: 'notes', headerName: 'Notes', width: 200 },
+    { field: 'driver_type', headerName: 'Driver Type', width: 130 },
+    { field: 'driver_license_state', headerName: 'License State', width: 120 },
+    { field: 'driver_license_expiration', headerName: 'License Expiration', width: 150 },
+    { field: 'other_id', headerName: 'Other ID', width: 120 },
+    { field: 'notes', headerName: 'Notes', width: 150 },
     { field: 'tariff', headerName: 'Tariff', width: 100 },
-    { field: 'mc_number', headerName: 'MC Number', width: 150 },
-    { field: 'team_driver', headerName: 'Team Driver', width: 150 },
-    { field: 'escrow_deposit', headerName: 'Escrow Deposit', width: 150 },
+    { field: 'mc_number', headerName: 'MC Number', width: 120 },
+    { field: 'team_driver', headerName: 'Team Driver', width: 120 },
     { field: 'permile', headerName: 'Per Mile', width: 100 },
     { field: 'cost', headerName: 'Cost', width: 100 },
     { field: 'payd', headerName: 'Payd', width: 100 },
-    { field: 'assigned_truck', headerName: 'Assigned Truck', width: 150 },
-    { field: 'assigned_trailer', headerName: 'Assigned Trailer', width: 150 },
-    { field: 'assigned_dispatcher', headerName: 'Assigned Dispatcher', width: 150 },
-    { field: 'driver_tags', headerName: 'Driver Tags', width: 100 },
+    { field: 'escrow_deposit', headerName: 'Escrow Deposit', width: 130 },
+    { field: 'motive_id', headerName: 'Motive ID', width: 120 },
+    { 
+      field: 'assigned_truck', 
+      headerName: 'Assigned Truck', 
+      width: 130,
+      valueGetter: (params) => params.row.assigned_truck || '-'
+    },
+    { 
+      field: 'assigned_trailer', 
+      headerName: 'Assigned Trailer', 
+      width: 130,
+      valueGetter: (params) => params.row.assigned_trailer || '-'
+    },
+    { 
+      field: 'assigned_dispatcher', 
+      headerName: 'Assigned Dispatcher', 
+      width: 150,
+      valueGetter: (params) => params.row.assigned_dispatcher || '-'
+    },
     {
       field: 'driver_status',
       headerName: 'Status',

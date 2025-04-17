@@ -83,13 +83,13 @@ const LoginPage = () => {
     try {
       // 1. Login so'rovi
       const data = { email, password };
-      const response = await ApiService.postData("/auth/login/", data);
+      const response = await ApiService.postRegister("/auth/login/1/", data);
       console.log("Login Response:", response);
 
       // Tokenlarni saqlash
       localStorage.setItem("accessToken", response.access);
       localStorage.setItem("refreshToken", response.refresh);
-      localStorage.setItem("userId", response.user_id);
+      localStorage.setItem("userid", response.user_id);
       login();
 
       // 2. Geolokatsiya, qurilma va sahifa holatini API'ga yuborish
@@ -103,7 +103,7 @@ const LoginPage = () => {
         };
         console.log("Yuborilayotgan additionalData:", additionalData);
         try {
-          const additionalResponse = await ApiService.postData("/auth/location/", additionalData);
+          const additionalResponse = await ApiService.postData("/auth/location/", additionalData, response.access);
           console.log("Additional Data Response:", additionalResponse);
         } catch (additionalError) {
           console.error("Error saving data:", additionalError);
@@ -118,7 +118,7 @@ const LoginPage = () => {
       navigate("/dashboard", { replace: true });
     } catch (error) {
       console.error("Login Failed:", error);
-      const errorMessage = error.response?.data?.detail || "Incorrect email or password!";
+      const errorMessage = error.response?.data?.detail || "Login failed. Please check your credentials.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
