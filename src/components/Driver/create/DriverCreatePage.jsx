@@ -24,7 +24,7 @@ const DriverCreatePage = () => {
     country: "",
     state: "",
     postal_zip: "",
-    ext: "",
+    ext: 0,
     fax: "",
     role: "driver",
     company_id: 1,
@@ -108,7 +108,7 @@ const DriverCreatePage = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
+
     try {
       const userDataToSend = {
         email: userData.email,
@@ -121,32 +121,25 @@ const DriverCreatePage = () => {
         address: userData.address,
         country: userData.country,
         state: userData.state,
-        postal_zip: userData.postal_zip ? parseInt(userData.postal_zip) : null,
-        ext: userData.ext ? parseInt(userData.ext) : null,
+        postal_zip: userData.postal_zip,
+        ext: userData.ext,
         fax: userData.fax,
-        role: "driver",
-        company_id: 1,
-        password: userData.password
+        role: 1, // Driver role ID
+        company_id: userData.company_id,
+        password: userData.password,
+        password2: userData.password,
       };
-      
-      const response = await ApiService.postRegister('/auth/register/', userDataToSend);
-      setCreatedUserId(response.id);
-      
-      setDriverData(prevData => ({
-        ...prevData,
-        user: response.id,
-        first_name: response.first_name,
-        last_name: response.last_name,
-        contact_number: response.telephone,
-        email_address: response.email,
-        company_name: response.company_name
-      }));
 
-      setSuccess(true);
-      handleNext();
-    } catch (err) {
-      console.error('Registration error:', err.response?.data);
-      setError(err.response?.data?.detail || err.response?.data?.password || err.response?.data?.email || err.response?.data?.ext || 'Failed to create user account');
+      const response = await ApiService.postRegister("/auth/register/", userDataToSend);
+      console.log("Registration Response:", response);
+
+      setCreatedUserId(response.id);
+      setActiveStep(1);
+      toast.success("User registered successfully!");
+    } catch (error) {
+      console.error("Registration error:", error.response?.data);
+      setError(error.response?.data?.detail || "Registration failed");
+      toast.error(error.response?.data?.detail || "Registration failed");
     } finally {
       setLoading(false);
     }

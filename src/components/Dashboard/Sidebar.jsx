@@ -97,6 +97,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       icon: <MdOutlineSupervisedUserCircle />,
       link: "/profile",
     },
+    {
+      id: 11,
+      title: t("Manage Users"),
+      icon: <FaUserCog />,
+      link: "/manage-users",
+    },
   ];
 
   return (

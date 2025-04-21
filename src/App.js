@@ -31,6 +31,7 @@ import DriverEditPage from "./components/Driver/DriverEditPage";
 import DriverPayEditPage from './components/Driver/create/DriverPayEditPage';
 import DriverExpenseEditPage from './components/Driver/create/DriverExpenseEditPage';
 import LoadViewPage from './components/Loads/LoadViewPage'; // Import LoadViewPage
+import ManageUsersPage from "./components/ManageUsers/ManageUsersPage";
 
 const App = () => {
   const { isAuthenticated: isAuth } = useAuth();
@@ -247,6 +248,14 @@ const App = () => {
               element={
                 <PrivateRoute>
                   <AccountingPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="manage-users"
+              element={
+                <PrivateRoute>
+                  <ManageUsersPage />
                 </PrivateRoute>
               }
             />
