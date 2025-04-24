@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -16,16 +16,17 @@ import {
   Alert,
   Snackbar,
   Tooltip,
-  Autocomplete,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { ApiService } from '../../../api/auth';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import { toast } from 'react-hot-toast';
 
-const CustomerBrokerCreatePage = () => {
+const CustomerBrokerEditPage = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     company_name: '',
@@ -104,6 +105,21 @@ const CustomerBrokerCreatePage = () => {
     { value: 'MANUAL', label: 'Manual' }
   ];
 
+  useEffect(() => {
+    const fetchBroker = async () => {
+      try {
+        const data = await ApiService.getData(`/customer_broker/${id}/`);
+        setFormData(data);
+      } catch (error) {
+        setError('Error loading broker details: ' + error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBroker();
+  }, [id]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -121,65 +137,23 @@ const CustomerBrokerCreatePage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
     try {
-      // Barcha majburiy maydonlarni tekshirish
-      const requiredFields = [
-        'company_name',
-        'contact_number',
-        'email_address',
-        'mc_number',
-        'address1',
-        'city',
-        'state',
-        'zip_code',
-        'country',
-        'billing_type',
-        'terms_days'
-      ];
-
-      const missingFields = requiredFields.filter(field => !formData[field]);
-      if (missingFields.length > 0) {
-        setError(`Please fill in all required fields: ${missingFields.join(', ')}`);
-        return;
-      }
-
-      // Ma'lumotlarni to'g'ri formatda tayyorlash
       const formattedData = {
-        company_name: formData.company_name.trim(),
+        ...formData,
+        terms_days: formData.terms_days ? new Date(formData.terms_days).toISOString() : null,
         contact_number: parseInt(formData.contact_number) || null,
-        email_address: formData.email_address.trim(),
-        mc_number: formData.mc_number.trim(),
-        pod_file: formData.pod_file || false,
-        rate_con: formData.rate_con || false,
-        address1: formData.address1.trim(),
-        address2: formData.address2 ? formData.address2.trim() : null,
-        country: formData.country.trim(),
-        state: formData.state,
         zip_code: parseInt(formData.zip_code) || null,
-        city: formData.city.trim(),
-        billing_type: formData.billing_type,
-        terms_days: formData.terms_days ? new Date(formData.terms_days).toISOString() : null
       };
 
-      console.log('Sending data:', formattedData); // Debug uchun
-
-      const response = await ApiService.postData('/customer_broker/', formattedData);
-      console.log('Response:', response); // Debug uchun
-
-      if (response) {
-        toast.success('Customer/Broker created successfully');
-        navigate('/customer_broker');
-      }
+      await ApiService.putData(`/customer_broker/${id}/`, formattedData);
+      toast.success('Broker updated successfully');
+      navigate(`/customer_broker/${id}`);
     } catch (error) {
-      console.error('Error details:', error); // Debug uchun
-      if (error.response?.data) {
-        const errorMessage = Object.entries(error.response.data)
-          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
-          .join('\n');
-        setError(errorMessage);
-      } else {
-        setError(error.message || 'Error creating customer/broker');
-      }
+      setError('Error updating broker: ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -203,10 +177,11 @@ const CustomerBrokerCreatePage = () => {
           name: 'state', 
           label: 'State', 
           required: true,
-          type: 'autocomplete',
-          options: states,
-          getOptionLabel: (option) => option.name,
-          onChange: handleStateChange
+          type: 'select',
+          options: states.map(state => ({
+            value: state.code,
+            label: `${state.name} (${state.code})`
+          }))
         },
         { name: 'zip_code', label: 'ZIP Code', required: true, type: 'number' },
         { name: 'country', label: 'Country', required: true, maxLength: 50 },
@@ -242,9 +217,9 @@ const CustomerBrokerCreatePage = () => {
 
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Tooltip title="Back to Customer/Broker List">
+          <Tooltip title="Back to Broker Details">
             <IconButton 
-              onClick={() => navigate('/customer_broker')}
+              onClick={() => navigate(`/customer_broker/${id}`)}
               sx={{ 
                 backgroundColor: 'white',
                 '&:hover': { backgroundColor: '#f0f0f0' }
@@ -254,19 +229,20 @@ const CustomerBrokerCreatePage = () => {
             </IconButton>
           </Tooltip>
           <Typography variant="h4" fontWeight="bold" color="primary">
-            Create Customer/Broker
+            Edit Broker
           </Typography>
         </Box>
         <Button
           variant="contained"
           startIcon={<SaveIcon />}
           onClick={handleSubmit}
+          disabled={loading}
           sx={{
             backgroundColor: '#1976d2',
             '&:hover': { backgroundColor: '#1565c0' }
           }}
         >
-          Save
+          Save Changes
         </Button>
       </Box>
 
@@ -299,19 +275,6 @@ const CustomerBrokerCreatePage = () => {
                               ))}
                             </Select>
                           </FormControl>
-                        ) : field.type === 'autocomplete' ? (
-                          <Autocomplete
-                            options={field.options}
-                            getOptionLabel={field.getOptionLabel}
-                            onChange={field.onChange}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label={field.label}
-                                required={field.required}
-                              />
-                            )}
-                          />
                         ) : (
                           <TextField
                             fullWidth
@@ -342,4 +305,4 @@ const CustomerBrokerCreatePage = () => {
   );
 };
 
-export default CustomerBrokerCreatePage;
+export default CustomerBrokerEditPage; 

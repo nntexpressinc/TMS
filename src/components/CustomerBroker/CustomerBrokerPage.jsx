@@ -121,11 +121,11 @@ const CustomerBrokerPage = () => {
   };
 
   const handleEdit = (id) => {
-    navigate(`/customer_broker/edit/${id}`);
+    navigate(`/customer_broker/${id}/edit`);
   };
 
-  const handleView = (id) => {
-    navigate(`/customer_broker/${id}`);
+  const handleView = (item) => {
+    navigate(`/customer_broker/${item.id}`);
   };
 
   const handleCopyContact = (contact) => {
@@ -135,7 +135,54 @@ const CustomerBrokerPage = () => {
   };
 
   const columns = [
-    { field: 'id', headerName: 'ID', width: 70 },
+    {
+      field: 'mc_number',
+      headerName: 'MC Number',
+      width: 200,
+      align: 'center',
+      headerAlign: 'center',
+      renderCell: (params) => (
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          width: '100%',
+          height: '100%',
+          justifyContent: 'center',
+          py: '4px'
+        }}>
+          <Typography
+            sx={{ 
+              whiteSpace: 'nowrap',
+              overflow: 'visible',
+              cursor: 'pointer',
+              color: '#3B82F6',
+              textDecoration: 'underline'
+            }}
+            onClick={() => handleView(params.row)}
+          >
+            {params.value || '-'}
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => handleCopyContact(params.value)}
+            sx={{
+              padding: '4px',
+              color: copiedContact === params.value ? '#10B981' : '#6B7280',
+              '&:hover': { 
+                backgroundColor: copiedContact === params.value ? '#D1FAE5' : '#F3F4F6'
+              }
+            }}
+          >
+            {copiedContact === params.value ? (
+              <CheckIcon sx={{ fontSize: '16px' }} />
+            ) : (
+              <ContentCopyIcon sx={{ fontSize: '16px' }} />
+            )}
+          </IconButton>
+        </Box>
+      )
+    },
     { field: 'company_name', headerName: 'Company Name', width: 150 },
     {
       field: 'contact_number',
@@ -155,7 +202,7 @@ const CustomerBrokerPage = () => {
             whiteSpace: 'nowrap',
             overflow: 'visible'
           }}>
-            {params.value}
+            {params.value || '-'}
           </Typography>
           <IconButton
             size="small"
@@ -178,7 +225,6 @@ const CustomerBrokerPage = () => {
       )
     },
     { field: 'email_address', headerName: 'Email Address', width: 200 },
-    { field: 'mc_number', headerName: 'MC Number', width: 150 },
     { field: 'pod_file', headerName: 'POD File', width: 100 },
     { field: 'rate_con', headerName: 'Rate Con', width: 100 },
     { field: 'address1', headerName: 'Address 1', width: 200 },
@@ -187,15 +233,62 @@ const CustomerBrokerPage = () => {
     { field: 'state', headerName: 'State', width: 100 },
     { field: 'zip_code', headerName: 'Zip Code', width: 150 },
     { field: 'city', headerName: 'City', width: 150 },
-    { field: 'billing_type', headerName: 'Billing Type', width: 150 },
-    { field: 'terms_days', headerName: 'Terms Days', width: 150 },
+    { 
+      field: 'billing_type', 
+      headerName: 'Billing Type', 
+      width: 130,
+      headerAlign: 'center',
+      align: 'center',
+      renderCell: (params) => {
+        const billingTypes = {
+          'NONE': { label: 'None', color: '#64748B' },
+          'FACTORING_COMPANY': { label: 'Factoring Company', color: '#3B82F6' },
+          'EMAIL': { label: 'Email', color: '#10B981' },
+          'MANUAL': { label: 'Manual', color: '#F59E0B' }
+        };
+        const typeConfig = billingTypes[params.value] || { label: params.value, color: '#64748B' };
+        return (
+          <Box sx={{ 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            paddingTop: '4px'
+          }}>
+            <Chip
+              label={typeConfig.label}
+              sx={{
+                backgroundColor: `${typeConfig.color}15`,
+                color: typeConfig.color,
+                height: '20px',
+                minWidth: 'auto',
+                maxWidth: '100%',
+                '& .MuiChip-label': {
+                  fontSize: '0.7rem',
+                  padding: '0 8px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }
+              }}
+            />
+          </Box>
+        );
+      }
+    },
+    { 
+      field: 'terms_days', 
+      headerName: 'Terms Days', 
+      width: 150,
+      valueFormatter: (params) => params?.value ? new Date(params.value).toLocaleDateString() : '-'
+    },
     {
       field: 'status',
       headerName: 'Status',
       width: 130,
       headerAlign: 'center',
       align: 'center',
-      pinned: 'right',
       renderCell: (params) => {
         const statusConfig = customerBrokerStatuses.find(s => s.value === params.value);
         return (
@@ -227,52 +320,6 @@ const CustomerBrokerPage = () => {
           </Box>
         );
       }
-    },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 120,
-      headerAlign: 'center',
-      align: 'center',
-      pinned: 'right',
-      renderCell: (params) => (
-        <Box sx={{ 
-          display: 'flex',
-          gap: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          width: '100%',
-          height: '100%',
-          paddingTop: '4px'
-        }}>
-          <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={() => handleEdit(params.row.id)}
-              sx={{ 
-                padding: '6px',
-                color: '#6366F1',
-                '&:hover': { backgroundColor: '#EEF2FF' }
-              }}
-            >
-              <EditIcon sx={{ fontSize: '20px' }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="View">
-            <IconButton
-              size="small"
-              onClick={() => handleView(params.row.id)}
-              sx={{ 
-                padding: '6px',
-                color: '#3B82F6',
-                '&:hover': { backgroundColor: '#EFF6FF' }
-              }}
-            >
-              <VisibilityIcon sx={{ fontSize: '20px' }} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )
     }
   ];
 

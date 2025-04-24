@@ -9,6 +9,8 @@ import CreateLoad from "./components/Loads/CreateLoad";
 import LoadPage from './components/Loads/CreateLoad'; // Yangi birlashgan fayl
 import CustomerBrokerPage from "./components/CustomerBroker/CustomerBrokerPage";
 import CustomerBrokerCreatePage from "./components/CustomerBroker/create/CustomerBrokerCreatePage"; // Import CustomerBrokerCreatePage
+import CustomerBrokerEditPage from "./components/CustomerBroker/edit/CustomerBrokerEditPage";
+import CustomerBrokerViewPage from "./components/CustomerBroker/view/CustomerBrokerViewPage";
 import DriverPage from "./components/Driver/DriverPage";
 import DriverCreatePage from "./components/Driver/create/DriverCreatePage"; // Import DriverCreatePage
 import DispatcherPage from "./components/Dispatcher/DispatcherPage";
@@ -100,6 +102,22 @@ const App = () => {
               element={
                 <PrivateRoute>
                   <CustomerBrokerCreatePage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="customer_broker/:id"
+              element={
+                <PrivateRoute>
+                  <CustomerBrokerViewPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="customer_broker/:id/edit"
+              element={
+                <PrivateRoute>
+                  <CustomerBrokerEditPage />
                 </PrivateRoute>
               }
             />
