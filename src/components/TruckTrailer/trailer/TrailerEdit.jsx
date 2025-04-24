@@ -17,6 +17,7 @@ import {
   Select,
   Alert,
   Snackbar,
+  Autocomplete,
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ApiService } from '../../../api/auth';
@@ -38,13 +39,15 @@ const TrailerEdit = () => {
     mc_number: '',
     year: '',
     model: '',
-    unit_number: '',
+    unit: null,
     plate_number: '',
     last_annual_inspection_date: '',
     registration_expiry_date: '',
     notes: '',
     location: '',
   });
+
+  const [units, setUnits] = useState([]);
 
   const trailerTypes = [
     { value: 'REEFER', label: 'Reefer' },
@@ -63,18 +66,22 @@ const TrailerEdit = () => {
   ];
 
   useEffect(() => {
-    const fetchTrailer = async () => {
+    const fetchData = async () => {
       try {
-        const data = await ApiService.getData(`/trailer/${id}/`);
-        setFormData(data);
+        const [trailerData, unitsData] = await Promise.all([
+          ApiService.getData(`/trailer/${id}/`),
+          ApiService.getData('/unit/')
+        ]);
+        setFormData(trailerData);
+        setUnits(unitsData);
       } catch (error) {
-        setError('Error loading trailer details: ' + error.message);
+        setError('Error loading data: ' + error.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTrailer();
+    fetchData();
   }, [id]);
 
   const handleChange = (e) => {
@@ -93,6 +100,14 @@ const TrailerEdit = () => {
     }));
   };
 
+  const handleUnitChange = (event, newValue) => {
+    setFormData(prev => ({
+      ...prev,
+      unit: newValue ? newValue.id : null,
+      unit_number: newValue ? newValue.unit_number : ''
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -106,7 +121,17 @@ const TrailerEdit = () => {
         last_annual_inspection_date: formData.last_annual_inspection_date || null,
       };
 
-      await ApiService.putData(`/trailer/${id}/`, formattedData);
+      const response = await ApiService.putData(`/trailer/${id}/`, formattedData);
+      
+      const selectedUnit = units.find(unit => unit.id === formData.unit);
+      if (selectedUnit) {
+        const updatedUnit = {
+          ...selectedUnit,
+          trailer: [...selectedUnit.trailer, parseInt(id)]
+        };
+        await ApiService.putData(`/unit/${selectedUnit.id}/`, updatedUnit);
+      }
+
       toast.success('Trailer updated successfully');
       navigate(`/trailer/${id}`);
     } catch (error) {
@@ -130,7 +155,19 @@ const TrailerEdit = () => {
       fields: [
         { name: 'make', label: 'Make', required: true },
         { name: 'model', label: 'Model', required: true },
-        { name: 'unit_number', label: 'Unit Number', required: true, type: 'number' },
+        { 
+          name: 'unit',
+          label: 'Unit Number',
+          required: true,
+          type: 'autocomplete',
+          options: units,
+          getOptionLabel: (option) => `Unit ${option.unit_number}`,
+          renderOption: (props, option) => (
+            <li {...props}>
+              Unit {option.unit_number}
+            </li>
+          )
+        },
         { name: 'vin', label: 'VIN', required: true },
         { name: 'year', label: 'Year', required: true, type: 'number' },
         { 
@@ -229,7 +266,23 @@ const TrailerEdit = () => {
                   <Grid container spacing={3}>
                     {section.fields.map((field) => (
                       <Grid item xs={12} sm={6} md={4} key={field.name}>
-                        {field.type === 'select' ? (
+                        {field.type === 'autocomplete' ? (
+                          <Autocomplete
+                            options={field.options}
+                            getOptionLabel={field.getOptionLabel}
+                            onChange={handleUnitChange}
+                            value={units.find(unit => unit.id === formData[field.name]) || null}
+                            renderOption={field.renderOption}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label={field.label}
+                                required={field.required}
+                                helperText="Select unit from list"
+                              />
+                            )}
+                          />
+                        ) : field.type === 'select' ? (
                           <FormControl fullWidth required={field.required}>
                             <InputLabel>{field.label}</InputLabel>
                             <Select

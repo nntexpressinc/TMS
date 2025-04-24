@@ -15,6 +15,7 @@ import {
   Tooltip,
   Alert,
   Snackbar,
+  Autocomplete,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { ApiService } from "../../../api/auth";
@@ -30,7 +31,7 @@ const TrailerCreatePage = () => {
     mc_number: "",
     year: new Date().getFullYear(),
     model: "",
-    unit_number: "",
+    unit: null,
     plate_number: "",
     last_annual_inspection_date: "",
     registration_expiry_date: "",
@@ -47,6 +48,7 @@ const TrailerCreatePage = () => {
   });
 
   const [error, setError] = useState(null);
+  const [units, setUnits] = useState([]);
   const navigate = useNavigate();
 
   const trailerTypes = [
@@ -65,6 +67,19 @@ const TrailerCreatePage = () => {
     { value: 'RENTAL', label: 'Rental' }
   ];
 
+  useEffect(() => {
+    const fetchUnits = async () => {
+      try {
+        const data = await ApiService.getData('/unit/');
+        setUnits(data);
+      } catch (error) {
+        setError("Error fetching units: " + error.message);
+      }
+    };
+
+    fetchUnits();
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setTrailerData((prevData) => ({
@@ -79,6 +94,14 @@ const TrailerCreatePage = () => {
     setTrailerData(prev => ({
       ...prev,
       [name]: formattedDate
+    }));
+  };
+
+  const handleUnitChange = (event, newValue) => {
+    setTrailerData(prev => ({
+      ...prev,
+      unit: newValue ? newValue.id : null,
+      unit_number: newValue ? newValue.unit_number : ''
     }));
   };
 
@@ -98,6 +121,14 @@ const TrailerCreatePage = () => {
 
       const response = await ApiService.postData("/trailer/", formattedData);
       if (response) {
+        const selectedUnit = units.find(unit => unit.id === trailerData.unit);
+        if (selectedUnit) {
+          const updatedUnit = {
+            ...selectedUnit,
+            trailer: [...selectedUnit.trailer, response.id]
+          };
+          await ApiService.putData(`/unit/${selectedUnit.id}/`, updatedUnit);
+        }
         navigate("/trailer");
       }
     } catch (error) {
@@ -260,14 +291,23 @@ const TrailerCreatePage = () => {
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <TextField
-                      label="Unit Number"
-                      name="unit_number"
-                      type="number"
-                      value={trailerData.unit_number}
-                      onChange={handleChange}
-                      fullWidth
-                      required
+                    <Autocomplete
+                      options={units}
+                      getOptionLabel={(option) => `Unit ${option.unit_number}`}
+                      onChange={handleUnitChange}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Unit Number"
+                          required
+                          helperText="Select unit from list"
+                        />
+                      )}
+                      renderOption={(props, option) => (
+                        <li {...props}>
+                          Unit {option.unit_number}
+                        </li>
+                      )}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>

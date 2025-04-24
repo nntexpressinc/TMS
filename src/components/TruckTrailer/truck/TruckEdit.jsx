@@ -15,6 +15,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  Autocomplete,
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ApiService } from '../../../api/auth';
@@ -29,7 +30,7 @@ const TruckEdit = () => {
   const [formData, setFormData] = useState({
     make: '',
     model: '',
-    unit_number: '',
+    unit: null,
     vin: '',
     year: '',
     state: '',
@@ -53,6 +54,8 @@ const TruckEdit = () => {
     notes: '',
     comment: '',
   });
+
+  const [units, setUnits] = useState([]);
 
   const states = [
     { code: 'AL', name: 'Alabama' },
@@ -108,18 +111,22 @@ const TruckEdit = () => {
   ];
 
   useEffect(() => {
-    const fetchTruck = async () => {
+    const fetchData = async () => {
       try {
-        const data = await ApiService.getData(`/truck/${id}/`);
-        setFormData(data);
+        const [truckData, unitsData] = await Promise.all([
+          ApiService.getData(`/truck/${id}/`),
+          ApiService.getData('/unit/')
+        ]);
+        setFormData(truckData);
+        setUnits(unitsData);
       } catch (error) {
-        toast.error('Error loading truck details: ' + error.message);
+        toast.error('Error loading data: ' + error.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTruck();
+    fetchData();
   }, [id]);
 
   const handleChange = (e) => {
@@ -138,12 +145,31 @@ const TruckEdit = () => {
     }));
   };
 
+  const handleUnitChange = (event, newValue) => {
+    setFormData(prev => ({
+      ...prev,
+      unit: newValue ? newValue.id : null,
+      unit_number: newValue ? newValue.unit_number : ''
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const response = await ApiService.putData(`/truck/${id}/`, formData);
+      
+      // Unit ma'lumotlarini yangilash
+      const selectedUnit = units.find(unit => unit.id === formData.unit);
+      if (selectedUnit) {
+        const updatedUnit = {
+          ...selectedUnit,
+          truck: [...selectedUnit.truck, parseInt(id)]
+        };
+        await ApiService.putData(`/unit/${selectedUnit.id}/`, updatedUnit);
+      }
+
       toast.success('Truck updated successfully');
       navigate(`/truck/${id}`);
     } catch (error) {
@@ -167,7 +193,19 @@ const TruckEdit = () => {
       fields: [
         { name: 'make', label: 'Make', required: true },
         { name: 'model', label: 'Model', required: true },
-        { name: 'unit_number', label: 'Unit Number', required: true },
+        { 
+          name: 'unit',
+          label: 'Unit Number',
+          required: true,
+          type: 'autocomplete',
+          options: units,
+          getOptionLabel: (option) => `Unit ${option.unit_number}`,
+          renderOption: (props, option) => (
+            <li {...props}>
+              Unit {option.unit_number}
+            </li>
+          )
+        },
         { name: 'vin', label: 'VIN', required: true },
         { name: 'year', label: 'Year', required: true, type: 'number' },
         { 
@@ -253,7 +291,23 @@ const TruckEdit = () => {
                   <Grid container spacing={3}>
                     {section.fields.map((field) => (
                       <Grid item xs={12} sm={6} md={4} key={field.name}>
-                        {field.type === 'select' ? (
+                        {field.type === 'autocomplete' ? (
+                          <Autocomplete
+                            options={field.options}
+                            getOptionLabel={field.getOptionLabel}
+                            onChange={handleUnitChange}
+                            value={units.find(unit => unit.id === formData[field.name]) || null}
+                            renderOption={field.renderOption}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label={field.label}
+                                required={field.required}
+                                helperText="Select unit from list"
+                              />
+                            )}
+                          />
+                        ) : field.type === 'select' ? (
                           <FormControl fullWidth>
                             <InputLabel required={field.required}>
                               {field.label}
@@ -261,7 +315,7 @@ const TruckEdit = () => {
                             <Select
                               name={field.name}
                               value={formData[field.name] || ''}
-                              onChange={handleChange}
+                              onChange={field.type === 'select' ? handleUnitChange : handleChange}
                               required={field.required}
                               label={field.label}
                             >

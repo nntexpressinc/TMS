@@ -26,7 +26,7 @@ const TruckCreatePage = () => {
   const [truckData, setTruckData] = useState({
     make: "",
     model: "",
-    unit_number: "",
+    unit: null,
     plate_number: "",
     vin: "",
     year: new Date().getFullYear(),
@@ -57,6 +57,7 @@ const TruckCreatePage = () => {
 
   const [error, setError] = useState(null);
   const [drivers, setDrivers] = useState([]);
+  const [units, setUnits] = useState([]);
   const navigate = useNavigate();
 
   const states = [
@@ -132,16 +133,20 @@ const TruckCreatePage = () => {
   ];
 
   useEffect(() => {
-    const fetchDrivers = async () => {
+    const fetchData = async () => {
       try {
-        const data = await ApiService.getData('/driver/');
-        setDrivers(data);
+        const [driversData, unitsData] = await Promise.all([
+          ApiService.getData('/driver/'),
+          ApiService.getData('/unit/')
+        ]);
+        setDrivers(driversData);
+        setUnits(unitsData);
       } catch (error) {
-        setError("Error fetching drivers: " + error.message);
+        setError("Error fetching data: " + error.message);
       }
     };
 
-    fetchDrivers();
+    fetchData();
   }, []);
 
   const handleChange = (e) => {
@@ -176,6 +181,14 @@ const TruckCreatePage = () => {
     }));
   };
 
+  const handleUnitChange = (event, newValue) => {
+    setTruckData(prev => ({
+      ...prev,
+      unit: newValue ? newValue.id : null,
+      unit_number: newValue ? newValue.unit_number : ''
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -194,6 +207,15 @@ const TruckCreatePage = () => {
 
       const response = await ApiService.postData("/truck/", formattedData);
       if (response) {
+        // Unit ma'lumotlarini yangilash
+        const selectedUnit = units.find(unit => unit.id === truckData.unit);
+        if (selectedUnit) {
+          const updatedUnit = {
+            ...selectedUnit,
+            truck: [...selectedUnit.truck, response.id]
+          };
+          await ApiService.putData(`/unit/${selectedUnit.id}/`, updatedUnit);
+        }
         navigate("/truck");
       }
     } catch (error) {
@@ -283,14 +305,23 @@ const TruckCreatePage = () => {
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <TextField
-                      label="Unit Number"
-                      name="unit_number"
-                      type="number"
-                      value={truckData.unit_number}
-                      onChange={handleChange}
-                      fullWidth
-                      required
+                    <Autocomplete
+                      options={units}
+                      getOptionLabel={(option) => `Unit ${option.unit_number}`}
+                      onChange={handleUnitChange}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Unit Number"
+                          required
+                          helperText="Select unit from list"
+                        />
+                      )}
+                      renderOption={(props, option) => (
+                        <li {...props}>
+                          Unit {option.unit_number}
+                        </li>
+                      )}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
