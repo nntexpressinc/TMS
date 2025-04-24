@@ -1,5 +1,23 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Typography, Box, Button, TextField, MenuItem, InputAdornment, Chip, IconButton, Tooltip } from "@mui/material";
+import { 
+  Typography, 
+  Box, 
+  Button, 
+  TextField, 
+  MenuItem, 
+  InputAdornment, 
+  Chip, 
+  IconButton, 
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  Snackbar,
+  CircularProgress,
+  Grid
+} from "@mui/material";
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { ApiService } from "../../api/auth";
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +27,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import { MdCheckCircle, MdCancel, MdPending } from 'react-icons/md';
@@ -20,6 +39,11 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
   const [searchCategory, setSearchCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const tableRef = useRef(null);
   const navigate = useNavigate();
   const { isSidebarOpen } = useSidebar();
@@ -66,21 +90,22 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
 
   const searchCategories = type === 'truck' ? truckSearchCategories : trailerSearchCategories;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const storedAccessToken = localStorage.getItem("accessToken");
-      if (storedAccessToken) {
-        try {
-          const endpoint = type === 'truck' ? '/truck/' : '/trailer/';
-          const data = await ApiService.getData(endpoint, storedAccessToken);
-          setItems(data);
-          setFilteredItems(data);
-        } catch (error) {
-          console.error(`Error fetching ${type} data:`, error);
-        }
-      }
-    };
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const endpoint = type === 'truck' ? '/truck/' : '/trailer/';
+      const data = await ApiService.getData(endpoint);
+      setItems(data);
+      setFilteredItems(data);
+      setError(null);
+    } catch (error) {
+      setError(`Error fetching ${type} data: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, [type]);
 
@@ -158,11 +183,11 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
   };
 
   const handleEdit = (id) => {
-    navigate(`/${type}/edit/${id}`);
+    navigate(`/${type}/${id}/edit`);
   };
 
-  const handleView = (id) => {
-    navigate(`/${type}/${id}`);
+  const handleView = (item) => {
+    navigate(`/${type}/${item.id}`);
   };
 
   const handleCopyId = (id) => {
@@ -170,6 +195,124 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
+
+  const handleDelete = async () => {
+    if (!selectedItem) return;
+    
+    setLoading(true);
+    try {
+      await ApiService.deleteData(`/${type}/${selectedItem.id}/`);
+      await fetchData(); // Refresh data after deletion
+      setError(null);
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      setError(`Error deleting ${type}: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (date) => {
+    if (!date) return '-';
+    return new Date(date).toLocaleDateString();
+  };
+
+  const formatVin = (vin) => {
+    if (!vin) return '-';
+    if (vin.length <= 6) return vin;
+    return `...${vin.slice(-6)}`;
+  };
+
+  const ViewDialog = () => (
+    <Dialog 
+      open={viewDialogOpen} 
+      onClose={() => setViewDialogOpen(false)}
+      maxWidth="md"
+      fullWidth
+    >
+      <DialogTitle sx={{ 
+        borderBottom: '1px solid #E5E7EB',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <Typography variant="h6">
+          {type.charAt(0).toUpperCase() + type.slice(1)} Details
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Tooltip title="Edit">
+            <IconButton 
+              onClick={() => {
+                setViewDialogOpen(false);
+                navigate(`/${type}/${selectedItem.id}/edit`);
+              }}
+              size="small"
+            >
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete">
+            <IconButton 
+              onClick={() => {
+                setViewDialogOpen(false);
+                setDeleteDialogOpen(true);
+              }}
+              size="small"
+              color="error"
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </DialogTitle>
+      <DialogContent dividers>
+        <Grid container spacing={2}>
+          {Object.entries(selectedItem || {}).map(([key, value]) => (
+            <Grid item xs={12} sm={6} key={key}>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="textSecondary" sx={{ textTransform: 'capitalize' }}>
+                  {key.replace(/_/g, ' ')}
+                </Typography>
+                <Typography variant="body1">
+                  {key.includes('date') ? formatDate(value) : value || '-'}
+                </Typography>
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+      </DialogActions>
+    </Dialog>
+  );
+
+  const DeleteDialog = () => (
+    <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      <DialogTitle>Confirm Delete</DialogTitle>
+      <DialogContent>
+        <Typography>
+          Are you sure you want to delete this {type}? This action cannot be undone.
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button 
+          onClick={() => setDeleteDialogOpen(false)}
+          disabled={loading}
+        >
+          Cancel
+        </Button>
+        <Button 
+          onClick={handleDelete} 
+          color="error" 
+          variant="contained"
+          disabled={loading}
+        >
+          {loading ? <CircularProgress size={24} /> : 'Delete'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
 
   const getStatusStyle = (status) => {
     const statusConfig = statuses.find(s => s.value === status);
@@ -194,9 +337,9 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
 
   const truckColumns = [
     {
-      field: 'unit_number',
-      headerName: 'Unit Number',
-      width: 150,
+      field: 'vin',
+      headerName: 'VIN',
+      width: 200,
       align: 'center',
       headerAlign: 'center',
       renderCell: (params) => (
@@ -209,11 +352,17 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
           justifyContent: 'center',
           py: '4px'
         }}>
-          <Typography sx={{ 
-            whiteSpace: 'nowrap',
-            overflow: 'visible'
-          }}>
-            {params.value}
+          <Typography
+            sx={{ 
+              whiteSpace: 'nowrap',
+              overflow: 'visible',
+              cursor: 'pointer',
+              color: '#3B82F6',
+              textDecoration: 'underline'
+            }}
+            onClick={() => handleView(params.row)}
+          >
+            {formatVin(params.value)}
           </Typography>
           <IconButton
             size="small"
@@ -235,10 +384,10 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
         </Box>
       )
     },
+    { field: 'unit_number', headerName: 'Unit Number', width: 150 },
     { field: 'make', headerName: 'Make', width: 120 },
     { field: 'model', headerName: 'Model', width: 120 },
     { field: 'plate_number', headerName: 'Plate Number', width: 120 },
-    { field: 'vin', headerName: 'VIN', width: 150 },
     { field: 'year', headerName: 'Year', width: 100 },
     { field: 'state', headerName: 'State', width: 100 },
     { field: 'weight', headerName: 'Weight', width: 100 },
@@ -260,7 +409,6 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
       width: 130,
       headerAlign: 'center',
       align: 'center',
-      pinned: 'right',
       renderCell: (params) => (
         <Box sx={{ 
           display: 'flex',
@@ -296,7 +444,109 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
       width: 130,
       headerAlign: 'center',
       align: 'center',
-      pinned: 'right',
+      renderCell: (params) => {
+        const ownershipConfig = ownershipTypes.find(t => t.value === params.value);
+        return (
+          <Box sx={{ 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            paddingTop: '4px'
+          }}>
+            <Chip
+              label={ownershipConfig?.label || params.value || 'N/A'}
+              sx={{
+                backgroundColor: `${ownershipConfig?.color}15` || '#64748B15',
+                color: ownershipConfig?.color || '#64748B',
+                height: '20px',
+                minWidth: 'auto',
+                maxWidth: '100%',
+                '& .MuiChip-label': {
+                  fontSize: '0.7rem',
+                  padding: '0 8px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }
+              }}
+            />
+          </Box>
+        );
+      }
+    },
+    { field: 'color', headerName: 'Color', width: 100, valueFormatter: (params) => params?.value || '-' },
+    { field: 'mc_number', headerName: 'MC Number', width: 120, valueFormatter: (params) => params?.value || '-' },
+    { field: 'pickup_odometer', headerName: 'Pickup Odometer', width: 150, valueFormatter: (params) => params?.value || '-' },
+    { field: 'owner', headerName: 'Owner', width: 120, valueFormatter: (params) => params?.value || '-' },
+    { field: 'driver', headerName: 'Driver', width: 120, valueFormatter: (params) => params?.value || '-' },
+    { field: 'location', headerName: 'Location', width: 150, valueFormatter: (params) => params?.value || '-' },
+    { field: 'mileage_on_pickup', headerName: 'Mileage on Pickup', width: 150, valueFormatter: (params) => params?.value || '-' }
+  ];
+
+  const trailerColumns = [
+    {
+      field: 'vin',
+      headerName: 'VIN',
+      width: 200,
+      align: 'center',
+      headerAlign: 'center',
+      renderCell: (params) => (
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          width: '100%',
+          height: '100%',
+          justifyContent: 'center',
+          py: '4px'
+        }}>
+          <Typography
+            sx={{ 
+              whiteSpace: 'nowrap',
+              overflow: 'visible',
+              cursor: 'pointer',
+              color: '#3B82F6',
+              textDecoration: 'underline'
+            }}
+            onClick={() => handleView(params.row)}
+          >
+            {formatVin(params.value)}
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => handleCopyId(params.value)}
+            sx={{
+              padding: '4px',
+              color: copiedId === params.value ? '#10B981' : '#6B7280',
+              '&:hover': { 
+                backgroundColor: copiedId === params.value ? '#D1FAE5' : '#F3F4F6'
+              }
+            }}
+          >
+            {copiedId === params.value ? (
+              <CheckIcon sx={{ fontSize: '16px' }} />
+            ) : (
+              <ContentCopyIcon sx={{ fontSize: '16px' }} />
+            )}
+          </IconButton>
+        </Box>
+      )
+    },
+    { field: 'unit_number', headerName: 'Unit Number', width: 120 },
+    { field: 'make', headerName: 'Make', width: 120 },
+    { field: 'model', headerName: 'Model', width: 120 },
+    { field: 'year', headerName: 'Year', width: 100 },
+    { field: 'plate_number', headerName: 'Plate Number', width: 120 },
+    { field: 'mc_number', headerName: 'MC Number', width: 120 },
+    { field: 'owner', headerName: 'Owner', width: 120 },
+    { 
+      field: 'ownership', 
+      headerName: 'Ownership', 
+      width: 130,
+      headerAlign: 'center',
+      align: 'center',
       renderCell: (params) => {
         const ownershipConfig = ownershipTypes.find(t => t.value === params.value);
         return (
@@ -330,119 +580,11 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
       }
     },
     {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 120,
-      headerAlign: 'center',
-      align: 'center',
-      pinned: 'right',
-      renderCell: (params) => (
-        <Box sx={{ 
-          display: 'flex',
-          gap: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          width: '100%',
-          height: '100%',
-          paddingTop: '4px'
-        }}>
-          <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={() => handleEdit(params.row.id)}
-              sx={{ 
-                padding: '6px',
-                color: '#6366F1',
-                '&:hover': { backgroundColor: '#EEF2FF' }
-              }}
-            >
-              <EditIcon sx={{ fontSize: '20px' }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="View">
-            <IconButton
-              size="small"
-              onClick={() => handleView(params.row.id)}
-              sx={{ 
-                padding: '6px',
-                color: '#3B82F6',
-                '&:hover': { backgroundColor: '#EFF6FF' }
-              }}
-            >
-              <VisibilityIcon sx={{ fontSize: '20px' }} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )
-    },
-    { field: 'color', headerName: 'Color', width: 100, valueFormatter: (params) => params?.value || '-' },
-    { field: 'mc_number', headerName: 'MC Number', width: 120, valueFormatter: (params) => params?.value || '-' },
-    { field: 'pickup_odometer', headerName: 'Pickup Odometer', width: 150, valueFormatter: (params) => params?.value || '-' },
-    { field: 'owner', headerName: 'Owner', width: 120, valueFormatter: (params) => params?.value || '-' },
-    { field: 'driver', headerName: 'Driver', width: 120, valueFormatter: (params) => params?.value || '-' },
-    { field: 'location', headerName: 'Location', width: 150, valueFormatter: (params) => params?.value || '-' },
-    { field: 'mileage_on_pickup', headerName: 'Mileage on Pickup', width: 150, valueFormatter: (params) => params?.value || '-' }
- 
-  ];
-
-  const trailerColumns = [
-    {
-      field: 'unit_number',
-      headerName: 'Trailer Number',
-      width: 150,
-      align: 'center',
-      headerAlign: 'center',
-      renderCell: (params) => (
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1,
-          width: '100%',
-          height: '100%',
-          justifyContent: 'center',
-          py: '4px'
-        }}>
-          <Typography sx={{ 
-            whiteSpace: 'nowrap',
-            overflow: 'visible'
-          }}>
-            {params.value}
-          </Typography>
-          <IconButton
-            size="small"
-            onClick={() => handleCopyId(params.value)}
-            sx={{
-              padding: '4px',
-              color: copiedId === params.value ? '#10B981' : '#6B7280',
-              '&:hover': { 
-                backgroundColor: copiedId === params.value ? '#D1FAE5' : '#F3F4F6'
-              }
-            }}
-          >
-            {copiedId === params.value ? (
-              <CheckIcon sx={{ fontSize: '16px' }} />
-            ) : (
-              <ContentCopyIcon sx={{ fontSize: '16px' }} />
-            )}
-          </IconButton>
-        </Box>
-      )
-    },
-    { field: 'make', headerName: 'Make', width: 150 },
-    { field: 'model', headerName: 'Model', width: 120 },
-    { field: 'year', headerName: 'Year', width: 100 },
-    { field: 'vin', headerName: 'VIN', width: 150 },
-    { field: 'plate_number', headerName: 'Plate Number', width: 150 },
-    { field: 'mc_number', headerName: 'MC Number', width: 120 },
-    { field: 'owner', headerName: 'Owner', width: 120 },
-    { field: 'ownership', headerName: 'Ownership', width: 120 },
-    {
       field: 'type',
       headerName: 'Type',
       width: 130,
       headerAlign: 'center',
       align: 'center',
-      pinned: 'right',
       renderCell: (params) => {
         const typeConfig = trailerTypes.find(t => t.value === params.value);
         return (
@@ -455,7 +597,7 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
             paddingTop: '4px'
           }}>
             <Chip
-              label={typeConfig?.label || params.value}
+              label={typeConfig?.label || params.value || 'N/A'}
               sx={{
                 backgroundColor: `${typeConfig?.color}15` || '#64748B15',
                 color: typeConfig?.color || '#64748B',
@@ -475,51 +617,32 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
         );
       }
     },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 120,
-      headerAlign: 'center',
-      align: 'center',
-      pinned: 'right',
-      renderCell: (params) => (
-        <Box sx={{ 
-          display: 'flex',
-          gap: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          width: '100%',
-          height: '100%',
-          paddingTop: '4px'
-        }}>
-          <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={() => handleEdit(params.row.id)}
-              sx={{ 
-                padding: '6px',
-                color: '#6366F1',
-                '&:hover': { backgroundColor: '#EEF2FF' }
-              }}
-            >
-              <EditIcon sx={{ fontSize: '20px' }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="View">
-            <IconButton
-              size="small"
-              onClick={() => handleView(params.row.id)}
-              sx={{ 
-                padding: '6px',
-                color: '#3B82F6',
-                '&:hover': { backgroundColor: '#EFF6FF' }
-              }}
-            >
-              <VisibilityIcon sx={{ fontSize: '20px' }} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )
+    { 
+      field: 'registration_expiry_date', 
+      headerName: 'Registration Expiry', 
+      width: 150,
+      valueFormatter: (params) => params?.value ? new Date(params.value).toLocaleDateString() : '-'
+    },
+    { 
+      field: 'last_annual_inspection_date', 
+      headerName: 'Last Inspection', 
+      width: 150,
+      valueFormatter: (params) => params?.value ? new Date(params.value).toLocaleDateString() : '-'
+    },
+    { field: 'location', headerName: 'Location', width: 150, valueFormatter: (params) => params?.value || '-' },
+    { field: 'driver', headerName: 'Driver', width: 120, valueFormatter: (params) => params?.value || '-' },
+    { field: 'co_driver', headerName: 'Co-Driver', width: 120, valueFormatter: (params) => params?.value || '-' },
+    { 
+      field: 'pickup_date', 
+      headerName: 'Pickup Date', 
+      width: 150,
+      valueFormatter: (params) => params?.value ? new Date(params.value).toLocaleDateString() : '-'
+    },
+    { 
+      field: 'drop_date', 
+      headerName: 'Drop Date', 
+      width: 150,
+      valueFormatter: (params) => params?.value ? new Date(params.value).toLocaleDateString() : '-'
     }
   ];
 
@@ -527,6 +650,17 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
 
   return (
     <Box sx={{ height: '100%', width: '100%', transition: 'width 0.3s', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} ref={tableRef}>
+      <Snackbar 
+        open={!!error} 
+        autoHideDuration={6000} 
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setError(null)} severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
+
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5" gutterBottom sx={{ mb: 0 }}>
           {type === 'truck' ? 'Trucks' : 'Trailers'}
@@ -677,7 +811,23 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
       )}
 
       <Box sx={{ display: 'flex', gap: 2, flexGrow: 1, overflow: 'hidden' }}>
-        <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
+        <Box sx={{ flexGrow: 1, overflow: 'hidden', position: 'relative' }}>
+          {loading && (
+            <Box sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(255, 255, 255, 0.7)',
+              zIndex: 1
+            }}>
+              <CircularProgress />
+            </Box>
+          )}
           <DataGrid
             rows={filteredItems}
             columns={columns}
@@ -742,6 +892,9 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
           />
         </Box>
       </Box>
+
+      <ViewDialog />
+      <DeleteDialog />
     </Box>
   );
 };

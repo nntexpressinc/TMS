@@ -6,7 +6,7 @@ const BASE_URL = 'https://api.biznes-armiya.uz/api';
 const ApiService = {
   getData: async (endpoint) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const response = await axios.get(`${BASE_URL}${endpoint}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -21,7 +21,7 @@ const ApiService = {
 
   postData: async (endpoint, data) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const response = await axios.post(`${BASE_URL}${endpoint}`, data, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -36,7 +36,7 @@ const ApiService = {
 
   putData: async (endpoint, data) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const response = await axios.put(`${BASE_URL}${endpoint}`, data, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -63,7 +63,7 @@ const ApiService = {
 
   deleteData: async (endpoint) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const response = await axios.delete(`${BASE_URL}${endpoint}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
