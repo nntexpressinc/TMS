@@ -23,14 +23,14 @@
     pointer-events: none;
     z-index: -1;
   }
-}
 
-.sidebar-container.open {
-  width: 250px;
-}
+  &.open {
+    width: 250px;
+  }
 
-.sidebar-container:not(.open) {
-  width: 60px;
+  &:not(.open) {
+    width: 60px;
+  }
 }
 
 .sidebar-logo {
@@ -60,13 +60,16 @@
     font-size: 20px;
     font-weight: 600;
     margin: 0;
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.3s ease;
   }
 }
 
 .sidebar-content {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: calc(100% - 64px);
   padding: 16px 8px;
   overflow-y: auto;
 
@@ -88,6 +91,13 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+
+  &.collapsed {
+    .item-title {
+      opacity: 0;
+      width: 0;
+    }
+  }
 }
 
 .sidebar-item {
@@ -101,6 +111,7 @@
   text-decoration: none;
   transition: all 0.2s ease;
   margin: 0 4px;
+  cursor: pointer;
 
   &:hover {
     background: rgba(255, 255, 255, 0.1);
@@ -145,7 +156,8 @@
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  opacity: 1;
 }
 
 .sidebar-dropdown {
@@ -154,6 +166,17 @@
     margin-top: 4px;
     padding-left: 12px;
     border-left: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: all 0.3s ease-in-out;
+
+    &:not(:empty) {
+      max-height: 500px;
+      opacity: 1;
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
   }
 
   .dropdown-item {
@@ -165,23 +188,32 @@
     border-radius: 12px;
     text-decoration: none;
     transition: all 0.2s ease;
-    margin: 0 4px;
+    margin: 4px;
 
     &:hover {
       background: rgba(255, 255, 255, 0.1);
       color: white;
+      transform: translateX(4px);
     }
 
     &.active {
       background: rgba(255, 255, 255, 0.15);
       color: white;
     }
+
+    .item-icon {
+      font-size: 16px;
+    }
+
+    .item-title {
+      font-size: 13px;
+    }
   }
 }
 
 .sidebar-footer {
   margin-top: auto;
-  padding: 16px;
+  padding: 16px 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -197,7 +229,6 @@
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin: 0 4px;
 
   &:hover {
     background: rgba(239, 68, 68, 0.2);
@@ -211,5 +242,7 @@
   span {
     font-size: 14px;
     font-weight: 500;
+    white-space: nowrap;
+    transition: opacity 0.3s ease;
   }
 }

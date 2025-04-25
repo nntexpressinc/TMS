@@ -7,6 +7,9 @@ const ApiService = {
   getData: async (endpoint) => {
     try {
       const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('Token not found. Please login again.');
+      }
       const response = await axios.get(`${BASE_URL}${endpoint}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -15,6 +18,11 @@ const ApiService = {
       });
       return response.data;
     } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        window.location.href = '/login';
+        throw new Error('Session expired. Please login again.');
+      }
       throw error;
     }
   },
@@ -22,6 +30,9 @@ const ApiService = {
   postData: async (endpoint, data) => {
     try {
       const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('Token not found. Please login again.');
+      }
       const response = await axios.post(`${BASE_URL}${endpoint}`, data, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -30,6 +41,11 @@ const ApiService = {
       });
       return response.data;
     } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        window.location.href = '/login';
+        throw new Error('Session expired. Please login again.');
+      }
       throw error;
     }
   },
@@ -37,6 +53,9 @@ const ApiService = {
   putData: async (endpoint, data) => {
     try {
       const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('Token not found. Please login again.');
+      }
       const response = await axios.put(`${BASE_URL}${endpoint}`, data, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -53,6 +72,12 @@ const ApiService = {
         requestData: data
       });
       
+      if (error.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        window.location.href = '/login';
+        throw new Error('Session expired. Please login again.');
+      }
+      
       if (error.response?.status === 500) {
         throw new Error('Server error occurred. Please check your data and try again.');
       }
@@ -64,6 +89,9 @@ const ApiService = {
   deleteData: async (endpoint) => {
     try {
       const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('Token not found. Please login again.');
+      }
       const response = await axios.delete(`${BASE_URL}${endpoint}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -72,41 +100,82 @@ const ApiService = {
       });
       return response.data;
     } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        window.location.href = '/login';
+        throw new Error('Session expired. Please login again.');
+      }
       throw error;
     }
   },
 
   async postMediaData(endpoint, data) {
-    const token = localStorage.getItem('accessToken');
-    const response = await axios.post(`${BASE_URL}${endpoint}`, data, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.data;
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('Token not found. Please login again.');
+      }
+      const response = await axios.post(`${BASE_URL}${endpoint}`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        window.location.href = '/login';
+        throw new Error('Session expired. Please login again.');
+      }
+      throw error;
+    }
   },
 
   async putMediaData(endpoint, data) {
-    const token = localStorage.getItem('accessToken');
-    const response = await axios.put(`${BASE_URL}${endpoint}`, data, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.data;
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('Token not found. Please login again.');
+      }
+      const response = await axios.put(`${BASE_URL}${endpoint}`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        window.location.href = '/login';
+        throw new Error('Session expired. Please login again.');
+      }
+      throw error;
+    }
   },
 
   async patchMediaData(endpoint, data) {
-    const token = localStorage.getItem('accessToken');
-    const response = await axios.patch(`${BASE_URL}${endpoint}`, data, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.data;
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('Token not found. Please login again.');
+      }
+      const response = await axios.patch(`${BASE_URL}${endpoint}`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        window.location.href = '/login';
+        throw new Error('Session expired. Please login again.');
+      }
+      throw error;
+    }
   },
 
   async postRegisterData(endpoint, data) {

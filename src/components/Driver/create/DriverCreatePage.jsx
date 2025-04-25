@@ -1,677 +1,723 @@
-import React, { useState, useEffect } from "react";
-import { Box, Button, TextField, Typography, Paper, MenuItem, FormControl, InputLabel, Select, OutlinedInput, Grid, Alert, Divider, Stepper, Step, StepLabel } from "@mui/material";
+import React, { useState } from "react";
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  IconButton,
+  Tooltip,
+  Alert,
+  Snackbar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Autocomplete,
+  Divider,
+  FormHelperText,
+  CircularProgress
+} from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { ApiService } from "../../../api/auth";
-import { toast } from "react-hot-toast";
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { toast } from 'react-hot-toast';
 import './DriverCreatePage.css';
-import TagInput from "./TagInput";
 
 const DriverCreatePage = () => {
-  const navigate = useNavigate();
-  const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
   const [userData, setUserData] = useState({
     email: "",
     company_name: "",
     first_name: "",
     last_name: "",
+    profile_photo: null,
     telephone: "",
-    callphone: "",
     city: "",
     address: "",
-    country: "",
+    country: "USA",
     state: "",
     postal_zip: "",
     ext: 0,
     fax: "",
-    role: "driver",
-    company_id: 1,
-    password: ""
+    role: 3,
+    password: "",
+    password2: ""
   });
+
   const [driverData, setDriverData] = useState({
+    user: null,
     birth_date: "",
-    employment_status: "",
+    employment_status: "ACTIVE",
     telegram_username: "",
-    driver_status: "",
+    driver_status: "AVAILABLE",
     company_name: "",
     driver_license_id: "",
     dl_class: "",
-    driver_type: "",
+    driver_type: "COMPANY",
     driver_license_state: "",
     driver_license_expiration: "",
     other_id: "",
     notes: "",
     tariff: "",
     mc_number: "",
-    team_driver: "",
-    permile: "",
-    cost: "",
-    payd: "",
-    escrow_deposit: "",
+    team_driver: false,
+    permile: 0,
+    cost: 0,
+    payd: 0,
+    escrow_deposit: 0,
     motive_id: "",
-    assigned_truck: "",
-    assigned_trailer: "",
-    assigned_dispatcher: "",
-    driver_tags: ""
+    assigned_truck: null,
+    assigned_trailer: null,
+    assigned_dispatcher: null,
+    driver_tags: null
   });
 
-  const [trucks, setTrucks] = useState([]);
-  const [trailers, setTrailers] = useState([]);
-  const [dispatchers, setDispatchers] = useState([]);
-  const [createdUserId, setCreatedUserId] = useState(null);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [trucksData, trailersData, dispatchersData] = await Promise.all([
-          ApiService.getData('/truck/'),
-          ApiService.getData('/trailer/'),
-          ApiService.getData('/dispatcher/')
-        ]);
-        setTrucks(trucksData);
-        setTrailers(trailersData);
-        setDispatchers(dispatchersData);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-    fetchData();
-  }, []);
+  const [notifications, setNotifications] = useState([]);
+  const addNotification = (message, type = 'success') => {
+    setNotifications(prev => [...prev, { message, type }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.slice(1));
+    }, 6000);
+  };
+
+  const states = [
+    { code: 'AL', name: 'Alabama' },
+    { code: 'AK', name: 'Alaska' },
+    { code: 'AZ', name: 'Arizona' },
+    { code: 'AR', name: 'Arkansas' },
+    { code: 'CA', name: 'California' },
+    { code: 'CO', name: 'Colorado' },
+    { code: 'CT', name: 'Connecticut' },
+    { code: 'DE', name: 'Delaware' },
+    { code: 'FL', name: 'Florida' },
+    { code: 'GA', name: 'Georgia' },
+    { code: 'HI', name: 'Hawaii' },
+    { code: 'ID', name: 'Idaho' },
+    { code: 'IL', name: 'Illinois' },
+    { code: 'IN', name: 'Indiana' },
+    { code: 'IA', name: 'Iowa' },
+    { code: 'KS', name: 'Kansas' },
+    { code: 'KY', name: 'Kentucky' },
+    { code: 'LA', name: 'Louisiana' },
+    { code: 'ME', name: 'Maine' },
+    { code: 'MD', name: 'Maryland' },
+    { code: 'MA', name: 'Massachusetts' },
+    { code: 'MI', name: 'Michigan' },
+    { code: 'MN', name: 'Minnesota' },
+    { code: 'MS', name: 'Mississippi' },
+    { code: 'MO', name: 'Missouri' },
+    { code: 'MT', name: 'Montana' },
+    { code: 'NE', name: 'Nebraska' },
+    { code: 'NV', name: 'Nevada' },
+    { code: 'NH', name: 'New Hampshire' },
+    { code: 'NJ', name: 'New Jersey' },
+    { code: 'NM', name: 'New Mexico' },
+    { code: 'NY', name: 'New York' },
+    { code: 'NC', name: 'North Carolina' },
+    { code: 'ND', name: 'North Dakota' },
+    { code: 'OH', name: 'Ohio' },
+    { code: 'OK', name: 'Oklahoma' },
+    { code: 'OR', name: 'Oregon' },
+    { code: 'PA', name: 'Pennsylvania' },
+    { code: 'RI', name: 'Rhode Island' },
+    { code: 'SC', name: 'South Carolina' },
+    { code: 'SD', name: 'South Dakota' },
+    { code: 'TN', name: 'Tennessee' },
+    { code: 'TX', name: 'Texas' },
+    { code: 'UT', name: 'Utah' },
+    { code: 'VT', name: 'Vermont' },
+    { code: 'VA', name: 'Virginia' },
+    { code: 'WA', name: 'Washington' },
+    { code: 'WV', name: 'West Virginia' },
+    { code: 'WI', name: 'Wisconsin' },
+    { code: 'WY', name: 'Wyoming' }
+  ];
+
+  const employmentStatuses = [
+    { value: 'ACTIVE (DF)', label: 'ACTIVE (DF)' },
+    { value: 'Terminate', label: 'Terminate' },
+    { value: 'Applicant', label: 'Applicant' }
+  ];
+
+  const driverStatuses = [
+    { value: 'Available', label: 'Available' },
+    { value: 'Home', label: 'Home' },
+    { value: 'In-Transit', label: 'In-Transit' },
+    { value: 'Inactive', label: 'Inactive' },
+    { value: 'Shop', label: 'Shop' },
+    { value: 'Rest', label: 'Rest' },
+    { value: 'Dispatched', label: 'Dispatched' }
+  ];
+
+  const driverTypes = [
+    { value: 'COMPANY_DRIVER', label: 'Company_driver' },
+    { value: 'OWNER_OPERATOR', label: 'Owner_operator' },
+    { value: 'LEASE', label: 'Lease' },
+    { value: 'RENTAL', label: 'Rental' }
+  ];
+
+  const dlClasses = [
+    { value: 'Unknown', label: 'Unknown' },
+    { value: 'A', label: 'A' },
+    { value: 'B', label: 'B' },
+    { value: 'C', label: 'C' },
+    { value: 'D', label: 'D' },
+    { value: 'E', label: 'E' },
+    { value: 'Other', label: 'Other' }
+  ];
+
+  const teamDriverTypes = [
+    { value: 'DRIVER_2', label: 'Driver_2' },
+    { value: 'ASSIGNED_DISPATCHER', label: 'Assigned_dispatcher' },
+    { value: 'PERCENT_SALARY', label: 'Percent_salary' }
+  ];
 
   const handleUserChange = (e) => {
     const { name, value } = e.target;
-    setUserData(prevData => ({
-      ...prevData,
-      [name]: value
+    setUserData(prev => ({
+      ...prev,
+      [name]: value,
+      // If password field is being updated, also update password2
+      ...(name === 'password' && { password2: value })
     }));
   };
 
   const handleDriverChange = (e) => {
     const { name, value } = e.target;
-    setDriverData(prevData => ({
-      ...prevData,
+    setDriverData(prev => ({
+      ...prev,
       [name]: value
     }));
   };
 
-  const handleNext = () => {
-    setActiveStep((prevStep) => prevStep + 1);
+  const handleStateChange = (event, newValue) => {
+    setUserData(prev => ({
+      ...prev,
+      state: newValue ? newValue.code : ''
+    }));
   };
 
-  const handleBack = () => {
-    setActiveStep((prevStep) => prevStep - 1);
+  const handleDateChange = (e) => {
+    const { name, value } = e.target;
+    const formattedDate = value ? new Date(value).toISOString().split('T')[0] : '';
+    setDriverData(prev => ({
+      ...prev,
+      [name]: formattedDate
+    }));
   };
 
-  const handleUserSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      const userDataToSend = {
-        email: userData.email,
-        company_name: userData.company_name,
-        first_name: userData.first_name,
-        last_name: userData.last_name,
-        telephone: userData.telephone,
-        callphone: userData.callphone,
-        city: userData.city,
-        address: userData.address,
-        country: userData.country,
-        state: userData.state,
-        postal_zip: userData.postal_zip,
-        ext: userData.ext,
-        fax: userData.fax,
-        role: 1, // Driver role ID
-        company_id: userData.company_id,
-        password: userData.password,
-        password2: userData.password,
-      };
-
-      const response = await ApiService.postRegister("/auth/register/", userDataToSend);
-      console.log("Registration Response:", response);
-
-      setCreatedUserId(response.id);
-      setActiveStep(1);
-      toast.success("User registered successfully!");
-    } catch (error) {
-      console.error("Registration error:", error.response?.data);
-      setError(error.response?.data?.detail || "Registration failed");
-      toast.error(error.response?.data?.detail || "Registration failed");
-    } finally {
-      setLoading(false);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.size > 5 * 1024 * 1024) { // 5MB limit
+      setError("File size should not exceed 5MB");
+      return;
     }
+    setUserData(prev => ({
+      ...prev,
+      profile_photo: file
+    }));
   };
 
-  const handleDriverSubmit = async (e) => {
+  const validateForm = () => {
+    if (!userData.email || !userData.password || !userData.first_name || !userData.last_name) {
+      setError("Please fill in all required fields");
+      return false;
+    }
+    if (userData.password.length < 8) {
+      setError("Password must be at least 8 characters long");
+      return false;
+    }
+    if (!userData.email.includes('@')) {
+      setError("Please enter a valid email address");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     setLoading(true);
     setError(null);
 
     try {
-      const storedAccessToken = localStorage.getItem("accessToken");
-      if (!storedAccessToken) {
-        throw new Error("No access token found");
+      // 1. Create user first
+      const userFormData = new FormData();
+      userFormData.append('email', userData.email);
+      userFormData.append('company_name', userData.company_name || '');
+      userFormData.append('first_name', userData.first_name);
+      userFormData.append('last_name', userData.last_name);
+      userFormData.append('telephone', userData.telephone);
+      userFormData.append('city', userData.city);
+      userFormData.append('address', userData.address);
+      userFormData.append('country', userData.country);
+      userFormData.append('state', userData.state);
+      userFormData.append('postal_zip', userData.postal_zip);
+      userFormData.append('ext', parseInt(userData.ext) || 0);
+      userFormData.append('fax', userData.fax || '');
+      userFormData.append('role', parseInt(userData.role));
+      userFormData.append('password', userData.password);
+      userFormData.append('password2', userData.password);
+
+      if (userData.profile_photo) {
+        userFormData.append('profile_photo', userData.profile_photo);
       }
 
-      // Get user ID from localStorage
-      const userId = localStorage.getItem("userid");
-      if (!userId) {
-        throw new Error("No user ID found");
+      // Get current token
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('No authentication token found');
       }
 
-      const driverDataToSend = {
-        ...driverData,
-        user: parseInt(userId), // Add user ID from localStorage
+      const userResponse = await ApiService.postRegister(
+        "/auth/register/", 
+        userFormData
+      );
+
+      if (!userResponse || !userResponse.user_id) {
+        throw new Error('Failed to create user: No user ID received');
+      }
+
+      console.log("User created successfully:", userResponse);
+      toast.success('User account created successfully');
+
+      // 2. Create driver with the user ID
+      const formattedDriverData = {
+        user: userResponse.user_id.toString(),
         birth_date: driverData.birth_date || null,
-        employment_status: driverData.employment_status || null,
+        employment_status: driverData.employment_status || 'ACTIVE (DF)',
         telegram_username: driverData.telegram_username || null,
-        driver_status: driverData.driver_status || null,
+        driver_status: driverData.driver_status || 'Available',
+        company_name: driverData.company_name || null,
         driver_license_id: driverData.driver_license_id || null,
-        dl_class: driverData.dl_class || null,
-        driver_type: driverData.driver_type || null,
+        dl_class: driverData.dl_class || 'Unknown',
+        driver_type: driverData.driver_type || 'COMPANY_DRIVER',
         driver_license_state: driverData.driver_license_state || null,
         driver_license_expiration: driverData.driver_license_expiration || null,
         other_id: driverData.other_id || null,
         notes: driverData.notes || null,
-        tariff: driverData.tariff ? parseFloat(driverData.tariff) : null,
+        tariff: parseFloat(driverData.tariff) || null,
         mc_number: driverData.mc_number || null,
         team_driver: driverData.team_driver || null,
-        permile: driverData.permile ? parseFloat(driverData.permile) : null,
-        cost: driverData.cost ? parseFloat(driverData.cost) : null,
-        payd: driverData.payd ? parseFloat(driverData.payd) : null,
-        escrow_deposit: driverData.escrow_deposit ? parseFloat(driverData.escrow_deposit) : null,
+        permile: parseFloat(driverData.permile) || null,
+        cost: parseFloat(driverData.cost) || null,
+        payd: parseFloat(driverData.payd) || null,
+        escrow_deposit: parseFloat(driverData.escrow_deposit) || null,
         motive_id: driverData.motive_id || null,
-        assigned_truck: driverData.assigned_truck || null,
-        assigned_trailer: driverData.assigned_trailer || null,
-        assigned_dispatcher: driverData.assigned_dispatcher || null
+        assigned_truck: driverData.assigned_truck ? parseInt(driverData.assigned_truck) : null,
+        assigned_trailer: driverData.assigned_trailer ? parseInt(driverData.assigned_trailer) : null,
+        assigned_dispatcher: driverData.assigned_dispatcher ? parseInt(driverData.assigned_dispatcher) : null,
+        driver_tags: driverData.driver_tags ? parseInt(driverData.driver_tags) : null
       };
 
-      const response = await ApiService.postData("/driver/", driverDataToSend, storedAccessToken);
-      toast.success("Driver created successfully");
-      navigate("/driver");
+      console.log("Sending driver data:", formattedDriverData);
+
+      try {
+        const driverResponse = await ApiService.postData(
+          "/driver/", 
+          formattedDriverData,
+          {
+            'Authorization': `Bearer ${token}`,
+            'X-CSRFTOKEN': localStorage.getItem('csrfToken')
+          }
+        );
+
+        if (!driverResponse) {
+          throw new Error('Failed to create driver profile');
+        }
+
+        console.log("Driver created successfully:", driverResponse);
+        toast.success('Driver profile created successfully');
+        navigate("/driver");
+      } catch (driverError) {
+        console.error("Error creating driver profile:", driverError);
+        
+        let driverErrorMessage = "Failed to create driver profile";
+        
+        if (driverError.response?.data) {
+          if (typeof driverError.response.data === 'string') {
+            driverErrorMessage = driverError.response.data;
+          } else if (typeof driverError.response.data === 'object') {
+            driverErrorMessage = Object.entries(driverError.response.data)
+              .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+              .join('\n');
+          }
+        }
+
+        toast.error(driverErrorMessage);
+        setError(driverErrorMessage);
+      }
     } catch (error) {
-      console.error("Error creating driver:", error);
-      setError(error.message || "Failed to create driver");
-      toast.error(error.message || "Failed to create driver");
+      console.error("Error:", error);
+      
+      let errorMessage = "Failed to create account.";
+      
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (typeof error.response.data === 'object') {
+          if (error.response.data.email) {
+            errorMessage = "Bu email bilan foydalanuvchi allaqachon mavjud. Iltimos, boshqa email kiriting.";
+          } else {
+            errorMessage = Object.entries(error.response.data)
+              .map(([key, value]) => {
+                if (Array.isArray(value)) {
+                  return `${key}: ${value.join(', ')}`;
+                }
+                return `${key}: ${value}`;
+              })
+              .join('\n');
+          }
+        }
+      }
+
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const steps = ['Create User Account', 'Add Driver Information'];
+  const sections = [
+    {
+      title: 'Personal Information',
+      subtitle: 'User Account Details',
+      fields: [
+        [
+          { name: 'first_name', label: 'First Name', required: true, value: userData.first_name, onChange: handleUserChange },
+          { name: 'last_name', label: 'Last Name', required: true, value: userData.last_name, onChange: handleUserChange },
+          { name: 'email', label: 'Email', required: true, type: 'email', value: userData.email, onChange: handleUserChange }
+        ],
+        [
+          { name: 'password', label: 'Password', required: true, type: 'password', value: userData.password, onChange: handleUserChange },
+          { name: 'telephone', label: 'Phone Number', required: true, value: userData.telephone, onChange: handleUserChange },
+          { name: 'company_name', label: 'Company Name', required: true, value: userData.company_name, onChange: handleUserChange }
+        ],
+        [
+          { 
+            name: 'profile_photo', 
+            label: 'Profile Photo', 
+            type: 'file',
+            accept: 'image/*',
+            onChange: handleFileChange,
+            helperText: 'Upload a profile photo'
+          }
+        ]
+      ]
+    },
+    {
+      title: 'Address Information',
+      subtitle: 'Contact Details',
+      fields: [
+        [
+          { name: 'address', label: 'Address', required: true, value: userData.address, onChange: handleUserChange },
+          { name: 'city', label: 'City', required: true, value: userData.city, onChange: handleUserChange },
+          { 
+            name: 'state', 
+            label: 'State', 
+            required: true,
+            type: 'autocomplete',
+            options: states,
+            value: states.find(state => state.code === userData.state) || null,
+            onChange: handleStateChange
+          }
+        ],
+        [
+          { name: 'postal_zip', label: 'ZIP Code', required: true, type: 'number', value: userData.postal_zip, onChange: handleUserChange },
+          { name: 'country', label: 'Country', disabled: true, value: userData.country, onChange: handleUserChange },
+          { name: 'fax', label: 'Fax', value: userData.fax, onChange: handleUserChange }
+        ]
+      ]
+    },
+    {
+      title: 'Driver Information',
+      subtitle: 'Professional Details',
+      fields: [
+        [
+          { name: 'telegram_username', label: 'Telegram Username', value: driverData.telegram_username, onChange: handleDriverChange },
+          { 
+            name: 'employment_status', 
+            label: 'Employment Status', 
+            type: 'select',
+            options: employmentStatuses,
+            value: driverData.employment_status,
+            onChange: handleDriverChange
+          },
+          { 
+            name: 'driver_status', 
+            label: 'Driver Status', 
+            type: 'select',
+            options: driverStatuses,
+            value: driverData.driver_status,
+            onChange: handleDriverChange
+          }
+        ],
+        [
+          { name: 'driver_license_id', label: 'Driver License ID', required: true, value: driverData.driver_license_id, onChange: handleDriverChange },
+          { 
+            name: 'dl_class', 
+            label: 'License Class', 
+            type: 'select',
+            options: dlClasses,
+            value: driverData.dl_class,
+            onChange: handleDriverChange
+          },
+          { 
+            name: 'driver_type', 
+            label: 'Driver Type', 
+            type: 'select',
+            options: driverTypes,
+            value: driverData.driver_type,
+            onChange: handleDriverChange
+          }
+        ],
+        [
+          { name: 'driver_license_expiration', label: 'License Expiration', type: 'date', value: driverData.driver_license_expiration, onChange: handleDateChange },
+          { name: 'birth_date', label: 'Birth Date', type: 'date', required: true, value: driverData.birth_date, onChange: handleDateChange },
+          { name: 'mc_number', label: 'MC Number', value: driverData.mc_number, onChange: handleDriverChange }
+        ]
+      ]
+    },
+    {
+      title: 'Financial Information',
+      subtitle: 'Payment Details',
+      fields: [
+        [
+          { name: 'permile', label: 'Per Mile Rate', type: 'number', value: driverData.permile, onChange: handleDriverChange },
+          { name: 'cost', label: 'Cost', type: 'number', value: driverData.cost, onChange: handleDriverChange },
+          { name: 'payd', label: 'Pay', type: 'number', value: driverData.payd, onChange: handleDriverChange }
+        ],
+        [
+          { name: 'escrow_deposit', label: 'Escrow Deposit', type: 'number', value: driverData.escrow_deposit, onChange: handleDriverChange },
+          { name: 'tariff', label: 'Tariff', type: 'number', value: driverData.tariff, onChange: handleDriverChange },
+          { 
+            name: 'team_driver', 
+            label: 'Team Driver', 
+            type: 'select',
+            options: teamDriverTypes,
+            value: driverData.team_driver,
+            onChange: handleDriverChange
+          }
+        ]
+      ]
+    },
+    {
+      title: 'Additional Information',
+      subtitle: 'Notes and Other Details',
+      fields: [
+        [
+          { name: 'notes', label: 'Notes', multiline: true, rows: 4, value: driverData.notes, onChange: handleDriverChange }
+        ]
+      ]
+    }
+  ];
 
   return (
-    <Box className="create-driver-container">
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="h4" gutterBottom>
-          Create Driver
-        </Typography>
-        <TagInput driverData={driverData} handleChange={handleDriverChange} />
-      </Box>
-      <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-        {steps.map((label) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+    <Box sx={{ 
+      maxWidth: 1200, 
+      margin: '0 auto', 
+      padding: 3,
+      backgroundColor: '#f5f5f5',
+      minHeight: '100vh'
+    }}>
+      <Snackbar 
+        open={!!error} 
+        autoHideDuration={6000} 
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setError(null)} 
+          severity="error" 
+          sx={{ width: '100%' }}
+          variant="filled"
+        >
           {error}
         </Alert>
-      )}
+      </Snackbar>
 
-      {activeStep === 0 && (
-        <form onSubmit={handleUserSubmit}>
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              User Account Information
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={userData.email}
-                  onChange={handleUserChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Password"
-                  name="password"
-                  type="password"
-                  value={userData.password}
-                  onChange={handleUserChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="First Name"
-                  name="first_name"
-                  value={userData.first_name}
-                  onChange={handleUserChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Last Name"
-                  name="last_name"
-                  value={userData.last_name}
-                  onChange={handleUserChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Phone"
-                  name="telephone"
-                  value={userData.telephone}
-                  onChange={handleUserChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Mobile Phone"
-                  name="callphone"
-                  value={userData.callphone}
-                  onChange={handleUserChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Company Name"
-                  name="company_name"
-                  value={userData.company_name}
-                  onChange={handleUserChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Address"
-                  name="address"
-                  value={userData.address}
-                  onChange={handleUserChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="City"
-                  name="city"
-                  value={userData.city}
-                  onChange={handleUserChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="State"
-                  name="state"
-                  value={userData.state}
-                  onChange={handleUserChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Country"
-                  name="country"
-                  value={userData.country}
-                  onChange={handleUserChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Postal/Zip Code"
-                  name="postal_zip"
-                  value={userData.postal_zip}
-                  onChange={handleUserChange}
-                  required
-                />
-              </Grid>
+      {notifications.map((notification, index) => (
+        <Snackbar
+          key={index}
+          open={true}
+          autoHideDuration={6000}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          sx={{ top: `${(index + 1) * 64}px` }}
+        >
+          <Alert 
+            severity={notification.type}
+            sx={{ width: '100%' }}
+            variant="filled"
+          >
+            {notification.message}
+          </Alert>
+        </Snackbar>
+      ))}
+
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        mb: 4,
+        gap: 2
+      }}>
+        <Tooltip title="Back to Drivers">
+          <IconButton 
+            onClick={() => navigate('/driver')}
+            sx={{ 
+              backgroundColor: 'white',
+              '&:hover': { backgroundColor: '#f0f0f0' }
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+        </Tooltip>
+        <Typography variant="h4" fontWeight="bold" color="primary">
+          Create New Driver
+        </Typography>
+      </Box>
+
+      <form onSubmit={handleSubmit}>
+        <Grid container spacing={3}>
+          {sections.map((section, sectionIndex) => (
+            <Grid item xs={12} key={sectionIndex}>
+              <Card elevation={0}>
+                <CardContent>
+                  <Typography variant="h6" color="primary" gutterBottom>
+                    {section.title}
+                    {sectionIndex === 0 && (
+                      <Typography variant="caption" color="error" sx={{ ml: 1 }}>
+                        * Required field
+                      </Typography>
+                    )}
+                  </Typography>
+                  {section.subtitle && (
+                    <Typography variant="body2" color="textSecondary" gutterBottom>
+                      {section.subtitle}
+                    </Typography>
+                  )}
+                  <Divider sx={{ my: 2 }} />
+                  {section.fields.map((row, rowIndex) => (
+                    <Grid container spacing={2} key={rowIndex} sx={{ mb: 2 }}>
+                      {row.map((field, fieldIndex) => (
+                        <Grid item xs={12} md={12 / row.length} key={fieldIndex}>
+                          {field.type === 'file' ? (
+                            <FormControl fullWidth>
+                              <input
+                                accept={field.accept}
+                                style={{ display: 'none' }}
+                                id="raised-button-file"
+                                type="file"
+                                onChange={field.onChange}
+                              />
+                              <label htmlFor="raised-button-file">
+                                <Button
+                                  variant="outlined"
+                                  component="span"
+                                  fullWidth
+                                  startIcon={<CloudUploadIcon />}
+                                  sx={{ height: 56 }}
+                                >
+                                  {userData.profile_photo ? userData.profile_photo.name : field.label}
+                                </Button>
+                              </label>
+                              {field.helperText && (
+                                <FormHelperText>{field.helperText}</FormHelperText>
+                              )}
+                            </FormControl>
+                          ) : field.type === 'select' ? (
+                            <FormControl fullWidth required={field.required}>
+                              <InputLabel>{field.label}</InputLabel>
+                              <Select
+                                name={field.name}
+                                value={field.value}
+                                onChange={field.onChange}
+                                label={field.label}
+                              >
+                                {field.options.map((option) => (
+                                  <MenuItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          ) : field.type === 'autocomplete' ? (
+                            <Autocomplete
+                              options={field.options}
+                              getOptionLabel={(option) => `${option.name} (${option.code})`}
+                              value={field.value}
+                              onChange={field.onChange}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label={field.label}
+                                  required={field.required}
+                                />
+                              )}
+                            />
+                          ) : (
+                            <TextField
+                              fullWidth
+                              label={field.label}
+                              name={field.name}
+                              type={field.type || 'text'}
+                              value={field.value}
+                              onChange={field.onChange}
+                              required={field.required}
+                              disabled={field.disabled}
+                              multiline={field.multiline}
+                              rows={field.rows}
+                              InputLabelProps={{
+                                shrink: field.type === 'date' ? true : undefined,
+                              }}
+                            />
+                          )}
+                        </Grid>
+                      ))}
+                    </Grid>
+                  ))}
+                </CardContent>
+              </Card>
             </Grid>
-          </Paper>
+          ))}
+        </Grid>
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              disabled={loading}
-            >
-              {loading ? 'Creating...' : 'Create User Account'}
-            </Button>
-          </Box>
-        </form>
-      )}
-
-      {activeStep === 1 && (
-        <form onSubmit={handleDriverSubmit}>
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Driver Information
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Birth Date"
-                  name="birth_date"
-                  type="date"
-                  value={driverData.birth_date}
-                  onChange={handleDriverChange}
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Telegram Username"
-                  name="telegram_username"
-                  value={driverData.telegram_username}
-                  onChange={handleDriverChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Driver License ID"
-                  name="driver_license_id"
-                  value={driverData.driver_license_id}
-                  onChange={handleDriverChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>DL Class</InputLabel>
-                  <Select
-                    name="dl_class"
-                    value={driverData.dl_class}
-                    onChange={handleDriverChange}
-                    input={<OutlinedInput label="DL Class" />}
-                  >
-                    <MenuItem value="Unknown">Unknown</MenuItem>
-                    <MenuItem value="A">A</MenuItem>
-                    <MenuItem value="B">B</MenuItem>
-                    <MenuItem value="C">C</MenuItem>
-                    <MenuItem value="D">D</MenuItem>
-                    <MenuItem value="E">E</MenuItem>
-                    <MenuItem value="Other">Other</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Driver License State"
-                  name="driver_license_state"
-                  value={driverData.driver_license_state}
-                  onChange={handleDriverChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Driver License Expiration"
-                  name="driver_license_expiration"
-                  type="date"
-                  value={driverData.driver_license_expiration}
-                  onChange={handleDriverChange}
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Employment Status</InputLabel>
-                  <Select
-                    name="employment_status"
-                    value={driverData.employment_status}
-                    onChange={handleDriverChange}
-                    input={<OutlinedInput label="Employment Status" />}
-                  >
-                    <MenuItem value="ACTIVE (DF)">ACTIVE (DF)</MenuItem>
-                    <MenuItem value="Terminate">Terminate</MenuItem>
-                    <MenuItem value="Applicant">Applicant</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Driver Status</InputLabel>
-                  <Select
-                    name="driver_status"
-                    value={driverData.driver_status}
-                    onChange={handleDriverChange}
-                    input={<OutlinedInput label="Driver Status" />}
-                  >
-                    <MenuItem value="Available">Available</MenuItem>
-                    <MenuItem value="Home">Home</MenuItem>
-                    <MenuItem value="In-Transit">In-Transit</MenuItem>
-                    <MenuItem value="Inactive">Inactive</MenuItem>
-                    <MenuItem value="Shop">Shop</MenuItem>
-                    <MenuItem value="Rest">Rest</MenuItem>
-                    <MenuItem value="Dispatched">Dispatched</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Driver Type</InputLabel>
-                  <Select
-                    name="driver_type"
-                    value={driverData.driver_type}
-                    onChange={handleDriverChange}
-                    input={<OutlinedInput label="Driver Type" />}
-                  >
-                    <MenuItem value="COMPANY_DRIVER">Company Driver</MenuItem>
-                    <MenuItem value="OWNER_OPERATOR">Owner Operator</MenuItem>
-                    <MenuItem value="LEASE">Lease</MenuItem>
-                    <MenuItem value="RENTAL">Rental</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Other ID"
-                  name="other_id"
-                  value={driverData.other_id}
-                  onChange={handleDriverChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Notes"
-                  name="notes"
-                  value={driverData.notes}
-                  onChange={handleDriverChange}
-                  multiline
-                  rows={2}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Tariff"
-                  name="tariff"
-                  type="number"
-                  value={driverData.tariff}
-                  onChange={handleDriverChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="MC Number"
-                  name="mc_number"
-                  value={driverData.mc_number}
-                  onChange={handleDriverChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Team Driver"
-                  name="team_driver"
-                  value={driverData.team_driver}
-                  onChange={handleDriverChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Per Mile"
-                  name="permile"
-                  type="number"
-                  value={driverData.permile}
-                  onChange={handleDriverChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Cost"
-                  name="cost"
-                  type="number"
-                  value={driverData.cost}
-                  onChange={handleDriverChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Payd"
-                  name="payd"
-                  type="number"
-                  value={driverData.payd}
-                  onChange={handleDriverChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Escrow Deposit"
-                  name="escrow_deposit"
-                  type="number"
-                  value={driverData.escrow_deposit}
-                  onChange={handleDriverChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Motive ID"
-                  name="motive_id"
-                  value={driverData.motive_id}
-                  onChange={handleDriverChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Assigned Truck</InputLabel>
-                  <Select
-                    name="assigned_truck"
-                    value={driverData.assigned_truck}
-                    onChange={handleDriverChange}
-                    input={<OutlinedInput label="Assigned Truck" />}
-                  >
-                    {trucks.map((truck) => (
-                      <MenuItem key={truck.id} value={truck.id}>
-                        {truck.make} {truck.model}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Assigned Trailer</InputLabel>
-                  <Select
-                    name="assigned_trailer"
-                    value={driverData.assigned_trailer}
-                    onChange={handleDriverChange}
-                    input={<OutlinedInput label="Assigned Trailer" />}
-                  >
-                    {trailers.map((trailer) => (
-                      <MenuItem key={trailer.id} value={trailer.id}>
-                        {trailer.make} {trailer.model}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Assigned Dispatcher</InputLabel>
-                  <Select
-                    name="assigned_dispatcher"
-                    value={driverData.assigned_dispatcher}
-                    onChange={handleDriverChange}
-                    input={<OutlinedInput label="Assigned Dispatcher" />}
-                  >
-                    {dispatchers.map((dispatcher) => (
-                      <MenuItem key={dispatcher.id} value={dispatcher.id}>
-                        {dispatcher.first_name} {dispatcher.last_name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </Paper>
-
-          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Button
-              variant="outlined"
-              onClick={handleBack}
-            >
-              Back
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              disabled={loading}
-            >
-              {loading ? 'Creating...' : 'Create Driver'}
-            </Button>
-          </Box>
-        </form>
-      )}
+        <Box sx={{ 
+          mt: 4, 
+          display: 'flex', 
+          justifyContent: 'flex-end',
+          gap: 2
+        }}>
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/driver')}
+            sx={{ minWidth: 120 }}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            sx={{ minWidth: 120 }}
+            disabled={loading}
+          >
+            {loading ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              'Create Driver'
+            )}
+          </Button>
+        </Box>
+      </form>
     </Box>
   );
 };

@@ -14,6 +14,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [isVehicleOpen, setIsVehicleOpen] = useState(false);
+  const [isManageOpen, setIsManageOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -32,6 +33,21 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       title: t("Trailers"),
       icon: <FaTrailer />,
       link: "/trailer",
+    }
+  ];
+
+  const manageItems = [
+    {
+      id: 'user-management',
+      title: t("User Management"),
+      icon: <FaUsers />,
+      link: "/manage-users",
+    },
+    {
+      id: 'unit-management',
+      title: t("Unit Management"),
+      icon: <FaTruck />,
+      link: "/manage-units",
     }
   ];
 
@@ -54,6 +70,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       icon: <FaTruck />,
       isDropdown: true,
       items: vehicleItems,
+      isOpen: isVehicleOpen,
+      toggleDropdown: () => setIsVehicleOpen(!isVehicleOpen)
     },
     {
       id: 4,
@@ -99,9 +117,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     },
     {
       id: 11,
-      title: t("Manage Users"),
+      title: t("Manage"),
       icon: <FaUserCog />,
-      link: "/manage-users",
+      isDropdown: true,
+      items: manageItems,
+      isOpen: isManageOpen,
+      toggleDropdown: () => setIsManageOpen(!isManageOpen)
     },
   ];
 
@@ -118,20 +139,20 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               return (
                 <div key={item.id} className="sidebar-dropdown">
                   <div 
-                    className={`sidebar-item ${isVehicleOpen ? 'active' : ''}`}
-                    onClick={() => setIsVehicleOpen(!isVehicleOpen)}
+                    className={`sidebar-item ${item.isOpen ? 'active' : ''}`}
+                    onClick={item.toggleDropdown}
                   >
                     <div className="item-content">
                       <span className="item-icon">{item.icon}</span>
                       {isOpen && (
                         <>
                           <span className="item-title">{item.title}</span>
-                          {isVehicleOpen ? <MdExpandLess /> : <MdExpandMore />}
+                          {item.isOpen ? <MdExpandLess /> : <MdExpandMore />}
                         </>
                       )}
                     </div>
                   </div>
-                  {isVehicleOpen && isOpen && (
+                  {item.isOpen && isOpen && (
                     <div className="dropdown-items">
                       {item.items.map((subItem) => (
                         <NavLink

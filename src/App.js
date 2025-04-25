@@ -34,6 +34,7 @@ import DriverPayEditPage from './components/Driver/create/DriverPayEditPage';
 import DriverExpenseEditPage from './components/Driver/create/DriverExpenseEditPage';
 import LoadViewPage from './components/Loads/LoadViewPage'; // Import LoadViewPage
 import ManageUsersPage from "./components/ManageUsers/ManageUsersPage";
+import UnitManagementPage from "./components/ManageUsers/UnitManagementPage";
 import TruckView from "./components/TruckTrailer/truck/TruckView";
 import TruckEdit from "./components/TruckTrailer/truck/TruckEdit";
 import TrailerView from "./components/TruckTrailer/trailer/TrailerView";
@@ -310,6 +311,14 @@ const App = () => {
               element={
                 <PrivateRoute>
                   <ManageUsersPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="manage-units"
+              element={
+                <PrivateRoute>
+                  <UnitManagementPage />
                 </PrivateRoute>
               }
             />
