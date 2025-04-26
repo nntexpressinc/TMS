@@ -39,6 +39,10 @@ import TruckView from "./components/TruckTrailer/truck/TruckView";
 import TruckEdit from "./components/TruckTrailer/truck/TruckEdit";
 import TrailerView from "./components/TruckTrailer/trailer/TrailerView";
 import TrailerEdit from "./components/TruckTrailer/trailer/TrailerEdit";
+import DispatcherViewPage from "./components/Dispatcher/DispatcherViewPage";
+import DispatcherEditPage from "./components/Dispatcher/DispatcherEditPage";
+import EmployeeViewPage from "./components/Employee/EmployeeViewPage";
+import EmployeeEditPage from "./components/Employee/EmployeeEditPage";
 
 const App = () => {
   const { isAuthenticated: isAuth } = useAuth();
@@ -203,6 +207,22 @@ const App = () => {
               }
             />
             <Route
+              path="dispatcher/:id"
+              element={
+                <PrivateRoute>
+                  <DispatcherViewPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="dispatcher/edit/:id"
+              element={
+                <PrivateRoute>
+                  <DispatcherEditPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
               path="users-actives"
               element={
                 <PrivateRoute>
@@ -223,6 +243,22 @@ const App = () => {
               element={
                 <PrivateRoute>
                   <EmployeeCreatePage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="employee/:id"
+              element={
+                <PrivateRoute>
+                  <EmployeeViewPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="employee/edit/:id"
+              element={
+                <PrivateRoute>
+                  <EmployeeEditPage />
                 </PrivateRoute>
               }
             />

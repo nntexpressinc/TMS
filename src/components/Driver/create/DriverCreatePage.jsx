@@ -18,7 +18,9 @@ import {
   Autocomplete,
   Divider,
   FormHelperText,
-  CircularProgress
+  CircularProgress,
+  Avatar,
+  InputAdornment
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { ApiService } from "../../../api/auth";
@@ -26,6 +28,8 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { toast } from 'react-hot-toast';
 import './DriverCreatePage.css';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 const DriverCreatePage = () => {
   const [loading, setLoading] = useState(false);
@@ -87,6 +91,9 @@ const DriverCreatePage = () => {
     }, 6000);
   };
 
+  const [profilePhotoFile, setProfilePhotoFile] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+
   const states = [
     { code: 'AL', name: 'Alabama' },
     { code: 'AK', name: 'Alaska' },
@@ -141,13 +148,13 @@ const DriverCreatePage = () => {
   ];
 
   const employmentStatuses = [
-    { value: 'ACTIVE', label: 'Active' },
+    { value: 'ACTIVE (DF)', label: 'Active' },
     { value: 'Terminate', label: 'Terminate' },
     { value: 'Applicant', label: 'Applicant' }
   ];
 
   const driverStatuses = [
-    { value: 'AVAILABLE', label: 'Available' },
+    { value: 'Available', label: 'Available' },
     { value: 'Home', label: 'Home' },
     { value: 'In-Transit', label: 'In-Transit' },
     { value: 'Inactive', label: 'Inactive' },
@@ -164,6 +171,7 @@ const DriverCreatePage = () => {
   ];
 
   const dlClasses = [
+    { value: 'Unknown', label: 'Unknown' },
     { value: 'A', label: 'A' },
     { value: 'B', label: 'B' },
     { value: 'C', label: 'C' },
@@ -214,15 +222,18 @@ const DriverCreatePage = () => {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file && file.size > 5 * 1024 * 1024) { // 5MB limit
+    if (file && file.size > 5 * 1024 * 1024) {
       setError("File size should not exceed 5MB");
       return;
     }
+    setProfilePhotoFile(file);
     setUserData(prev => ({
       ...prev,
       profile_photo: file
     }));
   };
+
+  const handleTogglePassword = () => setShowPassword((show) => !show);
 
   const validateForm = () => {
     if (!userData.email || !userData.password || !userData.first_name || !userData.last_name) {
@@ -286,29 +297,29 @@ const DriverCreatePage = () => {
       const formattedDriverData = {
         user: userResponse.user_id,
         birth_date: driverData.birth_date || null,
-        employment_status: driverData.employment_status || 'ACTIVE',
+        employment_status: employmentStatuses.some(e => e.value === driverData.employment_status) ? driverData.employment_status : null,
         telegram_username: driverData.telegram_username || null,
-        driver_status: driverData.driver_status || 'AVAILABLE',
+        driver_status: driverStatuses.some(e => e.value === driverData.driver_status) ? driverData.driver_status : null,
         company_name: driverData.company_name || null,
         driver_license_id: driverData.driver_license_id || null,
-        dl_class: driverData.dl_class || null,
-        driver_type: driverData.driver_type || 'COMPANY_DRIVER',
-        driver_license_state: driverData.driver_license_state || null,
+        dl_class: dlClasses.some(e => e.value === driverData.dl_class) ? driverData.dl_class : null,
+        driver_type: driverTypes.some(e => e.value === driverData.driver_type) ? driverData.driver_type : null,
+        driver_license_state: states.some(s => s.code === driverData.driver_license_state) ? driverData.driver_license_state : null,
         driver_license_expiration: driverData.driver_license_expiration || null,
         other_id: driverData.other_id || null,
         notes: driverData.notes || null,
-        tariff: parseFloat(driverData.tariff) || null,
+        tariff: driverData.tariff !== '' ? parseFloat(driverData.tariff) : null,
         mc_number: driverData.mc_number || null,
-        team_driver: driverData.team_driver || false,
-        permile: parseFloat(driverData.permile) || null,
-        cost: parseFloat(driverData.cost) || null,
-        payd: parseFloat(driverData.payd) || null,
-        escrow_deposit: parseFloat(driverData.escrow_deposit) || null,
+        team_driver: teamDriverTypes.some(e => e.value === driverData.team_driver) ? driverData.team_driver : null,
+        permile: driverData.permile !== '' ? parseFloat(driverData.permile) : null,
+        cost: driverData.cost !== '' ? parseFloat(driverData.cost) : null,
+        payd: driverData.payd !== '' ? parseFloat(driverData.payd) : null,
+        escrow_deposit: driverData.escrow_deposit !== '' ? parseFloat(driverData.escrow_deposit) : null,
         motive_id: driverData.motive_id || null,
         assigned_truck: driverData.assigned_truck ? parseInt(driverData.assigned_truck) : null,
         assigned_trailer: driverData.assigned_trailer ? parseInt(driverData.assigned_trailer) : null,
         assigned_dispatcher: driverData.assigned_dispatcher ? parseInt(driverData.assigned_dispatcher) : null,
-        driver_tags: driverData.driver_tags ? parseInt(driverData.driver_tags) : null
+        driver_tags: driverData.driver_tags !== '' ? parseInt(driverData.driver_tags) : null
       };
 
       console.log("Sending driver data:", formattedDriverData);
@@ -335,7 +346,7 @@ const DriverCreatePage = () => {
           errorMessage = error.response.data;
         } else if (typeof error.response.data === 'object') {
           if (error.response.data.email) {
-            errorMessage = "Bu email bilan foydalanuvchi allaqachon mavjud. Iltimos, boshqa email kiriting.";
+            errorMessage = "A user with this email already exists. Please use another email.";
           } else {
             errorMessage = Object.entries(error.response.data)
               .map(([key, value]) => {
@@ -578,30 +589,61 @@ const DriverCreatePage = () => {
                     <Grid container spacing={2} key={rowIndex} sx={{ mb: 2 }}>
                       {row.map((field, fieldIndex) => (
                         <Grid item xs={12} md={12 / row.length} key={fieldIndex}>
-                          {field.type === 'file' ? (
-                            <FormControl fullWidth>
-                              <input
-                                accept={field.accept}
-                                style={{ display: 'none' }}
-                                id="raised-button-file"
-                                type="file"
-                                onChange={field.onChange}
-                              />
-                              <label htmlFor="raised-button-file">
-                                <Button
-                                  variant="outlined"
-                                  component="span"
-                                  fullWidth
-                                  startIcon={<CloudUploadIcon />}
-                                  sx={{ height: 56 }}
-                                >
-                                  {userData.profile_photo ? userData.profile_photo.name : field.label}
-                                </Button>
-                              </label>
-                              {field.helperText && (
-                                <FormHelperText>{field.helperText}</FormHelperText>
-                              )}
-                            </FormControl>
+                          {field.name === 'profile_photo' ? (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
+                              <Box sx={{ position: 'relative', mb: 1 }}>
+                                <Avatar
+                                  src={profilePhotoFile ? URL.createObjectURL(profilePhotoFile) : undefined}
+                                  alt={userData.first_name || userData.email}
+                                  sx={{ width: 100, height: 100, border: '2px solid #e0e0e0', boxShadow: 2 }}
+                                />
+                                <label htmlFor="profile-photo-upload">
+                                  <input
+                                    id="profile-photo-upload"
+                                    type="file"
+                                    accept="image/*"
+                                    style={{ display: 'none' }}
+                                    onChange={handleFileChange}
+                                  />
+                                  <IconButton
+                                    component="span"
+                                    sx={{
+                                      position: 'absolute',
+                                      bottom: 0,
+                                      right: 0,
+                                      background: '#fff',
+                                      border: '1px solid #e0e0e0',
+                                      boxShadow: 1,
+                                      '&:hover': { background: '#f0f0f0' }
+                                    }}
+                                  >
+                                    <CloudUploadIcon fontSize="small" />
+                                  </IconButton>
+                                </label>
+                              </Box>
+                              <Typography variant="caption" color="textSecondary">
+                                Upload a profile photo (max 5MB)
+                              </Typography>
+                            </Box>
+                          ) : field.name === 'password' ? (
+                            <TextField
+                              fullWidth
+                              label={field.label}
+                              name={field.name}
+                              type={showPassword ? 'text' : 'password'}
+                              value={field.value}
+                              onChange={field.onChange}
+                              required={field.required}
+                              InputProps={{
+                                endAdornment: (
+                                  <InputAdornment position="end">
+                                    <IconButton onClick={handleTogglePassword} edge="end">
+                                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                                    </IconButton>
+                                  </InputAdornment>
+                                )
+                              }}
+                            />
                           ) : field.type === 'select' ? (
                             <FormControl fullWidth required={field.required}>
                               <InputLabel>{field.label}</InputLabel>

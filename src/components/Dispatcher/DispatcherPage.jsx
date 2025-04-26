@@ -31,7 +31,7 @@ const DispatcherPage = () => {
   const { isSidebarOpen } = useSidebar();
 
   const dispatcherStatuses = [
-    { value: 'ACTIVE', label: 'Active', icon: <MdCheckCircle />, color: '#10B981' },
+    { value: 'ACTIVE (DF)', label: 'Active', icon: <MdCheckCircle />, color: '#10B981' },
     { value: 'TERMINATE', label: 'Terminate', icon: <MdBlock />, color: '#EF4444' },
     { value: 'APPLICANT', label: 'Applicant', icon: <MdAccessTime />, color: '#6366F1' }
   ];
@@ -77,12 +77,21 @@ const DispatcherPage = () => {
       if (storedAccessToken) {
         try {
           const data = await ApiService.getData(`/dispatcher/`, storedAccessToken);
-          const formattedData = data.map(dispatcher => ({
-            ...dispatcher,
-            full_name: `${dispatcher.first_name} ${dispatcher.last_name}`
-          }));
-          setDispatchers(formattedData);
-          setFilteredDispatchers(formattedData);
+          const users = await Promise.all(
+            data.map(async (dispatcher) => {
+              if (dispatcher.user && typeof dispatcher.user === 'number') {
+                try {
+                  const user = await ApiService.getData(`/auth/user/${dispatcher.user}/`);
+                  return { ...dispatcher, user };
+                } catch {
+                  return { ...dispatcher, user: null };
+                }
+              }
+              return dispatcher;
+            })
+          );
+          setDispatchers(users);
+          setFilteredDispatchers(users);
         } catch (error) {
           console.error("Error fetching dispatchers data:", error);
         }
@@ -169,151 +178,102 @@ const DispatcherPage = () => {
 
   const columns = [
     {
-      field: 'contact_number',
-      headerName: 'Contact Number',
-      width: 150,
+      field: 'nickname',
+      headerName: 'Nickname',
+      width: 180,
       align: 'center',
       headerAlign: 'center',
-      renderCell: (params) => (
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1,
-          width: '100%',
-          height: '100%',
-          justifyContent: 'center',
-          py: '4px'
-        }}>
-          <Typography sx={{ 
-            whiteSpace: 'nowrap',
-            overflow: 'visible'
-          }}>
-            {params.value}
-          </Typography>
-          <IconButton
-            size="small"
-            onClick={() => handleCopyId(params.value)}
-            sx={{
-              padding: '4px',
-              color: copiedId === params.value ? '#10B981' : '#6B7280',
-              '&:hover': { 
-                backgroundColor: copiedId === params.value ? '#D1FAE5' : '#F3F4F6'
-              }
-            }}
-          >
-            {copiedId === params.value ? (
-              <CheckIcon sx={{ fontSize: '16px' }} />
-            ) : (
-              <ContentCopyIcon sx={{ fontSize: '16px' }} />
-            )}
-          </IconButton>
-        </Box>
-      )
-    },
-    { field: 'first_name', headerName: 'First Name', width: 120 },
-    { field: 'last_name', headerName: 'Last Name', width: 120 },
-    { field: 'nickname', headerName: 'Nickname', width: 120 },
-    {
-      field: 'employee_status',
-      headerName: 'Status',
-      width: 130,
-      headerAlign: 'center',
-      align: 'center',
-      pinned: 'right',
       renderCell: (params) => {
-        const statusConfig = dispatcherStatuses.find(s => s.value === params.value);
+        const nickname = params.row.nickname || '-';
+        const shortNick = nickname.length > 8 ? nickname.slice(0, 8) + '...' : nickname;
         return (
-          <Box sx={{ 
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '100%',
-            height: '100%',
-            paddingTop: '4px'
-          }}>
-            <Chip
-              label={statusConfig?.label || params.value}
-              icon={statusConfig?.icon}
-              sx={{
-                ...getStatusStyle(params.value),
-                height: '20px',
-                minWidth: 'auto',
-                maxWidth: '100%',
-                '& .MuiChip-label': {
-                  fontSize: '0.7rem',
-                  padding: '0 4px',
+          <Tooltip title={nickname}>
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              width: '100%',
+              height: '100%',
+              justifyContent: 'center',
+              py: '4px'
+            }}>
+              <Typography
+                sx={{
                   whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                },
-                '& .MuiChip-icon': {
-                  fontSize: '12px',
-                  marginLeft: '2px'
-                }
-              }}
-            />
-          </Box>
+                  overflow: 'visible',
+                  cursor: nickname !== '-' ? 'pointer' : 'default',
+                  color: nickname !== '-' ? '#3B82F6' : 'inherit',
+                  textDecoration: nickname !== '-' ? 'underline' : 'none'
+                }}
+                onClick={() => nickname !== '-' && navigate(`/dispatcher/${params.row.id}`)}
+              >
+                {shortNick}
+              </Typography>
+              {nickname !== '-' && (
+                <IconButton
+                  size="small"
+                  onClick={() => handleCopyId(nickname)}
+                  sx={{
+                    padding: '4px',
+                    color: copiedId === nickname ? '#10B981' : '#6B7280',
+                    '&:hover': {
+                      backgroundColor: copiedId === nickname ? '#D1FAE5' : '#F3F4F6'
+                    }
+                  }}
+                >
+                  {copiedId === nickname ? (
+                    <CheckIcon sx={{ fontSize: '16px' }} />
+                  ) : (
+                    <ContentCopyIcon sx={{ fontSize: '16px' }} />
+                  )}
+                </IconButton>
+              )}
+            </Box>
+          </Tooltip>
         );
       }
     },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 120,
-      headerAlign: 'center',
-      align: 'center',
-      pinned: 'right',
-      renderCell: (params) => (
-        <Box sx={{ 
-          display: 'flex',
-          gap: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          width: '100%',
-          height: '100%',
-          paddingTop: '4px'
-        }}>
-          <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={() => handleEditDispatcher(params.row.id)}
-              sx={{ 
-                padding: '6px',
-                color: '#6366F1',
-                '&:hover': { backgroundColor: '#EEF2FF' }
-              }}
-            >
-              <EditIcon sx={{ fontSize: '20px' }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="View">
-            <IconButton
-              size="small"
-              onClick={() => handleViewDispatcher(params.row.id)}
-              sx={{ 
-                padding: '6px',
-                color: '#3B82F6',
-                '&:hover': { backgroundColor: '#EFF6FF' }
-              }}
-            >
-              <VisibilityIcon sx={{ fontSize: '20px' }} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )
-    },
     { field: 'mc_number', headerName: 'MC Number', width: 150 },
+    { field: 'employee_status', headerName: 'Status', width: 130, headerAlign: 'center', align: 'center', renderCell: (params) => {
+      const statusConfig = dispatcherStatuses.find(s => s.value.toLowerCase() === (params.value || '').toLowerCase());
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', paddingTop: '4px' }}>
+          <Chip
+            label={statusConfig?.label || params.value}
+            icon={statusConfig?.icon}
+            sx={{
+              ...getStatusStyle(params.value),
+              height: '20px',
+              minWidth: 'auto',
+              maxWidth: '100%',
+              '& .MuiChip-label': {
+                fontSize: '0.7rem',
+                padding: '0 4px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              },
+              '& .MuiChip-icon': {
+                fontSize: '12px',
+                marginLeft: '2px'
+              }
+            }}
+          />
+        </Box>
+      );
+    }},
     { field: 'position', headerName: 'Position', width: 150 },
     { field: 'company_name', headerName: 'Company Name', width: 150 },
-    { field: 'email_address', headerName: 'Email Address', width: 200 },
     { field: 'office', headerName: 'Office', width: 150 },
-    { field: 'address1', headerName: 'Address 1', width: 200 },
-    { field: 'address2', headerName: 'Address 2', width: 200 },
-    { field: 'country', headerName: 'Country', width: 150 },
-    { field: 'state', headerName: 'State', width: 100 },
-    { field: 'city', headerName: 'City', width: 150 },
-    { field: 'zip_code', headerName: 'Zip Code', width: 150 },
-    { field: 'dispatcher_tags', headerName: 'Tags', width: 150 }
+    { field: 'user_first_name', headerName: 'First Name', width: 120, valueGetter: (params) => params.row.user?.first_name || '-' },
+    { field: 'user_last_name', headerName: 'Last Name', width: 120, valueGetter: (params) => params.row.user?.last_name || '-' },
+    { field: 'user_email', headerName: 'Email', width: 200, valueGetter: (params) => params.row.user?.email || '-' },
+    { field: 'user_telephone', headerName: 'Phone', width: 130, valueGetter: (params) => params.row.user?.telephone || '-' },
+    { field: 'user_state', headerName: 'State', width: 100, valueGetter: (params) => params.row.user?.state || '-' },
+    { field: 'user_city', headerName: 'City', width: 120, valueGetter: (params) => params.row.user?.city || '-' },
+    { field: 'user_address', headerName: 'Address', width: 150, valueGetter: (params) => params.row.user?.address || '-' },
+    { field: 'user_country', headerName: 'Country', width: 120, valueGetter: (params) => params.row.user?.country || '-' },
+    { field: 'user_postal_zip', headerName: 'ZIP', width: 100, valueGetter: (params) => params.row.user?.postal_zip || '-' }
   ];
 
   return (

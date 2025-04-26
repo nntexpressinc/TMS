@@ -1,281 +1,489 @@
 import React, { useState } from "react";
-import { Box, Button, TextField, Typography, Paper, MenuItem, FormControl, InputLabel, Select, OutlinedInput } from "@mui/material";
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  IconButton,
+  Tooltip,
+  Alert,
+  Snackbar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Divider,
+  CircularProgress,
+  Avatar,
+  InputAdornment
+} from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { ApiService } from "../../../api/auth";
-import './EmployeeCreatePage.css';
-import TagInput from "./TagInput.jsx";
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { toast } from 'react-hot-toast';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+
+const US_STATES = [
+  { code: 'AL', name: 'Alabama' }, { code: 'AK', name: 'Alaska' }, { code: 'AZ', name: 'Arizona' },
+  { code: 'AR', name: 'Arkansas' }, { code: 'CA', name: 'California' }, { code: 'CO', name: 'Colorado' },
+  { code: 'CT', name: 'Connecticut' }, { code: 'DE', name: 'Delaware' }, { code: 'FL', name: 'Florida' },
+  { code: 'GA', name: 'Georgia' }, { code: 'HI', name: 'Hawaii' }, { code: 'ID', name: 'Idaho' },
+  { code: 'IL', name: 'Illinois' }, { code: 'IN', name: 'Indiana' }, { code: 'IA', name: 'Iowa' },
+  { code: 'KS', name: 'Kansas' }, { code: 'KY', name: 'Kentucky' }, { code: 'LA', name: 'Louisiana' },
+  { code: 'ME', name: 'Maine' }, { code: 'MD', name: 'Maryland' }, { code: 'MA', name: 'Massachusetts' },
+  { code: 'MI', name: 'Michigan' }, { code: 'MN', name: 'Minnesota' }, { code: 'MS', name: 'Mississippi' },
+  { code: 'MO', name: 'Missouri' }, { code: 'MT', name: 'Montana' }, { code: 'NE', name: 'Nebraska' },
+  { code: 'NV', name: 'Nevada' }, { code: 'NH', name: 'New Hampshire' }, { code: 'NJ', name: 'New Jersey' },
+  { code: 'NM', name: 'New Mexico' }, { code: 'NY', name: 'New York' }, { code: 'NC', name: 'North Carolina' },
+  { code: 'ND', name: 'North Dakota' }, { code: 'OH', name: 'Ohio' }, { code: 'OK', name: 'Oklahoma' },
+  { code: 'OR', name: 'Oregon' }, { code: 'PA', name: 'Pennsylvania' }, { code: 'RI', name: 'Rhode Island' },
+  { code: 'SC', name: 'South Carolina' }, { code: 'SD', name: 'South Dakota' }, { code: 'TN', name: 'Tennessee' },
+  { code: 'TX', name: 'Texas' }, { code: 'UT', name: 'Utah' }, { code: 'VT', name: 'Vermont' },
+  { code: 'VA', name: 'Virginia' }, { code: 'WA', name: 'Washington' }, { code: 'WV', name: 'West Virginia' },
+  { code: 'WI', name: 'Wisconsin' }, { code: 'WY', name: 'Wyoming' }
+];
+
+const employeeStatuses = [
+  { value: 'ACTIVE (DF)', label: 'ACTIVE (DF)' },
+  { value: 'Terminate', label: 'Terminate' },
+  { value: 'Applicant', label: 'Applicant' },
+  { value: '', label: 'None' },
+  { value: null, label: 'Null' }
+];
+const positions = [
+  { value: 'ACCOUNTING', label: 'Accounting' },
+  { value: 'FLEET MANAGMENT', label: 'Fleet Managment' },
+  { value: 'SAFETY', label: 'Safety' },
+  { value: 'HR', label: 'HR' },
+  { value: 'UPDATER', label: 'Updater' },
+  { value: 'ELD TEAM', label: 'ELD team' },
+  { value: 'OTHER', label: 'Other' },
+  { value: '', label: 'None' },
+  { value: null, label: 'Null' }
+];
 
 const EmployeeCreatePage = () => {
-  const [employeeData, setEmployeeData] = useState({
+  const [loading, setLoading] = useState(false);
+  const [userData, setUserData] = useState({
+    email: "",
     company_name: "",
-    last_name: "",
-    nickname: "",
     first_name: "",
-    email_address: "",
-    password: "",
-    position: "ACCOUNTING",
-    contact_number: "",
-    employee_status: "ACTIVE (DF)",
-    address1: "",
-    address2: "",
-    country: "",
-    zip_code: "",
-    state: "AL",
+    last_name: "",
+    profile_photo: null,
+    telephone: "",
     city: "",
-    note: "",
-    employee_tags: 0
+    address: "",
+    country: "USA",
+    state: "",
+    postal_zip: "",
+    ext: "",
+    fax: "",
+    role: 8,
+    password: "",
+    password2: ""
   });
-
+  const [employeeData, setEmployeeData] = useState({
+    user: null,
+    nickname: "",
+    position: "ACCOUNTING",
+    employee_status: "ACTIVE (DF)",
+    note: "",
+    employee_tags: "",
+    contact_number: ""
+  });
+  const [error, setError] = useState(null);
+  const [profilePhotoFile, setProfilePhotoFile] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
+  const handleUserChange = (e) => {
     const { name, value } = e.target;
-    setEmployeeData((prevData) => ({
-      ...prevData,
+    setUserData(prev => ({
+      ...prev,
       [name]: value,
+      ...(name === 'password' && { password2: value })
     }));
   };
-
+  const handleEmployeeChange = (e) => {
+    const { name, value } = e.target;
+    setEmployeeData(prev => ({ ...prev, [name]: value }));
+  };
+  const handleStateChange = (event, newValue) => {
+    setUserData(prev => ({ ...prev, state: newValue ? newValue.code : '' }));
+  };
+  const handlePhotoChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setProfilePhotoFile(e.target.files[0]);
+      setUserData(prev => ({ ...prev, profile_photo: e.target.files[0] }));
+    }
+  };
+  const handleTogglePassword = () => setShowPassword((show) => !show);
+  const validateForm = () => {
+    if (!userData.email || !userData.password || !userData.first_name || !userData.last_name) {
+      setError("Please fill in all required fields");
+      return false;
+    }
+    if (userData.password.length < 8) {
+      setError("Password must be at least 8 characters long");
+      return false;
+    }
+    if (!userData.email.includes('@')) {
+      setError("Please enter a valid email address");
+      return false;
+    }
+    return true;
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+    setLoading(true);
+    setError(null);
     try {
-      const response = await ApiService.postData("/employee/", employeeData);
-      if (response) {
-        navigate("/employee");
+      // 1. Create user first
+      const userFormData = new FormData();
+      userFormData.append('email', userData.email);
+      userFormData.append('company_name', userData.company_name || '');
+      userFormData.append('first_name', userData.first_name);
+      userFormData.append('last_name', userData.last_name);
+      userFormData.append('telephone', userData.telephone);
+      userFormData.append('city', userData.city);
+      userFormData.append('address', userData.address);
+      userFormData.append('country', userData.country);
+      userFormData.append('state', userData.state);
+      userFormData.append('postal_zip', userData.postal_zip);
+      userFormData.append('ext', userData.ext || '');
+      userFormData.append('fax', userData.fax || '');
+      userFormData.append('role', userData.role);
+      userFormData.append('password', userData.password);
+      userFormData.append('password2', userData.password);
+      if (profilePhotoFile) {
+        userFormData.append('profile_photo', profilePhotoFile);
       }
+      const userResponse = await ApiService.postRegister(
+        "/auth/register/",
+        userFormData
+      );
+      if (!userResponse || !userResponse.user_id) {
+        throw new Error('Failed to create user: No user ID received');
+      }
+      toast.success('User account created successfully');
+      // 2. Create employee with the user ID
+      const formattedEmployeeData = {
+        user: userResponse.user_id,
+        nickname: employeeData.nickname || null,
+        position: positions.some(e => e.value === employeeData.position) ? employeeData.position : null,
+        employee_status: employeeStatuses.some(e => e.value === employeeData.employee_status) ? employeeData.employee_status : null,
+        note: employeeData.note || null,
+        employee_tags: employeeData.employee_tags || null,
+        contact_number: employeeData.contact_number || null
+      };
+      const employeeResponse = await ApiService.postData(
+        "/employee/",
+        formattedEmployeeData
+      );
+      if (!employeeResponse) {
+        throw new Error('Failed to create employee profile');
+      }
+      toast.success('Employee profile created successfully');
+      navigate("/employee");
     } catch (error) {
-      console.error("Error creating employee:", error);
+      let errorMessage = "Failed to create account.";
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (typeof error.response.data === 'object') {
+          if (error.response.data.email) {
+            errorMessage = "A user with this email already exists. Please use another email.";
+          } else {
+            errorMessage = Object.entries(error.response.data)
+              .map(([key, value]) => Array.isArray(value) ? `${key}: ${value.join(', ')}` : `${key}: ${value}`)
+              .join('\n');
+          }
+        }
+      }
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // SECTIONLAR
+  const sections = [
+    {
+      title: 'Personal Information',
+      subtitle: 'User Account Details',
+      fields: [
+        [
+          { name: 'first_name', label: 'First Name', required: true, value: userData.first_name, onChange: handleUserChange },
+          { name: 'last_name', label: 'Last Name', required: true, value: userData.last_name, onChange: handleUserChange },
+          { name: 'email', label: 'Email', required: true, type: 'email', value: userData.email, onChange: handleUserChange }
+        ],
+        [
+          { name: 'password', label: 'Password', required: true, type: 'password', value: userData.password, onChange: handleUserChange },
+          { name: 'telephone', label: 'Phone Number', required: true, value: userData.telephone, onChange: handleUserChange },
+          { name: 'company_name', label: 'Company Name', value: userData.company_name, onChange: handleUserChange }
+        ],
+        [
+          { 
+            name: 'profile_photo', 
+            label: 'Profile Photo', 
+            type: 'file',
+            accept: 'image/*',
+            onChange: handlePhotoChange,
+            helperText: 'Upload a profile photo'
+          }
+        ]
+      ]
+    },
+    {
+      title: 'Employee Information',
+      subtitle: 'Professional Details',
+      fields: [
+        [
+          { name: 'nickname', label: 'Nickname', value: employeeData.nickname, onChange: handleEmployeeChange },
+          { 
+            name: 'employee_status', 
+            label: 'Employee Status', 
+            type: 'select',
+            options: employeeStatuses,
+            value: employeeData.employee_status,
+            onChange: handleEmployeeChange
+          },
+          { 
+            name: 'position', 
+            label: 'Position', 
+            type: 'select',
+            options: positions,
+            value: employeeData.position,
+            onChange: handleEmployeeChange
+          }
+        ],
+        [
+          { name: 'contact_number', label: 'Contact Number', value: employeeData.contact_number, onChange: handleEmployeeChange },
+          { name: 'note', label: 'Note', value: employeeData.note, onChange: handleEmployeeChange, multiline: true, rows: 2 },
+          { name: 'employee_tags', label: 'Employee Tags', value: employeeData.employee_tags, onChange: handleEmployeeChange }
+        ]
+      ]
+    },
+    {
+      title: 'Address Information',
+      subtitle: 'Contact Details',
+      fields: [
+        [
+          { name: 'address', label: 'Address', value: userData.address, onChange: handleUserChange },
+          { name: 'city', label: 'City', value: userData.city, onChange: handleUserChange },
+          { 
+            name: 'state', 
+            label: 'State', 
+            type: 'select',
+            options: US_STATES,
+            value: userData.state,
+            onChange: (e) => setUserData(prev => ({ ...prev, state: e.target.value }))
+          }
+        ],
+        [
+          { name: 'postal_zip', label: 'ZIP Code', type: 'number', value: userData.postal_zip, onChange: handleUserChange },
+          { name: 'country', label: 'Country', disabled: true, value: userData.country, onChange: handleUserChange },
+          { name: 'fax', label: 'Fax', value: userData.fax, onChange: handleUserChange }
+        ]
+      ]
+    }
+  ];
+
   return (
-    <Box className="create-employee-container">
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="h4" gutterBottom>
-                Create Employee
-            </Typography>
-            <TagInput employeeData={employeeData} handleChange={handleChange} />
-        </Box>
+    <Box sx={{ 
+      maxWidth: 1200, 
+      margin: '0 auto', 
+      padding: 3,
+      backgroundColor: '#f5f5f5',
+      minHeight: '100vh'
+    }}>
+      <Snackbar 
+        open={!!error} 
+        autoHideDuration={6000} 
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setError(null)} 
+          severity="error" 
+          sx={{ width: '100%' }}
+          variant="filled"
+        >
+          {error}
+        </Alert>
+      </Snackbar>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        mb: 4,
+        gap: 2
+      }}>
+        <Tooltip title="Back to Employees">
+          <IconButton 
+            onClick={() => navigate('/employee')}
+            sx={{ 
+              backgroundColor: 'white',
+              '&:hover': { backgroundColor: '#f0f0f0' }
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+        </Tooltip>
+        <Typography variant="h4" fontWeight="bold" color="primary">
+          Create New Employee
+        </Typography>
+      </Box>
       <form onSubmit={handleSubmit}>
-        <Box sx={{ display: 'flex', flexWrap: 'nowrap', alignItems:'flex-start', gap: 2 }}>
-          <Paper sx={{ p: 2, mb: 2, flex: '1 1 45%' }}>
-            <Typography variant="h6" gutterBottom>
-              Personal Information
-            </Typography>
-            <TextField
-              label="First Name"
-              name="first_name"
-              value={employeeData.first_name}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-              required
-            />
-            <TextField
-              label="Last Name"
-              name="last_name"
-              value={employeeData.last_name}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-              required
-            />
-            <TextField
-              label="Nickname"
-              name="nickname"
-              value={employeeData.nickname}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-            />
-            <TextField
-              label="Contact Number"
-              name="contact_number"
-              value={employeeData.contact_number}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-              required
-            />
-            <TextField
-              label="Email Address"
-              name="email_address"
-              type="email"
-              value={employeeData.email_address}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-              required
-            />
-            <TextField
-              label="Password"
-              name="password"
-              type="password"
-              value={employeeData.password}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-              required
-            />
-          </Paper>
-          <Paper sx={{ p: 2, mb: 2, flex: '1 1 45%' }}>
-            <Typography variant="h6" gutterBottom>
-              Employment Information
-            </Typography>
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Employee Status</InputLabel>
-              <Select
-                name="employee_status"
-                value={employeeData.employee_status}
-                onChange={handleChange}
-                input={<OutlinedInput />}
-              >
-                <MenuItem value="ACTIVE (DF)">ACTIVE (DF)</MenuItem>
-                <MenuItem value="Terminate">Terminate</MenuItem>
-                <MenuItem value="Applicant">Applicant</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              label="Position"
-              name="position"
-              value={employeeData.position}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-              required
-            />
-            <TextField
-              label="Company Name"
-              name="company_name"
-              value={employeeData.company_name}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-              required
-            />
-             <TextField
-              label="Note"
-              name="note"
-              value={employeeData.note}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-            />
-          </Paper>
-          <Paper sx={{ p: 2, mb: 2, flex: '1 1 45%' }}>
-            <Typography variant="h6" gutterBottom>
-              Address
-            </Typography>
-            <TextField
-              label="Address 1"
-              name="address1"
-              value={employeeData.address1}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-              required
-            />
-            <TextField
-              label="Address 2"
-              name="address2"
-              value={employeeData.address2}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-            />
-            <TextField
-              label="Country"
-              name="country"
-              value={employeeData.country}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-              required
-            />
-            <FormControl fullWidth margin="normal">
-              <InputLabel>State</InputLabel>
-              <Select
-                name="state"
-                value={employeeData.state}
-                onChange={handleChange}
-                input={<OutlinedInput />}
-              >
-                <MenuItem value="AL">Alabama</MenuItem>
-                <MenuItem value="AK">Alaska</MenuItem>
-                <MenuItem value="AZ">Arizona</MenuItem>
-                <MenuItem value="AR">Arkansas</MenuItem>
-                <MenuItem value="CA">California</MenuItem>
-                <MenuItem value="CO">Colorado</MenuItem>
-                <MenuItem value="CT">Connecticut</MenuItem>
-                <MenuItem value="DE">Delaware</MenuItem>
-                <MenuItem value="FL">Florida</MenuItem>
-                <MenuItem value="GA">Georgia</MenuItem>
-                <MenuItem value="HI">Hawaii</MenuItem>
-                <MenuItem value="ID">Idaho</MenuItem>
-                <MenuItem value="IL">Illinois</MenuItem>
-                <MenuItem value="IN">Indiana</MenuItem>
-                <MenuItem value="IA">Iowa</MenuItem>
-                <MenuItem value="KS">Kansas</MenuItem>
-                <MenuItem value="KY">Kentucky</MenuItem>
-                <MenuItem value="LA">Louisiana</MenuItem>
-                <MenuItem value="ME">Maine</MenuItem>
-                <MenuItem value="MD">Maryland</MenuItem>
-                <MenuItem value="MA">Massachusetts</MenuItem>
-                <MenuItem value="MI">Michigan</MenuItem>
-                <MenuItem value="MN">Minnesota</MenuItem>
-                <MenuItem value="MS">Mississippi</MenuItem>
-                <MenuItem value="MO">Missouri</MenuItem>
-                <MenuItem value="MT">Montana</MenuItem>
-                <MenuItem value="NE">Nebraska</MenuItem>
-                <MenuItem value="NV">Nevada</MenuItem>
-                <MenuItem value="NH">New Hampshire</MenuItem>
-                <MenuItem value="NJ">New Jersey</MenuItem>
-                <MenuItem value="NM">New Mexico</MenuItem>
-                <MenuItem value="NY">New York</MenuItem>
-                <MenuItem value="NC">North Carolina</MenuItem>
-                <MenuItem value="ND">North Dakota</MenuItem>
-                <MenuItem value="OH">Ohio</MenuItem>
-                <MenuItem value="OK">Oklahoma</MenuItem>
-                <MenuItem value="OR">Oregon</MenuItem>
-                <MenuItem value="PA">Pennsylvania</MenuItem>
-                <MenuItem value="RI">Rhode Island</MenuItem>
-                <MenuItem value="SC">South Carolina</MenuItem>
-                <MenuItem value="SD">South Dakota</MenuItem>
-                <MenuItem value="TN">Tennessee</MenuItem>
-                <MenuItem value="TX">Texas</MenuItem>
-                <MenuItem value="UT">Utah</MenuItem>
-                <MenuItem value="VT">Vermont</MenuItem>
-                <MenuItem value="VA">Virginia</MenuItem>
-                <MenuItem value="WA">Washington</MenuItem>
-                <MenuItem value="WV">West Virginia</MenuItem>
-                <MenuItem value="WI">Wisconsin</MenuItem>
-                <MenuItem value="WY">Wyoming</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              label="City"
-              name="city"
-              value={employeeData.city}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-              required
-            />
-            <TextField
-              label="Zip Code"
-              name="zip_code"
-              type="number"
-              value={employeeData.zip_code}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-              required
-            />
-          </Paper>
-        </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-          <Button type="submit" variant="contained" color="primary">
-            Create
+        <Grid container spacing={3}>
+          {sections.map((section, sectionIndex) => (
+            <Grid item xs={12} key={sectionIndex}>
+              <Card elevation={0}>
+                <CardContent>
+                  <Typography variant="h6" color="primary" gutterBottom>
+                    {section.title}
+                    {sectionIndex === 0 && (
+                      <Typography variant="caption" color="error" sx={{ ml: 1 }}>
+                        * Required field
+                      </Typography>
+                    )}
+                  </Typography>
+                  {section.subtitle && (
+                    <Typography variant="body2" color="textSecondary" gutterBottom>
+                      {section.subtitle}
+                    </Typography>
+                  )}
+                  <Divider sx={{ my: 2 }} />
+                  {section.fields.map((row, rowIndex) => (
+                    <Grid container spacing={2} key={rowIndex} sx={{ mb: 2 }}>
+                      {row.map((field, fieldIndex) => (
+                        <Grid item xs={12} md={12 / row.length} key={fieldIndex}>
+                          {field.name === 'profile_photo' ? (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
+                              <Box sx={{ position: 'relative', mb: 1 }}>
+                                <Avatar
+                                  src={profilePhotoFile ? URL.createObjectURL(profilePhotoFile) : undefined}
+                                  alt={userData.first_name || userData.email}
+                                  sx={{ width: 100, height: 100, border: '2px solid #e0e0e0', boxShadow: 2 }}
+                                />
+                                <label htmlFor="profile-photo-upload">
+                                  <input
+                                    id="profile-photo-upload"
+                                    type="file"
+                                    accept="image/*"
+                                    style={{ display: 'none' }}
+                                    onChange={handlePhotoChange}
+                                  />
+                                  <IconButton
+                                    component="span"
+                                    sx={{
+                                      position: 'absolute',
+                                      bottom: 0,
+                                      right: 0,
+                                      background: '#fff',
+                                      border: '1px solid #e0e0e0',
+                                      boxShadow: 1,
+                                      '&:hover': { background: '#f0f0f0' }
+                                    }}
+                                  >
+                                    <CloudUploadIcon fontSize="small" />
+                                  </IconButton>
+                                </label>
+                              </Box>
+                              <Typography variant="caption" color="textSecondary">
+                                Upload a profile photo (max 5MB)
+                              </Typography>
+                            </Box>
+                          ) : field.name === 'password' ? (
+                            <TextField
+                              fullWidth
+                              label={field.label}
+                              name={field.name}
+                              type={showPassword ? 'text' : 'password'}
+                              value={field.value}
+                              onChange={field.onChange}
+                              required={field.required}
+                              InputProps={{
+                                endAdornment: (
+                                  <InputAdornment position="end">
+                                    <IconButton onClick={handleTogglePassword} edge="end">
+                                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                                    </IconButton>
+                                  </InputAdornment>
+                                )
+                              }}
+                            />
+                          ) : field.type === 'select' ? (
+                            <FormControl fullWidth required={field.required}>
+                              <InputLabel>{field.label}</InputLabel>
+                              <Select
+                                name={field.name}
+                                value={field.value}
+                                onChange={field.onChange}
+                                label={field.label}
+                              >
+                                {field.options.map((option) => (
+                                  <MenuItem key={option.value || option.code} value={option.value || option.code}>
+                                    {option.label || `${option.code} - ${option.name}`}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          ) : (
+                            <TextField
+                              fullWidth
+                              label={field.label}
+                              name={field.name}
+                              type={field.type || 'text'}
+                              value={field.value}
+                              onChange={field.onChange}
+                              required={field.required}
+                              disabled={field.disabled}
+                              multiline={field.multiline}
+                              rows={field.rows}
+                            />
+                          )}
+                        </Grid>
+                      ))}
+                    </Grid>
+                  ))}
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+        <Box sx={{ 
+          mt: 4, 
+          display: 'flex', 
+          justifyContent: 'flex-end',
+          gap: 2
+        }}>
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/employee')}
+            sx={{ minWidth: 120 }}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            sx={{ minWidth: 120 }}
+            disabled={loading}
+          >
+            {loading ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              'Create Employee'
+            )}
           </Button>
         </Box>
       </form>

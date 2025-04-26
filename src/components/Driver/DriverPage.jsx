@@ -209,6 +209,45 @@ const DriverPage = () => {
       width: 130,
       valueGetter: (params) => params.row.user?.telephone || '-'
     },
+    {
+      field: 'driver_status',
+      headerName: 'Status',
+      width: 130,
+      headerAlign: 'center',
+      align: 'center',
+      pinned: 'right',
+      renderCell: (params) => {
+        const statusConfig = driverStatuses.find(s => s.value === params.value);
+        return (
+          <Box sx={{ 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            paddingTop: '4px'
+          }}>
+            <Chip
+              label={statusConfig?.label || params.value || 'N/A'}
+              sx={{
+                backgroundColor: `${statusConfig?.color}15` || '#64748B15',
+                color: statusConfig?.color || '#64748B',
+                height: '20px',
+                minWidth: 'auto',
+                maxWidth: '100%',
+                '& .MuiChip-label': {
+                  fontSize: '0.7rem',
+                  padding: '0 8px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }
+              }}
+            />
+          </Box>
+        );
+      }
+    },
     { 
       field: 'user_city', 
       headerName: 'City', 
@@ -270,45 +309,7 @@ const DriverPage = () => {
       width: 150,
       valueGetter: (params) => params.row.assigned_dispatcher || '-'
     },
-    {
-      field: 'driver_status',
-      headerName: 'Status',
-      width: 130,
-      headerAlign: 'center',
-      align: 'center',
-      pinned: 'right',
-      renderCell: (params) => {
-        const statusConfig = driverStatuses.find(s => s.value === params.value);
-        return (
-          <Box sx={{ 
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '100%',
-            height: '100%',
-            paddingTop: '4px'
-          }}>
-            <Chip
-              label={statusConfig?.label || params.value || 'N/A'}
-              sx={{
-                backgroundColor: `${statusConfig?.color}15` || '#64748B15',
-                color: statusConfig?.color || '#64748B',
-                height: '20px',
-                minWidth: 'auto',
-                maxWidth: '100%',
-                '& .MuiChip-label': {
-                  fontSize: '0.7rem',
-                  padding: '0 8px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }
-              }}
-            />
-          </Box>
-        );
-      }
-    }
+    
   ];
 
   return (
