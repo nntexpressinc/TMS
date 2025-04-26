@@ -1,13 +1,102 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, Paper, Tabs, Tab, Button, IconButton, Tooltip, Grid, Divider, Chip } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Paper,
+  Tabs,
+  Tab,
+  Button,
+  IconButton,
+  Tooltip,
+  Grid,
+  Divider,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  Snackbar,
+  CircularProgress,
+  Avatar
+} from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { ApiService } from '../../api/auth';
 import { toast } from 'react-hot-toast';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
-import { Alert } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import DriverPDF from './DriverPDF';
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
+import { pdf } from '@react-pdf/renderer';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+
+const US_STATES = [
+  { code: 'AL', name: 'Alabama' },
+  { code: 'AK', name: 'Alaska' },
+  { code: 'AZ', name: 'Arizona' },
+  { code: 'AR', name: 'Arkansas' },
+  { code: 'CA', name: 'California' },
+  { code: 'CO', name: 'Colorado' },
+  { code: 'CT', name: 'Connecticut' },
+  { code: 'DE', name: 'Delaware' },
+  { code: 'FL', name: 'Florida' },
+  { code: 'GA', name: 'Georgia' },
+  { code: 'HI', name: 'Hawaii' },
+  { code: 'ID', name: 'Idaho' },
+  { code: 'IL', name: 'Illinois' },
+  { code: 'IN', name: 'Indiana' },
+  { code: 'IA', name: 'Iowa' },
+  { code: 'KS', name: 'Kansas' },
+  { code: 'KY', name: 'Kentucky' },
+  { code: 'LA', name: 'Louisiana' },
+  { code: 'ME', name: 'Maine' },
+  { code: 'MD', name: 'Maryland' },
+  { code: 'MA', name: 'Massachusetts' },
+  { code: 'MI', name: 'Michigan' },
+  { code: 'MN', name: 'Minnesota' },
+  { code: 'MS', name: 'Mississippi' },
+  { code: 'MO', name: 'Missouri' },
+  { code: 'MT', name: 'Montana' },
+  { code: 'NE', name: 'Nebraska' },
+  { code: 'NV', name: 'Nevada' },
+  { code: 'NH', name: 'New Hampshire' },
+  { code: 'NJ', name: 'New Jersey' },
+  { code: 'NM', name: 'New Mexico' },
+  { code: 'NY', name: 'New York' },
+  { code: 'NC', name: 'North Carolina' },
+  { code: 'ND', name: 'North Dakota' },
+  { code: 'OH', name: 'Ohio' },
+  { code: 'OK', name: 'Oklahoma' },
+  { code: 'OR', name: 'Oregon' },
+  { code: 'PA', name: 'Pennsylvania' },
+  { code: 'RI', name: 'Rhode Island' },
+  { code: 'SC', name: 'South Carolina' },
+  { code: 'SD', name: 'South Dakota' },
+  { code: 'TN', name: 'Tennessee' },
+  { code: 'TX', name: 'Texas' },
+  { code: 'UT', name: 'Utah' },
+  { code: 'VT', name: 'Vermont' },
+  { code: 'VA', name: 'Virginia' },
+  { code: 'WA', name: 'Washington' },
+  { code: 'WV', name: 'West Virginia' },
+  { code: 'WI', name: 'Wisconsin' },
+  { code: 'WY', name: 'Wyoming' }
+];
+
+const getStateFullName = (code) => {
+  const found = US_STATES.find(s => s.code === code);
+  return found ? `${found.code} - ${found.name}` : code;
+};
+
+const getProfilePhoto = (url) => {
+  if (!url) return 'https://ui-avatars.com/api/?name=User&background=random';
+  if (url.startsWith('http')) return url;
+  return `https://api.biznes-armiya.uz${url}`;
+};
 
 const DriverViewPage = () => {
   const { id } = useParams();
@@ -22,72 +111,10 @@ const DriverViewPage = () => {
   const [truckData, setTruckData] = useState(null);
   const [trailerData, setTrailerData] = useState(null);
   const [dispatcherData, setDispatcherData] = useState(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [driver, pay, expense] = await Promise.all([
-          ApiService.getData(`/driver/${id}/`),
-          ApiService.getData(`/driver/pay/?driver=${id}`),
-          ApiService.getData(`/driver/expense/?driver=${id}`)
-        ]);
-        
-        setDriverData(driver);
-
-        if (driver.user) {
-          const user = await ApiService.getData(`/auth/user/${driver.user}/`);
-          setUserData(user);
-        }
-
-        setPayData(pay);
-        setExpenseData(expense);
-
-        if (driver.assigned_truck) {
-          const truck = await ApiService.getData(`/truck/${driver.assigned_truck}/`);
-          setTruckData(truck);
-        }
-        if (driver.assigned_trailer) {
-          const trailer = await ApiService.getData(`/trailer/${driver.assigned_trailer}/`);
-          setTrailerData(trailer);
-        }
-        if (driver.assigned_dispatcher) {
-          const dispatcher = await ApiService.getData(`/dispatcher/${driver.assigned_dispatcher}/`);
-          setDispatcherData(dispatcher);
-        }
-
-        setLoading(false);
-      } catch (err) {
-        setError('Error loading data');
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [id]);
-
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
-  };
-
-  const handleDeletePay = async (payId) => {
-    try {
-      await ApiService.deleteData(`/driver/pay/${payId}/`);
-      setPayData(payData.filter(pay => pay.id !== payId));
-      toast.success('Payment information deleted');
-    } catch (err) {
-      setError('Error deleting payment information');
-    }
-  };
-
-  const handleDeleteExpense = async (expenseId) => {
-    try {
-      await ApiService.deleteData(`/driver/expense/${expenseId}/`);
-      setExpenseData(expenseData.filter(expense => expense.id !== expenseId));
-      toast.success('Expense information deleted');
-    } catch (err) {
-      setError('Error deleting expense information');
-    }
-  };
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [itemType, setItemType] = useState('');
+  const [roles, setRoles] = useState([]);
 
   const payColumns = [
     { field: 'id', headerName: 'ID', width: 70 },
@@ -151,7 +178,13 @@ const DriverViewPage = () => {
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete">
-            <IconButton onClick={() => handleDeletePay(params.row.id)}>
+            <IconButton 
+              onClick={() => {
+                setSelectedItem(params.row);
+                setItemType('pay');
+                setDeleteDialogOpen(true);
+              }}
+            >
               <DeleteIcon />
             </IconButton>
           </Tooltip>
@@ -178,7 +211,13 @@ const DriverViewPage = () => {
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete">
-            <IconButton onClick={() => handleDeleteExpense(params.row.id)}>
+            <IconButton 
+              onClick={() => {
+                setSelectedItem(params.row);
+                setItemType('expense');
+                setDeleteDialogOpen(true);
+              }}
+            >
               <DeleteIcon />
             </IconButton>
           </Tooltip>
@@ -187,8 +226,118 @@ const DriverViewPage = () => {
     },
   ];
 
-  if (loading) return <Typography>Loading...</Typography>;
-  if (error) return <Alert severity="error">{error}</Alert>;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [driver, pay, expense, rolesData] = await Promise.all([
+          ApiService.getData(`/driver/${id}/`),
+          ApiService.getData(`/driver/pay/?driver=${id}`),
+          ApiService.getData(`/driver/expense/?driver=${id}`),
+          ApiService.getData(`/auth/role/`)
+        ]);
+        
+        setDriverData(driver);
+        setRoles(rolesData);
+
+        if (driver.user && typeof driver.user === 'number') {
+          const user = await ApiService.getData(`/auth/user/${driver.user}/`);
+          setUserData(user);
+        }
+
+        setPayData(pay);
+        setExpenseData(expense);
+
+        if (driver.assigned_truck) {
+          const truck = await ApiService.getData(`/truck/${driver.assigned_truck}/`);
+          setTruckData(truck);
+        }
+        if (driver.assigned_trailer) {
+          const trailer = await ApiService.getData(`/trailer/${driver.assigned_trailer}/`);
+          setTrailerData(trailer);
+        }
+        if (driver.assigned_dispatcher) {
+          const dispatcher = await ApiService.getData(`/dispatcher/${driver.assigned_dispatcher}/`);
+          setDispatcherData(dispatcher);
+        }
+
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('Error loading data');
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedItem) return;
+
+    try {
+      if (itemType === 'pay') {
+        await ApiService.deleteData(`/driver/pay/${selectedItem.id}/`);
+        setPayData(payData.filter(pay => pay.id !== selectedItem.id));
+      } else {
+        await ApiService.deleteData(`/driver/expense/${selectedItem.id}/`);
+        setExpenseData(expenseData.filter(expense => expense.id !== selectedItem.id));
+      }
+      toast.success(`${itemType === 'pay' ? 'Payment' : 'Expense'} deleted successfully`);
+    } catch (err) {
+      toast.error(`Failed to delete ${itemType === 'pay' ? 'payment' : 'expense'}`);
+    } finally {
+      setDeleteDialogOpen(false);
+      setSelectedItem(null);
+      setItemType('');
+    }
+  };
+
+  const exportToExcel = (data, filename) => {
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+    saveAs(blob, filename);
+  };
+
+  const handleDownloadPDF = async () => {
+    const blob = await pdf(
+      <DriverPDF
+        driver={driverData}
+        user={userData}
+        payments={payData}
+        expenses={expenseData}
+      />
+    ).toBlob();
+    saveAs(blob, `driver-${driverData?.id || 'info'}.pdf`);
+  };
+
+  const copyToClipboard = (value, label) => {
+    navigator.clipboard.writeText(value || '').then(() => {
+      toast.success(`${label} copied!`);
+    });
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
 
   const driverId = parseInt(id, 10);
   const filteredPayData = payData.filter(pay => pay.driver === driverId);
@@ -198,258 +347,181 @@ const DriverViewPage = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">
-          {driverData?.first_name} {driverData?.last_name}
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<EditIcon />}
-          onClick={() => navigate(`/driver/${id}/edit`)}
-        >
-          Edit
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <IconButton onClick={() => navigate('/driver')}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h4">
+            {driverData?.user?.first_name} {driverData?.user?.last_name}
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={handleDownloadPDF}
+          >
+            Download PDF
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<EditIcon />}
+            onClick={() => navigate(`/driver/${id}/edit`)}
+          >
+            Edit
+          </Button>
+        </Box>
       </Box>
-
       <Paper sx={{ width: '100%', mb: 2 }}>
         <Tabs value={tabValue} onChange={handleTabChange}>
           <Tab label="User Information" />
           <Tab label="Driver Information" />
           <Tab label="Payments" />
-          <Tab label="ADDITION" />
-          <Tab label="DEDUCTION" />
+          <Tab label="Expenses" />
         </Tabs>
-
-        {tabValue === 0 && userData && (
+        {tabValue === 0 && driverData && driverData.user && (
           <Box sx={{ p: 3 }}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Email</Typography>
-                <Typography variant="body1">{userData.email || '-'}</Typography>
+            <Paper elevation={3} sx={{ p: 4, borderRadius: 3, boxShadow: 4, border: '1px solid #e0e0e0' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 3 }}>
+                <Avatar
+                  src={getProfilePhoto(driverData.user.profile_photo)}
+                  alt={driverData.user.first_name || driverData.user.email}
+                  sx={{ width: 80, height: 80, border: '2px solid #e0e0e0' }}
+                />
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>{driverData.user.first_name || driverData.user.email}</Typography>
+              </Box>
+              <Divider sx={{ mb: 3 }} />
+              <Grid container spacing={3}>
+                {[
+                  { label: 'Email', value: driverData.user.email },
+                  { label: 'Company Name', value: driverData.user.company_name },
+                  { label: 'First Name', value: driverData.user.first_name },
+                  { label: 'Last Name', value: driverData.user.last_name },
+                  { label: 'Phone', value: driverData.user.telephone },
+                  { label: 'City', value: driverData.user.city },
+                  { label: 'Address', value: driverData.user.address },
+                  { label: 'Country', value: driverData.user.country },
+                  { label: 'State', value: getStateFullName(driverData.user.state) },
+                  { label: 'Postal/Zip', value: driverData.user.postal_zip },
+                  { label: 'Ext', value: driverData.user.ext },
+                  { label: 'Fax', value: driverData.user.fax },
+                  { label: 'Role', value: roles.find(r => r.id === driverData.user.role)?.name },
+                  { label: 'Company', value: driverData.user.company },
+                ].map((item, idx) => (
+                  <Grid item xs={12} sm={6} md={4} key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography sx={{ fontWeight: 500 }}>{item.label}:</Typography>
+                    <Typography sx={{ color: '#333', wordBreak: 'break-all' }}>{item.value || '-'}</Typography>
+                    {item.value && (
+                      <IconButton size="small" onClick={() => copyToClipboard(item.value, item.label)}>
+                        <ContentCopyIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Grid>
+                ))}
               </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Company Name</Typography>
-                <Typography variant="body1">{userData.company_name || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">First Name</Typography>
-                <Typography variant="body1">{userData.first_name || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Last Name</Typography>
-                <Typography variant="body1">{userData.last_name || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Phone</Typography>
-                <Typography variant="body1">{userData.telephone || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Mobile Phone</Typography>
-                <Typography variant="body1">{userData.callphone || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Address</Typography>
-                <Typography variant="body1">{userData.address || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">City</Typography>
-                <Typography variant="body1">{userData.city || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">State</Typography>
-                <Typography variant="body1">{userData.state || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Country</Typography>
-                <Typography variant="body1">{userData.country || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Postal/Zip Code</Typography>
-                <Typography variant="body1">{userData.postal_zip || '-'}</Typography>
-              </Grid>
-            </Grid>
+            </Paper>
           </Box>
         )}
-
         {tabValue === 1 && driverData && (
           <Box sx={{ p: 3 }}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">First Name</Typography>
-                <Typography variant="body1">{driverData.first_name || '-'}</Typography>
+            <Paper elevation={3} sx={{ p: 4, borderRadius: 3, boxShadow: 4, border: '1px solid #e0e0e0' }}>
+              <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>Driver Information</Typography>
+              <Divider sx={{ mb: 3 }} />
+              <Grid container spacing={3}>
+                {[
+                  { label: 'Birth Date', value: driverData?.birth_date },
+                  { label: 'Employment Status', value: driverData?.employment_status },
+                  { label: 'Telegram', value: driverData?.telegram_username },
+                  { label: 'Driver Status', value: driverData?.driver_status },
+                  { label: 'Driver License ID', value: driverData?.driver_license_id },
+                  { label: 'DL Class', value: driverData?.dl_class },
+                  { label: 'Driver Type', value: driverData?.driver_type },
+                  { label: 'License State', value: getStateFullName(driverData?.driver_license_state) },
+                  { label: 'License Expiration', value: driverData?.driver_license_expiration },
+                  { label: 'Other ID', value: driverData?.other_id },
+                  { label: 'Notes', value: driverData?.notes },
+                  { label: 'Tariff', value: driverData?.tariff },
+                  { label: 'MC Number', value: driverData?.mc_number },
+                  { label: 'Team Driver', value: driverData?.team_driver },
+                  { label: 'Per Mile', value: driverData?.permile },
+                  { label: 'Cost', value: driverData?.cost },
+                  { label: 'Payd', value: driverData?.payd },
+                  { label: 'Escrow Deposit', value: driverData?.escrow_deposit },
+                ].map((item, idx) => (
+                  <Grid item xs={12} sm={6} md={4} key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography sx={{ fontWeight: 500 }}>{item.label}:</Typography>
+                    <Typography sx={{ color: '#333', wordBreak: 'break-all' }}>{item.value || '-'}</Typography>
+                    {item.value && (
+                      <IconButton size="small" onClick={() => copyToClipboard(item.value, item.label)}>
+                        <ContentCopyIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Grid>
+                ))}
               </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Last Name</Typography>
-                <Typography variant="body1">{driverData.last_name || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Phone</Typography>
-                <Typography variant="body1">{driverData.contact_number || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Email</Typography>
-                <Typography variant="body1">{driverData.email_address || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Driver Status</Typography>
-                <Chip label={driverData.driver_status || '-'} color={driverData.driver_status === 'Available' ? 'success' : 'default'} />
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Driver Type</Typography>
-                <Typography variant="body1">{driverData.driver_type || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">License ID</Typography>
-                <Typography variant="body1">{driverData.driver_license_id || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">License Expiration</Typography>
-                <Typography variant="body1">{driverData.driver_license_expiration || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">DL Class</Typography>
-                <Typography variant="body1">{driverData.dl_class || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">DL State</Typography>
-                <Typography variant="body1">{driverData.driver_license_state || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Address 1</Typography>
-                <Typography variant="body1">{driverData.address1 || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Address 2</Typography>
-                <Typography variant="body1">{driverData.address2 || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Country</Typography>
-                <Typography variant="body1">{driverData.country || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Employment Status</Typography>
-                <Typography variant="body1">{driverData.employment_status || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Assigned Truck</Typography>
-                <Typography variant="body1">
-                  {truckData ? `${truckData.make} ${truckData.model} (${truckData.number})` : '-'}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Assigned Trailer</Typography>
-                <Typography variant="body1">
-                  {trailerData ? `${trailerData.make} ${trailerData.model} (${trailerData.number})` : '-'}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Assigned Dispatcher</Typography>
-                <Typography variant="body1">
-                  {dispatcherData ? `${dispatcherData.first_name} ${dispatcherData.last_name}` : '-'}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Other ID</Typography>
-                <Typography variant="body1">{driverData.other_id || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Notes</Typography>
-                <Typography variant="body1">{driverData.notes || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Tariff</Typography>
-                <Typography variant="body1">{driverData.tariff || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">MC Number</Typography>
-                <Typography variant="body1">{driverData.mc_number || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Team Driver</Typography>
-                <Typography variant="body1">{driverData.team_driver || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Per Mile</Typography>
-                <Typography variant="body1">{driverData.permile || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Cost</Typography>
-                <Typography variant="body1">{driverData.cost || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Payd</Typography>
-                <Typography variant="body1">{driverData.payd || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Typography variant="subtitle2" color="text.secondary">Escrow Deposit</Typography>
-                <Typography variant="body1">{driverData.escrow_deposit || '-'}</Typography>
-              </Grid>
-            </Grid>
+            </Paper>
           </Box>
         )}
-
         {tabValue === 2 && (
-          <Box sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => navigate(`/driver/${id}/pay/create`)}
-              >
-                New Payment
-              </Button>
-            </Box>
-            <DataGrid
-              rows={filteredPayData}
-              columns={payColumns}
-              pageSize={5}
-              rowsPerPageOptions={[5]}
-              autoHeight
-            />
+          <Box sx={{ p: 3 }}>
+            <Paper elevation={3} sx={{ p: 4, borderRadius: 3, boxShadow: 4, border: '1px solid #e0e0e0' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>Payments</Typography>
+                <Button size="small" variant="outlined" onClick={() => exportToExcel(payData, 'payments.xlsx')}>Excel</Button>
+              </Box>
+              <DataGrid
+                rows={payData}
+                columns={payColumns}
+                pageSize={5}
+                rowsPerPageOptions={[5, 10, 20]}
+                autoHeight
+                sx={{
+                  borderRadius: 2,
+                  boxShadow: 2,
+                  border: '1px solid #e0e0e0',
+                  background: '#fafbfc',
+                }}
+              />
+            </Paper>
           </Box>
         )}
-
         {tabValue === 3 && (
-          <Box sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => navigate(`/driver/${id}/expense/create`)}
-              >
-                New Expense
-              </Button>
-            </Box>
-            <DataGrid
-              rows={positiveExpenses}
-              columns={expenseColumns}
-              pageSize={5}
-              rowsPerPageOptions={[5]}
-              autoHeight
-            />
-          </Box>
-        )}
-
-        {tabValue === 4 && (
-          <Box sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => navigate(`/driver/${id}/expense/create`)}
-              >
-                New Expense
-              </Button>
-            </Box>
-            <DataGrid
-              rows={negativeExpenses}
-              columns={expenseColumns}
-              pageSize={5}
-              rowsPerPageOptions={[5]}
-              autoHeight
-            />
+          <Box sx={{ p: 3 }}>
+            <Paper elevation={3} sx={{ p: 4, borderRadius: 3, boxShadow: 4, border: '1px solid #e0e0e0' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>Expenses</Typography>
+                <Button size="small" variant="outlined" onClick={() => exportToExcel(expenseData, 'expenses.xlsx')}>Excel</Button>
+              </Box>
+              <DataGrid
+                rows={expenseData}
+                columns={expenseColumns}
+                pageSize={5}
+                rowsPerPageOptions={[5, 10, 20]}
+                autoHeight
+                sx={{
+                  borderRadius: 2,
+                  boxShadow: 2,
+                  border: '1px solid #e0e0e0',
+                  background: '#fafbfc',
+                }}
+              />
+            </Paper>
           </Box>
         )}
       </Paper>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Delete {itemType === 'pay' ? 'Payment' : 'Expense'}</DialogTitle>
+        <DialogContent>
+          Are you sure you want to delete this {itemType === 'pay' ? 'payment' : 'expense'}?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleDelete} color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

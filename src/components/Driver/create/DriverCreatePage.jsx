@@ -57,7 +57,7 @@ const DriverCreatePage = () => {
     company_name: "",
     driver_license_id: "",
     dl_class: "",
-    driver_type: "COMPANY",
+    driver_type: "COMPANY_DRIVER",
     driver_license_state: "",
     driver_license_expiration: "",
     other_id: "",
@@ -141,13 +141,13 @@ const DriverCreatePage = () => {
   ];
 
   const employmentStatuses = [
-    { value: 'ACTIVE (DF)', label: 'ACTIVE (DF)' },
+    { value: 'ACTIVE', label: 'Active' },
     { value: 'Terminate', label: 'Terminate' },
     { value: 'Applicant', label: 'Applicant' }
   ];
 
   const driverStatuses = [
-    { value: 'Available', label: 'Available' },
+    { value: 'AVAILABLE', label: 'Available' },
     { value: 'Home', label: 'Home' },
     { value: 'In-Transit', label: 'In-Transit' },
     { value: 'Inactive', label: 'Inactive' },
@@ -157,14 +157,13 @@ const DriverCreatePage = () => {
   ];
 
   const driverTypes = [
-    { value: 'COMPANY_DRIVER', label: 'Company_driver' },
-    { value: 'OWNER_OPERATOR', label: 'Owner_operator' },
+    { value: 'COMPANY_DRIVER', label: 'Company Driver' },
+    { value: 'OWNER_OPERATOR', label: 'Owner Operator' },
     { value: 'LEASE', label: 'Lease' },
     { value: 'RENTAL', label: 'Rental' }
   ];
 
   const dlClasses = [
-    { value: 'Unknown', label: 'Unknown' },
     { value: 'A', label: 'A' },
     { value: 'B', label: 'B' },
     { value: 'C', label: 'C' },
@@ -271,12 +270,6 @@ const DriverCreatePage = () => {
         userFormData.append('profile_photo', userData.profile_photo);
       }
 
-      // Get current token
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
       const userResponse = await ApiService.postRegister(
         "/auth/register/", 
         userFormData
@@ -291,14 +284,14 @@ const DriverCreatePage = () => {
 
       // 2. Create driver with the user ID
       const formattedDriverData = {
-        user: userResponse.user_id.toString(),
+        user: userResponse.user_id,
         birth_date: driverData.birth_date || null,
-        employment_status: driverData.employment_status || 'ACTIVE (DF)',
+        employment_status: driverData.employment_status || 'ACTIVE',
         telegram_username: driverData.telegram_username || null,
-        driver_status: driverData.driver_status || 'Available',
+        driver_status: driverData.driver_status || 'AVAILABLE',
         company_name: driverData.company_name || null,
         driver_license_id: driverData.driver_license_id || null,
-        dl_class: driverData.dl_class || 'Unknown',
+        dl_class: driverData.dl_class || null,
         driver_type: driverData.driver_type || 'COMPANY_DRIVER',
         driver_license_state: driverData.driver_license_state || null,
         driver_license_expiration: driverData.driver_license_expiration || null,
@@ -306,7 +299,7 @@ const DriverCreatePage = () => {
         notes: driverData.notes || null,
         tariff: parseFloat(driverData.tariff) || null,
         mc_number: driverData.mc_number || null,
-        team_driver: driverData.team_driver || null,
+        team_driver: driverData.team_driver || false,
         permile: parseFloat(driverData.permile) || null,
         cost: parseFloat(driverData.cost) || null,
         payd: parseFloat(driverData.payd) || null,
@@ -320,41 +313,18 @@ const DriverCreatePage = () => {
 
       console.log("Sending driver data:", formattedDriverData);
 
-      try {
-        const driverResponse = await ApiService.postData(
-          "/driver/", 
-          formattedDriverData,
-          {
-            'Authorization': `Bearer ${token}`,
-            'X-CSRFTOKEN': localStorage.getItem('csrfToken')
-          }
-        );
+      const driverResponse = await ApiService.postData(
+        "/driver/", 
+        formattedDriverData
+      );
 
-        if (!driverResponse) {
-          throw new Error('Failed to create driver profile');
-        }
-
-        console.log("Driver created successfully:", driverResponse);
-        toast.success('Driver profile created successfully');
-        navigate("/driver");
-      } catch (driverError) {
-        console.error("Error creating driver profile:", driverError);
-        
-        let driverErrorMessage = "Failed to create driver profile";
-        
-        if (driverError.response?.data) {
-          if (typeof driverError.response.data === 'string') {
-            driverErrorMessage = driverError.response.data;
-          } else if (typeof driverError.response.data === 'object') {
-            driverErrorMessage = Object.entries(driverError.response.data)
-              .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
-              .join('\n');
-          }
-        }
-
-        toast.error(driverErrorMessage);
-        setError(driverErrorMessage);
+      if (!driverResponse) {
+        throw new Error('Failed to create driver profile');
       }
+
+      console.log("Driver created successfully:", driverResponse);
+      toast.success('Driver profile created successfully');
+      navigate("/driver");
     } catch (error) {
       console.error("Error:", error);
       

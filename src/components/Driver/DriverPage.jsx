@@ -131,43 +131,60 @@ const DriverPage = () => {
 
   const columns = [
     {
-      field: 'id',
-      headerName: 'ID',
-      width: 80,
+      field: 'user_email',
+      headerName: 'Email',
+      width: 220,
       align: 'center',
       headerAlign: 'center',
-      renderCell: (params) => (
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1,
-          width: '100%',
-          height: '100%',
-          justifyContent: 'center',
-          py: '4px'
-        }}>
-          <Typography
-            sx={{ 
-              whiteSpace: 'nowrap',
-              overflow: 'visible',
-              cursor: 'pointer',
-              color: '#3B82F6',
-              textDecoration: 'underline'
-            }}
-            onClick={() => handleView(params.value)}
-          >
-            {params.value}
-          </Typography>
-        </Box>
-      )
+      valueGetter: (params) => params.row.user?.email || '-',
+      renderCell: (params) => {
+        const email = params.row.user?.email || '-';
+        return (
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            width: '100%',
+            height: '100%',
+            justifyContent: 'center',
+            py: '4px'
+          }}>
+            <Typography
+              sx={{
+                whiteSpace: 'nowrap',
+                overflow: 'visible',
+                cursor: email !== '-' ? 'pointer' : 'default',
+                color: email !== '-' ? '#3B82F6' : 'inherit',
+                textDecoration: email !== '-' ? 'underline' : 'none'
+              }}
+              onClick={() => email !== '-' && handleView(params.row.id)}
+            >
+              {email}
+            </Typography>
+            {email !== '-' && (
+              <IconButton
+                size="small"
+                onClick={() => handleCopyId(email)}
+                sx={{
+                  padding: '4px',
+                  color: copiedId === email ? '#10B981' : '#6B7280',
+                  '&:hover': {
+                    backgroundColor: copiedId === email ? '#D1FAE5' : '#F3F4F6'
+                  }
+                }}
+              >
+                {copiedId === email ? (
+                  <CheckIcon sx={{ fontSize: '16px' }} />
+                ) : (
+                  <ContentCopyIcon sx={{ fontSize: '16px' }} />
+                )}
+              </IconButton>
+            )}
+          </Box>
+        );
+      }
     },
     // User Information
-    { 
-      field: 'user_email', 
-      headerName: 'Email', 
-      width: 200,
-      valueGetter: (params) => params.row.user?.email || '-'
-    },
     { 
       field: 'user_company', 
       headerName: 'Company Name', 

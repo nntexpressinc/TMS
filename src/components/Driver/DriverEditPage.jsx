@@ -2,6 +2,62 @@ import React, { useState, useEffect } from "react";
 import { Box, Button, TextField, Typography, Paper, MenuItem, FormControl, InputLabel, Select, OutlinedInput, Grid, Alert, Divider, Tabs, Tab } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiService } from "../../api/auth";
+import Autocomplete from '@mui/material/Autocomplete';
+import { toast } from 'react-hot-toast';
+import Avatar from '@mui/material/Avatar';
+
+const US_STATES = [
+  { code: 'AL', name: 'Alabama' },
+  { code: 'AK', name: 'Alaska' },
+  { code: 'AZ', name: 'Arizona' },
+  { code: 'AR', name: 'Arkansas' },
+  { code: 'CA', name: 'California' },
+  { code: 'CO', name: 'Colorado' },
+  { code: 'CT', name: 'Connecticut' },
+  { code: 'DE', name: 'Delaware' },
+  { code: 'FL', name: 'Florida' },
+  { code: 'GA', name: 'Georgia' },
+  { code: 'HI', name: 'Hawaii' },
+  { code: 'ID', name: 'Idaho' },
+  { code: 'IL', name: 'Illinois' },
+  { code: 'IN', name: 'Indiana' },
+  { code: 'IA', name: 'Iowa' },
+  { code: 'KS', name: 'Kansas' },
+  { code: 'KY', name: 'Kentucky' },
+  { code: 'LA', name: 'Louisiana' },
+  { code: 'ME', name: 'Maine' },
+  { code: 'MD', name: 'Maryland' },
+  { code: 'MA', name: 'Massachusetts' },
+  { code: 'MI', name: 'Michigan' },
+  { code: 'MN', name: 'Minnesota' },
+  { code: 'MS', name: 'Mississippi' },
+  { code: 'MO', name: 'Missouri' },
+  { code: 'MT', name: 'Montana' },
+  { code: 'NE', name: 'Nebraska' },
+  { code: 'NV', name: 'Nevada' },
+  { code: 'NH', name: 'New Hampshire' },
+  { code: 'NJ', name: 'New Jersey' },
+  { code: 'NM', name: 'New Mexico' },
+  { code: 'NY', name: 'New York' },
+  { code: 'NC', name: 'North Carolina' },
+  { code: 'ND', name: 'North Dakota' },
+  { code: 'OH', name: 'Ohio' },
+  { code: 'OK', name: 'Oklahoma' },
+  { code: 'OR', name: 'Oregon' },
+  { code: 'PA', name: 'Pennsylvania' },
+  { code: 'RI', name: 'Rhode Island' },
+  { code: 'SC', name: 'South Carolina' },
+  { code: 'SD', name: 'South Dakota' },
+  { code: 'TN', name: 'Tennessee' },
+  { code: 'TX', name: 'Texas' },
+  { code: 'UT', name: 'Utah' },
+  { code: 'VT', name: 'Vermont' },
+  { code: 'VA', name: 'Virginia' },
+  { code: 'WA', name: 'Washington' },
+  { code: 'WV', name: 'West Virginia' },
+  { code: 'WI', name: 'Wisconsin' },
+  { code: 'WY', name: 'Wyoming' }
+];
 
 const DriverEditPage = () => {
   const { id } = useParams();
@@ -63,17 +119,21 @@ const DriverEditPage = () => {
   const [trucks, setTrucks] = useState([]);
   const [trailers, setTrailers] = useState([]);
   const [dispatchers, setDispatchers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [profilePhotoFile, setProfilePhotoFile] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [driver, trucksData, trailersData, dispatchersData] = await Promise.all([
+        const [driver, trucksData, trailersData, dispatchersData, usersData] = await Promise.all([
           ApiService.getData(`/driver/${id}/`),
           ApiService.getData('/truck/'),
           ApiService.getData('/trailer/'),
-          ApiService.getData('/dispatcher/')
+          ApiService.getData('/dispatcher/'),
+          ApiService.getData('/auth/users/')
         ]);
-
+        setAllUsers(usersData);
         setDriverData(prevData => ({
           ...prevData,
           ...driver,
@@ -81,15 +141,13 @@ const DriverEditPage = () => {
           driver_license_expiration: driver.driver_license_expiration || "",
           escrow_deposit: driver.escrow_deposit || 0
         }));
-
-        if (driver.user) {
-          const user = await ApiService.getData(`/auth/user/${driver.user}/`);
-          setUserData(prevData => ({
-            ...prevData,
-            ...user
-          }));
+        let userId = driver.user;
+        if (typeof userId === 'object' && userId !== null) userId = userId.id;
+        const user = usersData.find(u => u.id === userId);
+        if (user) {
+          setUserData(prevData => ({ ...prevData, ...user }));
+          setSelectedUser(user);
         }
-
         setTrucks(trucksData);
         setTrailers(trailersData);
         setDispatchers(dispatchersData);
@@ -123,18 +181,40 @@ const DriverEditPage = () => {
     setTabValue(newValue);
   };
 
+  const handlePhotoChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setProfilePhotoFile(e.target.files[0]);
+      setUserData(prev => ({ ...prev, profile_photo: URL.createObjectURL(e.target.files[0]) }));
+    }
+  };
+
   const handleUserSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(false);
     setLoading(true);
-    
     try {
-      await ApiService.putData(`/auth/user/${driverData.user}/`, userData);
+      if (!selectedUser || !selectedUser.id) throw new Error('User must be selected');
+      const allowedFields = [
+        'email', 'company_name', 'first_name', 'last_name', 'telephone', 'city', 'address',
+        'country', 'state', 'postal_zip', 'ext', 'fax', 'role', 'company'
+      ];
+      const cleanUserData = {};
+      allowedFields.forEach(field => {
+        if (userData[field] !== undefined) cleanUserData[field] = userData[field];
+      });
+      let formData;
+      if (profilePhotoFile) {
+        formData = new FormData();
+        Object.entries(cleanUserData).forEach(([key, value]) => formData.append(key, value));
+        formData.append('profile_photo', profilePhotoFile);
+        await ApiService.putMediaData(`/auth/users/${selectedUser.id}/`, formData);
+      } else {
+        await ApiService.putData(`/auth/users/${selectedUser.id}/`, cleanUserData);
+      }
       setSuccess(true);
       setLoading(false);
     } catch (err) {
-      console.error('Update error:', err);
       setError(err.response?.data?.detail || 'Failed to update user information. Please check your data and try again.');
       setLoading(false);
     }
@@ -145,32 +225,39 @@ const DriverEditPage = () => {
     setError(null);
     setSuccess(false);
     setLoading(true);
-    
     try {
       const updatedData = Object.keys(driverData).reduce((acc, key) => {
-        if (['assigned_truck', 'assigned_trailer', 'assigned_dispatcher'].includes(key)) {
+        if ([
+          'assigned_truck', 'assigned_trailer', 'assigned_dispatcher'
+        ].includes(key)) {
           acc[key] = driverData[key] || null;
-        }
-        else if (['tariff', 'permile', 'cost', 'payd', 'escrow_deposit'].includes(key)) {
+        } else if ([
+          'tariff', 'permile', 'cost', 'payd', 'escrow_deposit'
+        ].includes(key)) {
           acc[key] = driverData[key] === '' ? 0 : Number(driverData[key]);
-        }
-        else if (driverData[key] !== '') {
+        } else if (driverData[key] !== '') {
           acc[key] = driverData[key];
         }
         return acc;
       }, {});
-
+      updatedData.user = selectedUser?.id;
       await ApiService.putData(`/driver/${id}/`, updatedData);
       setSuccess(true);
       setLoading(false);
+      toast.success('Driver information updated successfully!');
       setTimeout(() => {
         navigate(`/driver/${id}`);
-      }, 1500);
+      }, 1200);
     } catch (err) {
-      console.error('Update error:', err);
       setError(err.response?.data?.detail || 'Failed to update driver information. Please check your data and try again.');
       setLoading(false);
     }
+  };
+
+  const getProfilePhoto = (url) => {
+    if (!url) return 'https://ui-avatars.com/api/?name=User&background=random';
+    if (url.startsWith('http')) return url;
+    return `https://api.biznes-armiya.uz${url}`;
   };
 
   if (loading) return <Typography>Loading...</Typography>;
@@ -196,22 +283,33 @@ const DriverEditPage = () => {
         </Tabs>
 
         {tabValue === 0 && (
-          <form onSubmit={handleUserSubmit}>
+          <form onSubmit={handleUserSubmit} encType="multipart/form-data">
             <Box sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>
                 User Account Information
               </Typography>
               <Divider sx={{ mb: 2 }} />
               <Grid container spacing={2}>
+                <Grid item xs={12} sm={6} md={4}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
+                    <Avatar
+                      src={profilePhotoFile ? URL.createObjectURL(profilePhotoFile) : getProfilePhoto(userData.profile_photo)}
+                      alt={userData.first_name || userData.email}
+                      sx={{ width: 80, height: 80, mb: 1, border: '2px solid #e0e0e0' }}
+                    />
+                    <Button variant="outlined" component="label" size="small">
+                      Upload Photo
+                      <input type="file" accept="image/*" hidden onChange={handlePhotoChange} />
+                    </Button>
+                  </Box>
+                </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="Email"
-                    name="email"
-                    type="email"
+                    label="User (Email)"
                     value={userData.email}
-                    onChange={handleUserChange}
-                    required
+                    InputProps={{ readOnly: true }}
+                    variant="outlined"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -339,42 +437,64 @@ const DriverEditPage = () => {
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="First Name"
-                    name="first_name"
-                    value={driverData.first_name}
+                    label="Birth Date"
+                    name="birth_date"
+                    type="date"
+                    value={driverData.birth_date}
                     onChange={handleDriverChange}
-                    required
+                    InputLabelProps={{ shrink: true }}
                   />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Employment Status</InputLabel>
+                    <Select
+                      name="employment_status"
+                      value={driverData.employment_status}
+                      onChange={handleDriverChange}
+                      input={<OutlinedInput />}
+                    >
+                      <MenuItem value="ACTIVE (DF)">ACTIVE (DF)</MenuItem>
+                      <MenuItem value="Terminate">Terminate</MenuItem>
+                      <MenuItem value="Applicant">Applicant</MenuItem>
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="Last Name"
-                    name="last_name"
-                    value={driverData.last_name}
+                    label="Telegram Username"
+                    name="telegram_username"
+                    value={driverData.telegram_username}
                     onChange={handleDriverChange}
-                    required
                   />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Driver Status</InputLabel>
+                    <Select
+                      name="driver_status"
+                      value={driverData.driver_status}
+                      onChange={handleDriverChange}
+                      input={<OutlinedInput />}
+                    >
+                      <MenuItem value="Available">Available</MenuItem>
+                      <MenuItem value="Home">Home</MenuItem>
+                      <MenuItem value="In-Transit">In-Transit</MenuItem>
+                      <MenuItem value="Inactive">Inactive</MenuItem>
+                      <MenuItem value="Shop">Shop</MenuItem>
+                      <MenuItem value="Rest">Rest</MenuItem>
+                      <MenuItem value="Dispatched">Dispatched</MenuItem>
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="Contact Number"
-                    name="contact_number"
-                    value={driverData.contact_number}
+                    label="Company Name"
+                    name="company_name"
+                    value={driverData.company_name || ''}
                     onChange={handleDriverChange}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Email Address"
-                    name="email_address"
-                    type="email"
-                    value={driverData.email_address}
-                    onChange={handleDriverChange}
-                    required
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -384,7 +504,6 @@ const DriverEditPage = () => {
                     name="driver_license_id"
                     value={driverData.driver_license_id}
                     onChange={handleDriverChange}
-                    required
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -407,64 +526,6 @@ const DriverEditPage = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Driver License State"
-                    name="driver_license_state"
-                    value={driverData.driver_license_state}
-                    onChange={handleDriverChange}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Driver License Expiration"
-                    name="driver_license_expiration"
-                    type="date"
-                    value={driverData.driver_license_expiration}
-                    onChange={handleDriverChange}
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Employment Status</InputLabel>
-                    <Select
-                      name="employment_status"
-                      value={driverData.employment_status}
-                      onChange={handleDriverChange}
-                      input={<OutlinedInput />}
-                    >
-                      <MenuItem value="ACTIVE (DF)">ACTIVE (DF)</MenuItem>
-                      <MenuItem value="Terminate">Terminate</MenuItem>
-                      <MenuItem value="Applicant">Applicant</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Driver Status</InputLabel>
-                    <Select
-                      name="driver_status"
-                      value={driverData.driver_status}
-                      onChange={handleDriverChange}
-                      input={<OutlinedInput />}
-                    >
-                      <MenuItem value="Available">Available</MenuItem>
-                      <MenuItem value="Home">Home</MenuItem>
-                      <MenuItem value="In-Transit">In-Transit</MenuItem>
-                      <MenuItem value="Inactive">Inactive</MenuItem>
-                      <MenuItem value="Shop">Shop</MenuItem>
-                      <MenuItem value="Rest">Rest</MenuItem>
-                      <MenuItem value="Dispatched">Dispatched</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={6}>
                   <FormControl fullWidth>
                     <InputLabel>Driver Type</InputLabel>
                     <Select
@@ -479,6 +540,131 @@ const DriverEditPage = () => {
                       <MenuItem value="RENTAL">Rental</MenuItem>
                     </Select>
                   </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Driver License State</InputLabel>
+                    <Select
+                      name="driver_license_state"
+                      value={driverData.driver_license_state}
+                      onChange={handleDriverChange}
+                      input={<OutlinedInput />}
+                    >
+                      {US_STATES.map((state) => (
+                        <MenuItem key={state.code} value={state.code}>
+                          {state.code} - {state.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Driver License Expiration"
+                    name="driver_license_expiration"
+                    type="date"
+                    value={driverData.driver_license_expiration}
+                    onChange={handleDriverChange}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Other ID"
+                    name="other_id"
+                    value={driverData.other_id || ''}
+                    onChange={handleDriverChange}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Notes"
+                    name="notes"
+                    value={driverData.notes || ''}
+                    onChange={handleDriverChange}
+                    multiline
+                    minRows={2}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Tariff"
+                    name="tariff"
+                    type="number"
+                    value={driverData.tariff}
+                    onChange={handleDriverChange}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="MC Number"
+                    name="mc_number"
+                    value={driverData.mc_number || ''}
+                    onChange={handleDriverChange}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Team Driver"
+                    name="team_driver"
+                    value={driverData.team_driver || ''}
+                    onChange={handleDriverChange}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Per Mile"
+                    name="permile"
+                    type="number"
+                    value={driverData.permile}
+                    onChange={handleDriverChange}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Cost"
+                    name="cost"
+                    type="number"
+                    value={driverData.cost}
+                    onChange={handleDriverChange}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Payd"
+                    name="payd"
+                    type="number"
+                    value={driverData.payd}
+                    onChange={handleDriverChange}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Escrow Deposit"
+                    name="escrow_deposit"
+                    type="number"
+                    value={driverData.escrow_deposit}
+                    onChange={handleDriverChange}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Motive ID"
+                    name="motive_id"
+                    value={driverData.motive_id || ''}
+                    onChange={handleDriverChange}
+                  />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth>
@@ -530,6 +716,15 @@ const DriverEditPage = () => {
                       ))}
                     </Select>
                   </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Driver Tags"
+                    name="driver_tags"
+                    value={driverData.driver_tags || ''}
+                    onChange={handleDriverChange}
+                  />
                 </Grid>
               </Grid>
             </Box>

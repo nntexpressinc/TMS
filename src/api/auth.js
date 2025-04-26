@@ -197,9 +197,12 @@ const ApiService = {
   },
 
   async postRegister(endpoint, data) {
+    const token = localStorage.getItem('accessToken');
     const response = await axios.post(`${BASE_URL}${endpoint}`, data, {
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : undefined,
+        'X-CSRFTOKEN': localStorage.getItem('csrfToken')
       },
     });
     return response.data;
