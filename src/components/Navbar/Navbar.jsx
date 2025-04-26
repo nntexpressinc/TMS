@@ -11,24 +11,59 @@ const Navbar = () => {
   const { t } = useTranslation();
   const { isSidebarOpen } = useSidebar();
   const [user, setUser] = useState(null);
+  const [roleName, setRoleName] = useState('');
+  const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const storedUserId = localStorage.getItem("userId");
+      const storedUserId = localStorage.getItem("userid");
       const storedAccessToken = localStorage.getItem("accessToken");
 
       if (storedUserId && storedAccessToken) {
         try {
           const data = await ApiService.getData(`/auth/users/${storedUserId}/`);
           setUser(data);
+
+          // ROL NOMINI OLIB KELISH
+          if (data.role) {
+            try {
+              const roleData = await ApiService.getData(`/auth/role/${data.role}/`);
+              setRoleName(roleData.name);
+            } catch (roleError) {
+              setRoleName('');
+            }
+          }
         } catch (error) {
-          console.error("Error fetching user data:", error);
+          setUser(null);
+          if (error.response?.status === 401) {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("userid");
+            navigate('/login');
+          }
         }
       }
     };
 
     fetchUserData();
-  }, []);
+  }, [navigate]);
+
+  // Fallback uchun avatar harfi
+  const getAvatarLetter = () => {
+    if (user) {
+      if (user.first_name) return user.first_name[0].toUpperCase();
+      if (user.email) return user.email[0].toUpperCase();
+    }
+    return 'U';
+  };
+
+  // Foydalanuvchi to'liq ismi yoki emaili
+  const getUserFullName = () => {
+    if (!user) return "Loading...";
+    if (user.first_name || user.last_name) {
+      return `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    }
+    return user.email || "No name";
+  };
 
   return (
     <AppBar 
@@ -80,7 +115,7 @@ const Navbar = () => {
               padding: '8px'
             }}
           >
-            <Badge badgeContent={4} sx={{ 
+            <Badge badgeContent={notifications.length} sx={{ 
               '& .MuiBadge-badge': {
                 backgroundColor: '#ef4444',
                 color: 'white'
@@ -106,40 +141,41 @@ const Navbar = () => {
           >
             {t('Settings')}
           </Button>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            gap: 2,
-            cursor: 'pointer',
-            padding: '6px 12px',
-            borderRadius: '12px',
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.2)'
-            }
-          }} onClick={() => navigate('/profile')}>
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              gap: 2,
+              padding: '6px 12px',
+              borderRadius: '12px',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            }}
+          >
             <Avatar 
               alt="User Profile" 
-              src={user?.profile_photo || "/static/images/avatar/1.jpg"}
+              src={user?.profile_photo || ""}
               sx={{ 
                 width: 36,
                 height: 36,
-                border: '2px solid rgba(255, 255, 255, 0.2)'
+                border: '2px solid rgba(255, 255, 255, 0.2)',
+                bgcolor: '#888'
               }}
-            />
+            >
+              {!user?.profile_photo && getAvatarLetter()}
+            </Avatar>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
               <Typography sx={{ 
                 fontSize: '0.875rem',
                 fontWeight: 500,
                 color: '#ffffff'
               }}>
-                {user ? `${user.first_name} ${user.last_name}` : "Loading..."}
+                {getUserFullName()}
               </Typography>
               <Typography sx={{ 
                 fontSize: '0.75rem',
                 color: 'rgba(255, 255, 255, 0.7)'
               }}>
-                {user?.role || "Admin"}
+                {user ? (roleName || "Loading...") : "Loading..."}
               </Typography>
             </Box>
           </Box>

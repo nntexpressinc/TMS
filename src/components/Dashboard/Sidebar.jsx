@@ -109,12 +109,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       icon: <MdAccountBalance />,
       link: "/accounting",
     },
-    {
-      id: 10,
-      title: t("Profile"),
-      icon: <MdOutlineSupervisedUserCircle />,
-      link: "/profile",
-    },
+    // {kodni 
+    //   id: 10,
+    //   title: t("Profile"),
+    //   icon: <MdOutlineSupervisedUserCircle />,
+    //   link: "/profile",
+    // },
     {
       id: 11,
       title: t("Manage"),
