@@ -283,6 +283,19 @@ const ManageUsersPage = () => {
     return users.filter(user => user.role === roleId);
   };
 
+  // Update this function to use the correct backend URL
+  const getProfilePhotoUrl = (photoPath) => {
+    if (!photoPath) return defaultAvatar;
+    
+    // If the path is already a full URL, return it as is
+    if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) {
+      return photoPath;
+    }
+    
+    // Use the BASE_URL from auth.js
+    return `https://api.biznes-armiya.uz${photoPath}`;
+  };
+
   return (
     <div className="manage-users-container">
       <div className="page-header">
@@ -361,11 +374,14 @@ const ManageUsersPage = () => {
                     <td className="user-info-cell">
                       <div className="user-info">
                         <div className="user-avatar">
-                          {user.profile_photo ? (
-                            <img src={user.profile_photo} alt={user.first_name || 'No name'} />
-                          ) : (
-                            <img src={defaultAvatar} alt="Default avatar" className="default-avatar" />
-                          )}
+                          <img 
+                            src={getProfilePhotoUrl(user.profile_photo)}
+                            alt={user.first_name || 'User avatar'} 
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = defaultAvatar;
+                            }}
+                          />
                         </div>
                         <div className="user-details">
                           <h3>{user.first_name && user.last_name 
