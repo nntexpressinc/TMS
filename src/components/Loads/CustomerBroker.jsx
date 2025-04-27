@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, TextField, Typography, MenuItem, Select, FormControl, InputLabel, Paper, Button, OutlinedInput, Divider } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { ApiService } from '../../api/auth';
-import { ENDPOINTS } from '../../constants/endpoints';
+import { ApiService, ENDPOINTS } from '../../api/auth';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;

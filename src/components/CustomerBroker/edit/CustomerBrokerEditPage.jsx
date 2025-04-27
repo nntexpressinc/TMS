@@ -18,11 +18,10 @@ import {
   Tooltip,
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ApiService } from '../../../api/auth';
+import { ApiService, ENDPOINTS } from '../../../api/auth';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import { toast } from 'react-hot-toast';
-import { ENDPOINTS } from '../../../constants/endpoints';
 
 const CustomerBrokerEditPage = () => {
   const { id } = useParams();

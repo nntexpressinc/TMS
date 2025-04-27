@@ -253,6 +253,16 @@ const ApiService = {
     }
   },
 
+  // Login xatosi uchun qo'shimcha funksiya
+  postRegister: async (endpoint, data) => {
+    try {
+      const response = await axios.post(`${BASE_URL}${endpoint}`, data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
   refreshToken: async () => {
     try {
       const refreshToken = localStorage.getItem('refreshToken');

@@ -17,6 +17,7 @@
     "ajv-keywords": "^5.1.0",
     "axios": "^1.6.7",
     "cra-template": "1.2.0",
+    "emoji-picker-react": "^4.12.2",
     "file-saver": "^2.0.5",
     "js-cookie": "^3.0.5",
     "material-table": "^1.69.3",

@@ -56,6 +56,12 @@ const Navbar = () => {
     return 'U';
   };
 
+  // Format profile photo URL to use production API
+  const getFormattedProfilePhotoUrl = (url) => {
+    if (!url) return "";
+    return url.replace('https://0.0.0.0:8000/', 'https://api.biznes-armiya.uz/');
+  };
+
   // Foydalanuvchi to'liq ismi yoki emaili
   const getUserFullName = () => {
     if (!user) return "Loading...";
@@ -153,7 +159,7 @@ const Navbar = () => {
           >
             <Avatar 
               alt="User Profile" 
-              src={user?.profile_photo || ""}
+              src={user?.profile_photo ? getFormattedProfilePhotoUrl(user.profile_photo) : ""}
               sx={{ 
                 width: 36,
                 height: 36,

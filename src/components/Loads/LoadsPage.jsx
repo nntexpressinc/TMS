@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Typography, Box, Button, TextField, MenuItem, InputAdornment, Chip, IconButton, Menu, Popover, Tooltip } from "@mui/material";
+import { Typography, Box, Button, TextField, MenuItem, InputAdornment, Chip, IconButton, Menu, Popover, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, FormControl, InputLabel, Select, Grid, Alert, Snackbar, CircularProgress } from "@mui/material";
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { ApiService } from "../../api/auth";
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +9,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import AddIcon from '@mui/icons-material/Add';
+import BusinessIcon from '@mui/icons-material/Business';
 import {
   MdLocalShipping,
   MdDirectionsCar,
@@ -23,6 +25,376 @@ import {
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 
+// CreateLoadModal komponenti
+const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
+  const [loadData, setLoadData] = useState({
+    reference_id: "",
+    customer_broker: null
+  });
+  const [brokers, setBrokers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showBrokerModal, setShowBrokerModal] = useState(false);
+  const [newBroker, setNewBroker] = useState({
+    company_name: "",
+    contact_number: "",
+    email_address: "",
+    mc_number: "",
+    address1: "",
+    address2: "",
+    country: "USA",
+    state: "",
+    city: "",
+    zip_code: "",
+    billing_type: "NONE"
+  });
+
+  useEffect(() => {
+    const fetchBrokers = async () => {
+      try {
+        const data = await ApiService.getData("/customer_broker/");
+        setBrokers(data);
+      } catch (error) {
+        console.error("Error fetching brokers:", error);
+        setError("Failed to load brokers. Please try again.");
+      }
+    };
+
+    if (open) {
+      fetchBrokers();
+    }
+  }, [open]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setLoadData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleBrokerChange = (event, newValue) => {
+    setLoadData(prev => ({
+      ...prev,
+      customer_broker: newValue
+    }));
+  };
+
+  const handleCreateLoad = async () => {
+    if (!loadData.reference_id || !loadData.customer_broker) {
+      setError("Reference ID and Customer/Broker are required");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await ApiService.postData("/load/", {
+        reference_id: loadData.reference_id,
+        customer_broker: loadData.customer_broker.id,
+        load_status: "OPEN", // Default status
+        company_name: loadData.customer_broker.company_name // Additional data
+      });
+      
+      console.log("Load created:", response);
+      onCreateSuccess(response);
+      onClose();
+    } catch (error) {
+      console.error("Error creating load:", error);
+      setError("Failed to create load. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddBroker = () => {
+    setShowBrokerModal(true);
+  };
+
+  const handleCloseBrokerModal = () => {
+    setShowBrokerModal(false);
+  };
+
+  const handleBrokerFormChange = (e) => {
+    const { name, value } = e.target;
+    setNewBroker(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSaveBroker = async () => {
+    if (!newBroker.company_name || !newBroker.mc_number) {
+      setError("Company name and MC number are required");
+      return;
+    }
+    
+    try {
+      // Convert numeric strings to numbers
+      const formattedData = {
+        ...newBroker,
+        contact_number: newBroker.contact_number ? parseInt(newBroker.contact_number) : null,
+        zip_code: newBroker.zip_code ? parseInt(newBroker.zip_code) : null
+      };
+      
+      const response = await ApiService.postData("/customer_broker/", formattedData);
+      setBrokers(prev => [...prev, response]);
+      setLoadData(prev => ({
+        ...prev,
+        customer_broker: response
+      }));
+      setShowBrokerModal(false);
+      setNewBroker({
+        company_name: "",
+        contact_number: "",
+        email_address: "",
+        mc_number: "",
+        address1: "",
+        address2: "",
+        country: "USA",
+        state: "",
+        city: "",
+        zip_code: "",
+        billing_type: "NONE"
+      });
+    } catch (error) {
+      console.error("Error creating broker:", error);
+      setError("Failed to create broker. Please try again.");
+    }
+  };
+
+  return (
+    <>
+      <Dialog 
+        open={open} 
+        onClose={onClose} 
+        maxWidth="sm" 
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <MdLocalShipping size={24} color="#3B82F6" />
+            <Typography variant="h6">Create New Load</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Reference ID"
+                name="reference_id"
+                value={loadData.reference_id}
+                onChange={handleChange}
+                required
+                error={!loadData.reference_id}
+                helperText={!loadData.reference_id ? "Reference ID is required" : ""}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                <Autocomplete
+                  fullWidth
+                  options={brokers}
+                  getOptionLabel={(option) => option.company_name || ""}
+                  value={loadData.customer_broker}
+                  onChange={handleBrokerChange}
+                  renderInput={(params) => (
+                    <TextField 
+                      {...params} 
+                      label="Customer/Broker" 
+                      required
+                      error={!loadData.customer_broker}
+                      helperText={!loadData.customer_broker ? "Customer/Broker is required" : ""}
+                    />
+                  )}
+                  renderOption={(props, option) => (
+                    <li {...props}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="body1">{option.company_name}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          MC: {option.mc_number} | {option.email_address}
+                        </Typography>
+                      </Box>
+                    </li>
+                  )}
+                />
+                <IconButton 
+                  color="primary"
+                  onClick={handleAddBroker}
+                  sx={{ mt: 1 }}
+                >
+                  <AddIcon />
+                </IconButton>
+              </Box>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button 
+            variant="contained" 
+            onClick={handleCreateLoad}
+            disabled={loading || !loadData.reference_id || !loadData.customer_broker}
+            startIcon={loading ? <CircularProgress size={20} /> : <AddIcon />}
+          >
+            Create Load
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Broker creation modal */}
+      <Dialog
+        open={showBrokerModal}
+        onClose={handleCloseBrokerModal}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <BusinessIcon color="primary" />
+            <Typography variant="h6">Add New Broker</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Company Name"
+                name="company_name"
+                value={newBroker.company_name}
+                onChange={handleBrokerFormChange}
+                required
+                error={!newBroker.company_name}
+                helperText={!newBroker.company_name ? "Company name is required" : ""}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="MC Number"
+                name="mc_number"
+                value={newBroker.mc_number}
+                onChange={handleBrokerFormChange}
+                required
+                error={!newBroker.mc_number}
+                helperText={!newBroker.mc_number ? "MC Number is required" : ""}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Contact Number"
+                name="contact_number"
+                value={newBroker.contact_number}
+                onChange={handleBrokerFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Email Address"
+                name="email_address"
+                type="email"
+                value={newBroker.email_address}
+                onChange={handleBrokerFormChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Address Line 1"
+                name="address1"
+                value={newBroker.address1}
+                onChange={handleBrokerFormChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Address Line 2"
+                name="address2"
+                value={newBroker.address2}
+                onChange={handleBrokerFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="City"
+                name="city"
+                value={newBroker.city}
+                onChange={handleBrokerFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>State</InputLabel>
+                <Select
+                  name="state"
+                  value={newBroker.state}
+                  onChange={handleBrokerFormChange}
+                  label="State"
+                >
+                  {['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+                    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+                    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+                    'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+                    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'].map(state => (
+                    <MenuItem key={state} value={state}>{state}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="ZIP Code"
+                name="zip_code"
+                value={newBroker.zip_code}
+                onChange={handleBrokerFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Billing Type</InputLabel>
+                <Select
+                  name="billing_type"
+                  value={newBroker.billing_type}
+                  onChange={handleBrokerFormChange}
+                  label="Billing Type"
+                >
+                  <MenuItem value="NONE">None</MenuItem>
+                  <MenuItem value="FACTORING_COMPANY">Factoring Company</MenuItem>
+                  <MenuItem value="EMAIL">Email</MenuItem>
+                  <MenuItem value="MANUAL">Manual</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseBrokerModal}>Cancel</Button>
+          <Button 
+            variant="contained" 
+            onClick={handleSaveBroker}
+            disabled={!newBroker.company_name || !newBroker.mc_number}
+          >
+            Save Broker
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
 const LoadsPage = () => {
   const [loads, setLoads] = useState([]);
   const [filteredLoads, setFilteredLoads] = useState([]);
@@ -31,6 +403,7 @@ const LoadsPage = () => {
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [filterAnchorEl, setFilterAnchorEl] = useState(null);
   const [selectedRow, setSelectedRow] = useState(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const tableRef = useRef(null);
   const navigate = useNavigate();
   const { isSidebarOpen } = useSidebar();
@@ -194,7 +567,15 @@ const LoadsPage = () => {
   }, [searchTerm, searchCategory, loads]);
 
   const handleCreateLoad = () => {
-    navigate('/loads/create');
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+  };
+
+  const handleCreateLoadSuccess = (newLoad) => {
+    navigate(`/loads/view/${newLoad.id}`);
   };
 
   const handleEditLoad = (loadId) => {
@@ -546,7 +927,7 @@ const LoadsPage = () => {
         <Typography variant="h5" gutterBottom>
           Loads
         </Typography>
-        <Box sx={{
+           <Box sx={{
           display: 'flex',
           width: '80%',
           gap: 2,
@@ -608,11 +989,18 @@ const LoadsPage = () => {
           >
             <FilterListIcon />
           </IconButton>
-        </Box>
-        <Button variant="contained" color="primary" onClick={handleCreateLoad}>
-          Create Load
-        </Button>
       </Box>
+          <Button variant="contained" color="primary" onClick={handleCreateLoad}>
+            Create Load
+          </Button>
+      </Box>
+
+      <CreateLoadModal
+        open={isCreateModalOpen}
+        onClose={handleCloseCreateModal}
+        onCreateSuccess={handleCreateLoadSuccess}
+      />
+
       <Box sx={{
         display: 'flex',
         gap: 1,
@@ -719,6 +1107,7 @@ const LoadsPage = () => {
           />
         </Box>
       </Box>
+      
       <Popover
         open={Boolean(filterAnchorEl)}
         anchorEl={filterAnchorEl}

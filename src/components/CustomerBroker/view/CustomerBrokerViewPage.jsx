@@ -13,7 +13,7 @@ import {
   Chip,
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ApiService } from '../../../api/auth';
+import { ApiService, ENDPOINTS } from '../../../api/auth';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -21,7 +21,6 @@ import { toast } from 'react-hot-toast';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { ENDPOINTS } from '../../../constants/endpoints';
 
 const CustomerBrokerViewPage = () => {
   const { id } = useParams();
