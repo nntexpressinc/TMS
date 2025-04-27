@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, TextField, Typography, MenuItem, Select, FormControl, InputLabel, Paper, Button, OutlinedInput, Divider } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { ApiService } from '../../api/auth';
+import { ENDPOINTS } from '../../constants/endpoints';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -23,7 +24,7 @@ const CustomerBroker = ({ loadData, handleChange, showCustomerForm, handleToggle
       const storedAccessToken = localStorage.getItem("accessToken");
       if (storedAccessToken) {
         try {
-          const data = await ApiService.getData(`/customer_broker/`, storedAccessToken);
+          const data = await ApiService.getData(ENDPOINTS.CUSTOMER_BROKER, storedAccessToken);
           setBrokers(data);
         } catch (error) {
           console.error("Error fetching brokers:", error);
@@ -48,7 +49,7 @@ const CustomerBroker = ({ loadData, handleChange, showCustomerForm, handleToggle
     formData.append("zip_code", loadData.new_customer_zip_code || "");
 
     try {
-      const response = await ApiService.postData("/customer_broker/", formData);
+      const response = await ApiService.postData(ENDPOINTS.CUSTOMER_BROKER, formData);
       setBrokers([...brokers, response]);
       handleChange({ target: { name: 'customer_broker', value: response.id } });
       handleToggleCustomerForm();

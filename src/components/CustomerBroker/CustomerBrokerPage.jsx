@@ -55,7 +55,7 @@ const CustomerBrokerPage = () => {
       const storedAccessToken = localStorage.getItem("accessToken");
       if (storedAccessToken) {
         try {
-          const data = await ApiService.getData(`/customer_broker/`, storedAccessToken);
+          const data = await ApiService.getData(ENDPOINTS.CUSTOMER_BROKER, storedAccessToken);
           setCustomerBrokers(data);
           setFilteredCustomerBrokers(data);
         } catch (error) {

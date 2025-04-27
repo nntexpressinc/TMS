@@ -3,6 +3,58 @@ import axios from 'axios';
 
 const BASE_URL = 'https://api.biznes-armiya.uz/api';
 
+// API endpoints
+const ENDPOINTS = {
+  // Auth
+  LOGIN: '/auth/login/',
+  REGISTER: '/auth/register/',
+  REFRESH_TOKEN: '/auth/token/refresh/',
+  VERIFY_TOKEN: '/auth/token/verify/',
+  
+  // Load management
+  LOADS: '/load/',
+  LOAD_DETAIL: (id) => `/load/${id}/`,
+  LOAD_STATUS: (id) => `/load/${id}/status/`,
+  LOAD_DOCUMENTS: (id) => `/load/${id}/documents/`,
+  LOAD_CHAT: (id) => `/load/${id}/chat/`,
+  
+  // User management
+  USERS: '/user/',
+  USER_DETAIL: (id) => `/user/${id}/`,
+  USER_PROFILE: '/user/profile/',
+  
+  // Driver management
+  DRIVERS: '/driver/',
+  DRIVER_DETAIL: (id) => `/driver/${id}/`,
+  DRIVER_DOCUMENTS: (id) => `/driver/${id}/documents/`,
+  DRIVER_LOADS: (id) => `/driver/${id}/loads/`,
+  
+  // Dispatcher management
+  DISPATCHERS: '/dispatcher/',
+  DISPATCHER_DETAIL: (id) => `/dispatcher/${id}/`,
+  DISPATCHER_LOADS: (id) => `/dispatcher/${id}/loads/`,
+  
+  // Customer/Broker management
+  CUSTOMER_BROKER: '/customer_broker/',
+  CUSTOMER_BROKER_DETAIL: (id) => `/customer_broker/${id}/`,
+  
+  // Chat
+  CHAT: '/chat/',
+  CHAT_MESSAGES: (id) => `/chat/${id}/messages/`,
+  
+  // Documents
+  DOCUMENTS: '/document/',
+  DOCUMENT_DETAIL: (id) => `/document/${id}/`,
+  
+  // Reports
+  REPORTS: '/report/',
+  REPORT_DETAIL: (id) => `/report/${id}/`,
+  
+  // Settings
+  SETTINGS: '/settings/',
+  COMPANY_SETTINGS: '/settings/company/',
+};
+
 const ApiService = {
   getData: async (endpoint) => {
     try {
@@ -109,7 +161,7 @@ const ApiService = {
     }
   },
 
-  async postMediaData(endpoint, data) {
+  postMediaData: async (endpoint, data) => {
     try {
       const token = localStorage.getItem('accessToken');
       if (!token) {
@@ -132,7 +184,7 @@ const ApiService = {
     }
   },
 
-  async putMediaData(endpoint, data) {
+  putMediaData: async (endpoint, data) => {
     try {
       const token = localStorage.getItem('accessToken');
       if (!token) {
@@ -155,7 +207,7 @@ const ApiService = {
     }
   },
 
-  async patchMediaData(endpoint, data) {
+  patchMediaData: async (endpoint, data) => {
     try {
       const token = localStorage.getItem('accessToken');
       if (!token) {
@@ -178,33 +230,60 @@ const ApiService = {
     }
   },
 
-  async postRegisterData(endpoint, data) {
-    const response = await axios.post(`${BASE_URL}${endpoint}`, data, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    return response.data;
+  // Auth related methods
+  login: async (credentials) => {
+    try {
+      const response = await axios.post(`${BASE_URL}${ENDPOINTS.LOGIN}`, credentials);
+      if (response.data.access) {
+        localStorage.setItem('accessToken', response.data.access);
+        localStorage.setItem('refreshToken', response.data.refresh);
+      }
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
   },
 
-  async getRegisterData(endpoint) {
-    const response = await axios.get(`${BASE_URL}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    return response.data;
+  register: async (userData) => {
+    try {
+      const response = await axios.post(`${BASE_URL}${ENDPOINTS.REGISTER}`, userData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
   },
 
-  async postRegister(endpoint, data) {
-    const token = localStorage.getItem('accessToken');
-    const isFormData = data instanceof FormData;
-    const headers = isFormData
-      ? { Authorization: token ? `Bearer ${token}` : undefined, 'X-CSRFTOKEN': localStorage.getItem('csrfToken') }
-      : { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : undefined, 'X-CSRFTOKEN': localStorage.getItem('csrfToken') };
-    const response = await axios.post(`${BASE_URL}${endpoint}`, data, { headers });
-    return response.data;
+  refreshToken: async () => {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        throw new Error('No refresh token found');
+      }
+      const response = await axios.post(`${BASE_URL}${ENDPOINTS.REFRESH_TOKEN}`, {
+        refresh: refreshToken
+      });
+      if (response.data.access) {
+        localStorage.setItem('accessToken', response.data.access);
+      }
+      return response.data;
+    } catch (error) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      window.location.href = '/login';
+      throw error.response?.data || error.message;
+    }
   },
+
+  verifyToken: async (token) => {
+    try {
+      const response = await axios.post(`${BASE_URL}${ENDPOINTS.VERIFY_TOKEN}`, {
+        token
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  }
 };
 
-export { ApiService };
+export { ApiService, ENDPOINTS };

@@ -22,6 +22,7 @@ import { ApiService } from '../../../api/auth';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import { toast } from 'react-hot-toast';
+import { ENDPOINTS } from '../../../constants/endpoints';
 
 const CustomerBrokerEditPage = () => {
   const { id } = useParams();
@@ -108,7 +109,7 @@ const CustomerBrokerEditPage = () => {
   useEffect(() => {
     const fetchBroker = async () => {
       try {
-        const data = await ApiService.getData(`/customer_broker/${id}/`);
+        const data = await ApiService.getData(ENDPOINTS.CUSTOMER_BROKER_DETAIL(id));
         setFormData(data);
       } catch (error) {
         setError('Error loading broker details: ' + error.message);
@@ -147,7 +148,7 @@ const CustomerBrokerEditPage = () => {
         zip_code: parseInt(formData.zip_code) || null,
       };
 
-      await ApiService.putData(`/customer_broker/${id}/`, formattedData);
+      await ApiService.putData(ENDPOINTS.CUSTOMER_BROKER_DETAIL(id), formattedData);
       toast.success('Broker updated successfully');
       navigate(`/customer_broker/${id}`);
     } catch (error) {

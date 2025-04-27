@@ -21,6 +21,7 @@ import { toast } from 'react-hot-toast';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { ENDPOINTS } from '../../../constants/endpoints';
 
 const CustomerBrokerViewPage = () => {
   const { id } = useParams();
@@ -31,7 +32,7 @@ const CustomerBrokerViewPage = () => {
   useEffect(() => {
     const fetchBroker = async () => {
       try {
-        const data = await ApiService.getData(`/customer_broker/${id}/`);
+        const data = await ApiService.getData(ENDPOINTS.CUSTOMER_BROKER_DETAIL(id));
         setBroker(data);
       } catch (error) {
         toast.error('Error loading broker details: ' + error.message);
@@ -46,7 +47,7 @@ const CustomerBrokerViewPage = () => {
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this broker?')) {
       try {
-        await ApiService.deleteData(`/customer_broker/${id}/`);
+        await ApiService.deleteData(ENDPOINTS.CUSTOMER_BROKER_DETAIL(id));
         toast.success('Broker deleted successfully');
         navigate('/customer_broker');
       } catch (error) {
