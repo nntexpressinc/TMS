@@ -83,7 +83,7 @@ const LoginPage = () => {
     try {
       // 1. Login so'rovi
       const data = { email, password };
-      const response = await ApiService.postRegister("/auth/login/", data);
+      const response = await ApiService.login(data);
       console.log("Login Response:", response);
 
       // Tokenlarni saqlash
