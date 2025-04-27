@@ -156,7 +156,15 @@ const EmployeeCreatePage = () => {
       userFormData.append('country', userData.country);
       userFormData.append('state', userData.state);
       userFormData.append('postal_zip', userData.postal_zip);
-      userFormData.append('ext', userData.ext || '');
+      
+      // ext maydonini faqat raqam bo'lgan holatda qo'shamiz
+      if (userData.ext && userData.ext.trim() !== '') {
+        const extValue = parseInt(userData.ext);
+        if (!isNaN(extValue)) {
+          userFormData.append('ext', extValue);
+        }
+      }
+      
       userFormData.append('fax', userData.fax || '');
       userFormData.append('role', userData.role);
       userFormData.append('password', userData.password);

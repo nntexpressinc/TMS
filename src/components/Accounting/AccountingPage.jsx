@@ -128,7 +128,7 @@ const AccountingPage = () => {
                 <option value="">{t('Select driver')}</option>
                 {drivers.map((driver) => (
                   <option key={driver.id} value={driver.id}>
-                    {driver.first_name} {driver.last_name}
+                    {driver.user?.first_name || ''} {driver.user?.last_name || ''}
                   </option>
                 ))}
               </select>

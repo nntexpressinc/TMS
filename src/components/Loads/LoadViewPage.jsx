@@ -25,7 +25,13 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  InputAdornment
+  InputAdornment,
+  Grid,
+  Autocomplete,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import {
@@ -38,8 +44,27 @@ import {
   Image,
   Download,
   PictureAsPdf,
-  LocalShipping
+  LocalShipping,
+  ArrowBack,
+  Refresh as RefreshIcon,
+  Add as AddIcon,
+  Business as BusinessIcon,
+  Check,
+  Save as SaveIcon,
+  Visibility,
+  FileUpload,
+  Description,
+  PersonOutline,
+  DriveEta,
+  Info,
+  DocumentScanner,
+  GetApp,
+  AttachMoney,
+  Save,
+  Close,
+  Delete
 } from "@mui/icons-material";
+import { MdFileUpload, MdFileDownload, MdLocalShipping, MdDirectionsCar, MdAssignmentTurnedIn, MdDoneAll, MdAltRoute, MdCheckCircle, MdHome } from 'react-icons/md';
 import { ApiService } from "../../api/auth";
 import { useSidebar } from "../SidebarContext";
 import darkLogo from '../../images/dark-logo.png';
@@ -133,33 +158,6 @@ const LocationInput = styled(Box)(({ theme }) => ({
   },
   "& input": {
     paddingLeft: "35px",
-  }
-}));
-
-const ChatContainer = styled(Box)(({ theme }) => ({
-  flex: 1,
-  display: "flex",
-  flexDirection: "column",
-  overflowY: "auto",
-  padding: theme.spacing(2),
-  backgroundColor: "#f8f9fa",
-  backgroundImage: `url(${darkLogo})`,
-  backgroundRepeat: 'repeat',
-  backgroundSize: '50px',
-  backgroundPosition: 'center',
-  position: 'relative',
-  borderRadius: theme.spacing(1),
-  margin: theme.spacing(0, 2),
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(248, 249, 250, 0.85)',
-    backdropFilter: 'blur(2px)',
-    borderRadius: theme.spacing(1),
   }
 }));
 
@@ -353,6 +351,768 @@ const EditIconButton = styled(IconButton)(({ theme }) => ({
   zIndex: 1,
 }));
 
+const LeftPanel = styled(Panel)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  overflow: "hidden", // Keep outer container from scrolling
+  maxHeight: "calc(100vh - 64px)", // Set max height to viewport height minus header
+  "& > :first-of-type": {
+    flex: "0 0 auto" // Keep header from scrolling
+  }
+}));
+
+const LeftPanelContent = styled(Box)(({ theme }) => ({
+  flex: 1,
+  overflowY: "auto", // Make content scrollable
+  padding: theme.spacing(0, 2, 2),
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(2)
+}));
+
+const MiddlePanel = styled(Panel)(({ theme }) => ({
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(2),
+  position: 'relative',
+  overflow: 'hidden'
+}));
+
+const RightPanel = styled(Panel)(({ theme }) => ({
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  gap: theme.spacing(2),
+}));
+
+const ArrowBackIcon = styled(ArrowBack)(({ theme }) => ({
+  color: theme.palette.text.primary,
+}));
+
+const StatusProgressContainer = styled(Box)(({ theme }) => ({
+  display: "flex",
+  marginBottom: theme.spacing(2),
+  padding: theme.spacing(2),
+  backgroundColor: theme.palette.background.paper,
+  borderRadius: theme.spacing(1),
+  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+  overflowX: "auto",
+  position: "relative",
+  "&::before": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "30px",
+    height: "100%",
+    background: "linear-gradient(to right, rgba(255,255,255,1), rgba(255,255,255,0))",
+    zIndex: 1,
+    pointerEvents: "none",
+  },
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    right: 0,
+    width: "30px",
+    height: "100%",
+    background: "linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0))",
+    zIndex: 1,
+    pointerEvents: "none",
+  }
+}));
+
+const StatusProgressTrack = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  padding: theme.spacing(1, 0),
+  minWidth: "max-content",
+}));
+
+const StatusProgressItem = styled(Box)(({ theme, active, completed }) => ({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  position: "relative",
+  padding: theme.spacing(1),
+  marginRight: theme.spacing(4),
+  width: 80,
+  "&:not(:last-child)::after": {
+    content: '""',
+    position: "absolute",
+    left: 40,
+    top: 12,
+    height: 2,
+    width: 80,
+    backgroundColor: completed ? theme.palette.primary.main : theme.palette.grey[300],
+  }
+}));
+
+const StatusDot = styled(Box)(({ theme, active, completed }) => ({
+  width: 24,
+  height: 24,
+  borderRadius: "50%",
+  backgroundColor: active 
+    ? theme.palette.primary.main 
+    : completed 
+      ? theme.palette.success.main 
+      : theme.palette.grey[300],
+  color: active || completed ? "white" : theme.palette.text.secondary,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "0.75rem",
+  marginBottom: theme.spacing(1),
+  zIndex: 1,
+  boxShadow: active ? "0 0 0 4px rgba(25, 118, 210, 0.2)" : "none",
+}));
+
+const StatusLabel = styled(Typography)(({ theme, active, completed }) => ({
+  fontWeight: active ? 600 : completed ? 500 : 400,
+  color: active 
+    ? theme.palette.primary.main 
+    : completed 
+      ? theme.palette.text.primary 
+      : theme.palette.text.secondary,
+  fontSize: "0.75rem",
+  textAlign: "center",
+  maxWidth: "100%",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap"
+}));
+
+const DetailCard = styled(Box)(({ theme }) => ({
+  backgroundColor: theme.palette.background.paper,
+  borderRadius: theme.spacing(1),
+  padding: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+}));
+
+const InfoRow = styled(Box)(({ theme }) => ({
+  display: "flex",
+  marginBottom: theme.spacing(1),
+  alignItems: "center",
+}));
+
+const StopsContainer = styled(Box)(({ theme }) => ({
+  backgroundColor: theme.palette.background.paper,
+  borderRadius: theme.spacing(1),
+  padding: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+}));
+
+const StopItem = styled(Box)(({ theme, isPickup, isCompact }) => ({
+  display: "flex",
+  borderLeft: `2px solid ${isPickup ? theme.palette.success.main : theme.palette.error.main}`,
+  paddingLeft: theme.spacing(2),
+  marginBottom: theme.spacing(isCompact ? 0.75 : 1.5),
+  position: "relative",
+  "&:not(:last-child)::after": {
+    content: '""',
+    position: "absolute",
+    left: -1,
+    top: 24,
+    bottom: isCompact ? -8 : -12,
+    width: 2,
+    backgroundColor: theme.palette.grey[300],
+  }
+}));
+
+const StopIconContainer = styled(Box)(({ theme, isPickup, isCompact }) => ({
+  backgroundColor: isPickup ? "rgba(76, 175, 80, 0.1)" : "rgba(244, 67, 54, 0.1)",
+  borderRadius: "50%",
+  width: isCompact ? 28 : 36,
+  height: isCompact ? 28 : 36,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginRight: theme.spacing(isCompact ? 1 : 2),
+  "& svg": {
+    color: isPickup ? theme.palette.success.main : theme.palette.error.main,
+    fontSize: isCompact ? '0.875rem' : '1.25rem'
+  }
+}));
+
+const StopDetails = styled(Box)(({ theme }) => ({
+  flex: 1,
+}));
+
+const StopHeader = styled(Box)(({ theme }) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  marginBottom: theme.spacing(0.5),
+}));
+
+const StopAddress = styled(Typography)(({ theme }) => ({
+  fontWeight: 500,
+  fontSize: "0.875rem",
+}));
+
+const StopDate = styled(Typography)(({ theme }) => ({
+  fontSize: "0.75rem",
+  color: theme.palette.text.secondary,
+}));
+
+const StopsHeader = styled(Box)(({ theme }) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: theme.spacing(2)
+}));
+
+const StopEditContainer = styled(Box)(({ theme }) => ({
+  border: `1px solid ${theme.palette.divider}`,
+  borderRadius: theme.spacing(1),
+  padding: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+  backgroundColor: theme.palette.background.paper
+}));
+
+const StopButtonGroup = styled(Box)(({ theme }) => ({
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: theme.spacing(1),
+  marginTop: theme.spacing(2)
+}));
+
+// Add new styled component for the status selector
+const StatusSelector = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  flex: 1,
+  justifyContent: 'center',
+  marginLeft: theme.spacing(2),
+  marginRight: theme.spacing(2)
+}));
+
+const StatusIconContainer = styled(Box)(({ theme, color }) => ({
+  backgroundColor: color ? `${color}15` : theme.palette.grey[100],
+  borderRadius: '50%',
+  width: 28,
+  height: 28,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginRight: theme.spacing(1),
+  '& svg': {
+    color: color || theme.palette.grey[700],
+    fontSize: '1rem'
+  }
+}));
+
+const InfoCard = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+  borderRadius: theme.spacing(1),
+  boxShadow: 'none',
+  border: `1px solid ${theme.palette.divider}`,
+}));
+
+const InfoCardHeader = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: theme.spacing(2),
+}));
+
+const InfoCardTitle = styled(Typography)(({ theme }) => ({
+  fontWeight: 600,
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(1),
+  fontSize: '0.95rem',
+  '& svg': {
+    fontSize: '1.1rem',
+    opacity: 0.9,
+    color: theme.palette.primary.main,
+  }
+}));
+
+const DetailItem = styled(Box)(({ theme, noBorder }) => ({
+  display: 'flex',
+  padding: theme.spacing(1, 0),
+  borderBottom: noBorder ? 'none' : `1px solid ${theme.palette.divider}`,
+  '&:last-child': {
+    borderBottom: 'none',
+  }
+}));
+
+const DetailLabel = styled(Typography)(({ theme }) => ({
+  width: '140px',
+  fontSize: '0.875rem',
+  color: theme.palette.text.secondary,
+  fontWeight: 500,
+}));
+
+const DetailValue = styled(Typography)(({ theme }) => ({
+  flex: 1,
+  fontSize: '0.875rem',
+  fontWeight: 400,
+}));
+
+const FileItem = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  padding: theme.spacing(1, 0),
+  borderBottom: `1px solid ${theme.palette.divider}`,
+  '&:last-child': {
+    borderBottom: 'none',
+  },
+}));
+
+const FileIcon = styled(Box)(({ theme, fileType }) => {
+  const getColor = () => {
+    switch (fileType) {
+      case 'pdf': return '#F44336';
+      case 'image': return '#4CAF50';
+      case 'doc': return '#2196F3';
+      case 'excel': return '#4CAF50';
+      default: return theme.palette.text.secondary;
+    }
+  };
+  
+  return {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 32,
+    height: 32,
+    borderRadius: '4px',
+    backgroundColor: `${getColor()}10`,
+    marginRight: theme.spacing(1.5),
+    '& svg': {
+      color: getColor(),
+      fontSize: '1.2rem',
+    }
+  };
+});
+
+const FileDetails = styled(Box)(({ theme }) => ({
+  flex: 1,
+  minWidth: 0,
+}));
+
+const FileName = styled(Typography)(({ theme }) => ({
+  fontSize: '0.875rem',
+  fontWeight: 500,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+}));
+
+const FileInfo = styled(Typography)(({ theme }) => ({
+  fontSize: '0.75rem',
+  color: theme.palette.text.secondary,
+}));
+
+const FileActions = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  gap: theme.spacing(0.5),
+}));
+
+const EmptyFilesMessage = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: theme.spacing(3),
+  color: theme.palette.text.secondary,
+  '& svg': {
+    fontSize: '2rem',
+    opacity: 0.5,
+    marginBottom: theme.spacing(1),
+  }
+}));
+
+// Create Load Modal Component
+const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
+  const [loadData, setLoadData] = useState({
+    load_id: "",
+    reference_id: "",
+    customer_broker: null
+  });
+  const [brokers, setBrokers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showBrokerModal, setShowBrokerModal] = useState(false);
+  const [newBroker, setNewBroker] = useState({
+    company_name: "",
+    contact_number: "",
+    email_address: "",
+    mc_number: "",
+    address1: "",
+    address2: "",
+    country: "USA",
+    state: "",
+    city: "",
+    zip_code: "",
+    billing_type: "NONE"
+  });
+
+  useEffect(() => {
+    const fetchBrokers = async () => {
+      try {
+        const data = await ApiService.getData("/customer_broker/");
+        setBrokers(data);
+      } catch (error) {
+        console.error("Error fetching brokers:", error);
+        setError("Brokerlarni yuklashda xato yuz berdi. Iltimos, qayta urinib ko'ring.");
+      }
+    };
+
+    if (open) {
+      fetchBrokers();
+    }
+  }, [open]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setLoadData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleBrokerChange = (event, newValue) => {
+    setLoadData(prev => ({
+      ...prev,
+      customer_broker: newValue
+    }));
+  };
+
+  const handleCreateLoad = async () => {
+    if (!loadData.reference_id || !loadData.customer_broker || !loadData.load_id) {
+      setError("Reference ID, Load ID va Broker/Mijoz tanlanishi shart");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await ApiService.postData("/load/", {
+        reference_id: loadData.reference_id,
+        load_id: loadData.load_id,
+        customer_broker: loadData.customer_broker.id,
+        load_status: "OPEN", 
+        company_name: loadData.customer_broker.company_name
+      });
+      
+      console.log("Load yaratildi:", response);
+      onCreateSuccess(response);
+      onClose();
+    } catch (error) {
+      console.error("Load yaratishda xato:", error);
+      setError("Load yaratib bo'lmadi. Iltimos, qayta urinib ko'ring.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddBroker = () => {
+    setShowBrokerModal(true);
+  };
+
+  const handleCloseBrokerModal = () => {
+    setShowBrokerModal(false);
+  };
+
+  const handleBrokerFormChange = (e) => {
+    const { name, value } = e.target;
+    setNewBroker(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSaveBroker = async () => {
+    if (!newBroker.company_name || !newBroker.mc_number) {
+      setError("Kompaniya nomi va MC raqami kiritilishi shart");
+      return;
+    }
+    
+    try {
+      // Convert numeric strings to numbers
+      const formattedData = {
+        ...newBroker,
+        contact_number: newBroker.contact_number ? parseInt(newBroker.contact_number) : null,
+        zip_code: newBroker.zip_code ? parseInt(newBroker.zip_code) : null
+      };
+      
+      const response = await ApiService.postData("/customer_broker/", formattedData);
+      setBrokers(prev => [...prev, response]);
+      setLoadData(prev => ({
+        ...prev,
+        customer_broker: response
+      }));
+      setShowBrokerModal(false);
+      setNewBroker({
+        company_name: "",
+        contact_number: "",
+        email_address: "",
+        mc_number: "",
+        address1: "",
+        address2: "",
+        country: "USA",
+        state: "",
+        city: "",
+        zip_code: "",
+        billing_type: "NONE"
+      });
+    } catch (error) {
+      console.error("Broker yaratishda xato:", error);
+      setError("Broker yaratib bo'lmadi. Iltimos, qayta urinib ko'ring.");
+    }
+  };
+
+  return (
+    <>
+      <Dialog 
+        open={open} 
+        onClose={onClose} 
+        maxWidth="sm" 
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <LocalShipping color="primary" />
+            <Typography variant="h6">Yangi Load Yaratish</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Load ID"
+                name="load_id"
+                value={loadData.load_id}
+                onChange={handleChange}
+                required
+                error={!loadData.load_id}
+                helperText={!loadData.load_id ? "Load ID kiritilishi shart" : ""}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Reference ID"
+                name="reference_id"
+                value={loadData.reference_id}
+                onChange={handleChange}
+                required
+                error={!loadData.reference_id}
+                helperText={!loadData.reference_id ? "Reference ID kiritilishi shart" : ""}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                <Autocomplete
+                  fullWidth
+                  options={brokers}
+                  getOptionLabel={(option) => option.company_name || ""}
+                  value={loadData.customer_broker}
+                  onChange={handleBrokerChange}
+                  renderInput={(params) => (
+                    <TextField 
+                      {...params} 
+                      label="Broker/Mijoz" 
+                      required
+                      error={!loadData.customer_broker}
+                      helperText={!loadData.customer_broker ? "Broker/Mijoz tanlanishi shart" : ""}
+                    />
+                  )}
+                  renderOption={(props, option) => (
+                    <li {...props}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="body1">{option.company_name}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          MC: {option.mc_number} | {option.email_address}
+                        </Typography>
+                      </Box>
+                    </li>
+                  )}
+                />
+                <IconButton 
+                  color="primary"
+                  onClick={handleAddBroker}
+                  sx={{ mt: 1 }}
+                >
+                  <AddIcon />
+                </IconButton>
+              </Box>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={onClose}>Bekor qilish</Button>
+          <Button 
+            variant="contained" 
+            onClick={handleCreateLoad}
+            disabled={loading || !loadData.reference_id || !loadData.customer_broker || !loadData.load_id}
+            startIcon={loading ? <CircularProgress size={20} /> : <AddIcon />}
+          >
+            Load yaratish
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Broker yaratish modali */}
+      <Dialog
+        open={showBrokerModal}
+        onClose={handleCloseBrokerModal}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <BusinessIcon color="primary" />
+            <Typography variant="h6">Yangi Broker qo'shish</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Kompaniya nomi"
+                name="company_name"
+                value={newBroker.company_name}
+                onChange={handleBrokerFormChange}
+                required
+                error={!newBroker.company_name}
+                helperText={!newBroker.company_name ? "Kompaniya nomi kiritilishi shart" : ""}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="MC raqami"
+                name="mc_number"
+                value={newBroker.mc_number}
+                onChange={handleBrokerFormChange}
+                required
+                error={!newBroker.mc_number}
+                helperText={!newBroker.mc_number ? "MC raqami kiritilishi shart" : ""}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Telefon raqami"
+                name="contact_number"
+                value={newBroker.contact_number}
+                onChange={handleBrokerFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Email manzili"
+                name="email_address"
+                type="email"
+                value={newBroker.email_address}
+                onChange={handleBrokerFormChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Manzil 1"
+                name="address1"
+                value={newBroker.address1}
+                onChange={handleBrokerFormChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Manzil 2"
+                name="address2"
+                value={newBroker.address2}
+                onChange={handleBrokerFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Shahar"
+                name="city"
+                value={newBroker.city}
+                onChange={handleBrokerFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Shtat</InputLabel>
+                <Select
+                  name="state"
+                  value={newBroker.state}
+                  onChange={handleBrokerFormChange}
+                  label="Shtat"
+                >
+                  {['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+                    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+                    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+                    'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+                    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'].map(state => (
+                    <MenuItem key={state} value={state}>{state}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="ZIP kodi"
+                name="zip_code"
+                value={newBroker.zip_code}
+                onChange={handleBrokerFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>To'lov turi</InputLabel>
+                <Select
+                  name="billing_type"
+                  value={newBroker.billing_type}
+                  onChange={handleBrokerFormChange}
+                  label="To'lov turi"
+                >
+                  <MenuItem value="NONE">None</MenuItem>
+                  <MenuItem value="FACTORING_COMPANY">Factoring Company</MenuItem>
+                  <MenuItem value="EMAIL">Email</MenuItem>
+                  <MenuItem value="MANUAL">Manual</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseBrokerModal}>Bekor qilish</Button>
+          <Button 
+            variant="contained" 
+            onClick={handleSaveBroker}
+            disabled={!newBroker.company_name || !newBroker.mc_number}
+          >
+            Brokerni saqlash
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
 const LoadViewPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -366,11 +1126,92 @@ const LoadViewPage = () => {
   const chatEndRef = useRef(null);
   const [user, setUser] = useState(null);
   const [error, setError] = useState(null);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [usersData, setUsersData] = useState({});
   const [previewModal, setPreviewModal] = useState({ open: false, url: '', type: '', name: '' });
   const [editingMessage, setEditingMessage] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const copyMessageRef = useRef(null);
+  const [chatRefreshInterval, setChatRefreshInterval] = useState(null);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [isLoadDataLoading, setIsLoadDataLoading] = useState(true);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingStop, setEditingStop] = useState(null);
+  const [stopFormData, setStopFormData] = useState({
+    stop_name: "",
+    company_name: "",
+    contact_name: "",
+    reference_id: "",
+    appointmentdate: "",
+    time: "",
+    address1: "",
+    address2: "",
+    country: "USA",
+    state: "",
+    city: "",
+    zip_code: "",
+    note: ""
+  });
+  const [isAddingStop, setIsAddingStop] = useState(false);
+  const [allStops, setAllStops] = useState([]);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [compactView, setCompactView] = useState(true);
+  const [editingSection, setEditingSection] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
+  const [drivers, setDrivers] = useState([]);
+  const [dispatchers, setDispatchers] = useState([]);
+  const [trucks, setTrucks] = useState([]);
+  const [trailers, setTrailers] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [otherPays, setOtherPays] = useState([]);
+  
+  // Define load statuses with icons and colors
+  const loadStatusOptions = [
+    { value: 'OPEN', label: 'Open', icon: <MdLocalShipping size={16} />, color: '#3B82F6' },
+    { value: 'COVERED', label: 'Covered', icon: <MdDirectionsCar size={16} />, color: '#10B981' },
+    { value: 'DISPATCHED', label: 'Dispatched', icon: <MdAssignmentTurnedIn size={16} />, color: '#6366F1' },
+    { value: 'LOADING', label: 'Loading', icon: <MdFileUpload size={16} />, color: '#F59E0B' },
+    { value: 'ON_ROUTE', label: 'On Route', icon: <MdAltRoute size={16} />, color: '#3B82F6' },
+    { value: 'UNLOADING', label: 'Unloading', icon: <MdFileDownload size={16} />, color: '#F59E0B' },
+    { value: 'DELIVERED', label: 'Delivered', icon: <MdDoneAll size={16} />, color: '#10B981' },
+    { value: 'COMPLETED', label: 'Completed', icon: <MdCheckCircle size={16} />, color: '#059669' },
+    { value: 'IN_YARD', label: 'In Yard', icon: <MdHome size={16} />, color: '#6B7280' }
+  ];
+  
+  // Function to handle status change
+  const handleStatusChange = async (event) => {
+    const newStatus = event.target.value;
+    if (newStatus === load.load_status) return;
+    
+    setIsUpdatingStatus(true);
+    try {
+      // Use putData instead of patchData since we're having issues
+      await ApiService.putData(`/load/${id}/`, {
+        ...load,
+        load_status: newStatus
+      });
+      
+      // Update local state
+      setLoad(prevLoad => ({
+        ...prevLoad,
+        load_status: newStatus
+      }));
+      
+      showSnackbar("Load status updated successfully", "success");
+    } catch (error) {
+      console.error("Error updating load status:", error);
+      showSnackbar("Failed to update load status", "error");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+  
+  // Function to get current status option
+  const getCurrentStatusOption = () => {
+    return loadStatusOptions.find(option => 
+      option.value === load?.load_status
+    ) || loadStatusOptions[0];
+  };
 
   // Helper function to format date
   const formatMessageTime = (timestamp) => {
@@ -422,9 +1263,13 @@ const LoadViewPage = () => {
     
     const fetchLoadData = async () => {
       setIsLoading(true);
+      setIsLoadDataLoading(true);
       try {
         const data = await ApiService.getData(`/load/${id}/`);
         setLoad(data);
+        
+        // Also fetch all stops from the API
+        fetchAllStops();
         
         // Fetch chat messages
         fetchChatMessages();
@@ -433,10 +1278,25 @@ const LoadViewPage = () => {
         setError("Could not load data. Please try again.");
         } finally {
           setIsLoading(false);
+        setIsLoadDataLoading(false);
       }
     };
 
     fetchLoadData();
+
+    // Set up auto-refresh for chat messages every 5 seconds
+    const interval = setInterval(() => {
+      fetchChatMessages();
+    }, 5000);
+    
+    setChatRefreshInterval(interval);
+
+    // Clean up on unmount
+    return () => {
+      if (chatRefreshInterval) {
+        clearInterval(chatRefreshInterval);
+      }
+    };
   }, [id]);
 
   const fetchUserData = async (userId) => {
@@ -450,12 +1310,13 @@ const LoadViewPage = () => {
         ...prev,
         [userId]: userData
       }));
-    } catch (error) {
+        } catch (error) {
       console.error(`Error fetching user data for ID ${userId}:`, error);
     }
   };
 
   const fetchChatMessages = async () => {
+    setIsChatLoading(true);
     try {
       // Get all chat messages
       const allMessages = await ApiService.getData(`/chat/`);
@@ -480,7 +1341,13 @@ const LoadViewPage = () => {
     } catch (error) {
       console.error("Error fetching chat messages:", error);
       showSnackbar("Failed to load chat messages", "error");
+    } finally {
+      setIsChatLoading(false);
     }
+  };
+
+  const handleRefreshChat = () => {
+    fetchChatMessages();
   };
 
   // Scroll to bottom of chat when messages change
@@ -549,7 +1416,7 @@ const LoadViewPage = () => {
       setSelectedFile(null);
       fetchChatMessages();
       showSnackbar("Message sent", "success");
-    } catch (error) {
+        } catch (error) {
       console.error("Error sending message:", error);
       showSnackbar("Failed to send message", "error");
     }
@@ -561,16 +1428,16 @@ const LoadViewPage = () => {
     setShowEmojiPicker(false);
   };
 
+  // Function to cancel editing
+  const handleCancelMessageEdit = () => {
+    setEditingMessage(null);
+    setNewMessage("");
+  };
+
   // Function to start editing a message
   const handleEditMessage = (message) => {
     setEditingMessage(message);
     setNewMessage(message.message || "");
-  };
-
-  // Function to cancel editing
-  const handleCancelEdit = () => {
-    setEditingMessage(null);
-    setNewMessage("");
   };
 
   const handleFileSelect = (event) => {
@@ -589,7 +1456,7 @@ const LoadViewPage = () => {
   };
 
   const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
+    setSnackbar(prev => ({ ...prev, open: false }));
   };
 
   // Function to determine if the file is an image
@@ -628,8 +1495,11 @@ const LoadViewPage = () => {
   // Function to download file directly
   const downloadFile = (url, fileName) => {
     try {
+      // Format the URL to use production API
+      const formattedUrl = getFormattedFileUrl(url);
+      
       // For cross-origin URLs, we need to fetch first
-      fetch(url)
+      fetch(formattedUrl)
         .then(response => response.blob())
         .then(blob => {
           // Create blob URL
@@ -652,22 +1522,25 @@ const LoadViewPage = () => {
           console.error("Download failed:", err);
           // Fallback to simple method
           const a = document.createElement('a');
-          a.href = url;
+          a.href = formattedUrl;
           a.download = fileName || 'download';
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
         });
-        } catch (error) {
+    } catch (error) {
       console.error("Error downloading file:", error);
     }
   };
 
   // Function to handle file preview in modal
   const handleFilePreview = (url, type, name) => {
+    // Format the URL to use production API
+    const formattedUrl = getFormattedFileUrl(url);
+    
     setPreviewModal({
       open: true,
-      url,
+      url: formattedUrl,
       type,
       name: name || (type === 'image' ? 'Image' : 'Document')
     });
@@ -689,6 +1562,12 @@ const LoadViewPage = () => {
     if (!url) return "";
     return url.replace('https://0.0.0.0:8000/', 'https://api.biznes-armiya.uz/');
   };
+  
+  // Format file URL to use production API
+  const getFormattedFileUrl = (url) => {
+    if (!url) return "";
+    return url.replace('https://0.0.0.0:8000/', 'https://api.biznes-armiya.uz/');
+  };
 
   // Format detailed timestamp with seconds
   const formatDetailedTime = (timestamp) => {
@@ -701,6 +1580,21 @@ const LoadViewPage = () => {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
+      hour12: true
+    });
+  };
+
+  // Format date with time for display
+  const formatDateWithTime = (dateString) => {
+    if (!dateString) return "Not specified";
+    
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
       hour12: true
     });
   };
@@ -942,7 +1836,7 @@ const LoadViewPage = () => {
   // Function to render the file in chat
   const renderFileInChat = (fileUrl, fileName) => {
     // Replace URL from development to production URL
-    const formattedUrl = fileUrl ? fileUrl.replace('https://0.0.0.0:8000/', 'https://api.biznes-armiya.uz/') : '';
+    const formattedUrl = fileUrl ? getFormattedFileUrl(fileUrl) : '';
     
     if (isImageUrl(formattedUrl)) {
       return (
@@ -1057,6 +1951,446 @@ const LoadViewPage = () => {
     }
   };
 
+  const handleCopyToClipboard = (text, field) => {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        if (copyMessageRef.current) {
+          clearTimeout(copyMessageRef.current);
+        }
+        
+        setSnackbar({
+          open: true,
+          message: `${field} copied to clipboard!`,
+          severity: 'success'
+        });
+        
+        copyMessageRef.current = setTimeout(() => {
+          setSnackbar(prev => ({ ...prev, open: false }));
+        }, 3000);
+      })
+      .catch(err => {
+        console.error('Failed to copy: ', err);
+        setSnackbar({
+          open: true,
+          message: 'Failed to copy to clipboard',
+          severity: 'error'
+        });
+      });
+  };
+
+  // Function to handle Create Load modal
+  const handleOpenCreateModal = () => {
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+  };
+
+  const handleCreateLoadSuccess = (newLoad) => {
+    navigate(`/loads/view/${newLoad.id}`);
+  };
+
+  // Function to handle edit stop
+  const handleEditStop = (stop) => {
+    setEditingStop(stop.id);
+    setStopFormData({
+      stop_name: stop.stop_name || "",
+      company_name: stop.company_name || "",
+      contact_name: stop.contact_name || "",
+      reference_id: stop.reference_id || "",
+      appointmentdate: stop.appointmentdate || "",
+      time: stop.time || "",
+      address1: stop.address1 || "",
+      address2: stop.address2 || "",
+      country: stop.country || "USA",
+      state: stop.state || "",
+      city: stop.city || "",
+      zip_code: stop.zip_code || "",
+      note: stop.note || ""
+    });
+  };
+
+  // Function to handle cancel edit
+  const handleCancelEditStop = () => {
+    setEditingStop(null);
+    setIsAddingStop(false);
+  };
+
+  // Function to handle form field changes
+  const handleStopFormChange = (e) => {
+    const { name, value } = e.target;
+    setStopFormData(prevData => ({
+      ...prevData,
+      [name]: value
+    }));
+  };
+
+  // Function to add new stop
+  const handleAddStop = () => {
+    setIsAddingStop(true);
+    setStopFormData({
+      stop_name: "PICKUP",
+      company_name: "",
+      contact_name: "",
+      reference_id: "",
+      appointmentdate: "",
+      time: "",
+      address1: "",
+      address2: "",
+      country: "USA",
+      state: "",
+      city: "",
+      zip_code: "",
+      note: ""
+    });
+  };
+
+  // Function to save stop
+  const handleSaveStop = async () => {
+    try {
+      if (editingStop) {
+        // Update existing stop
+        await ApiService.putData(`/stops/${editingStop}/`, {
+          ...stopFormData,
+          load: parseInt(id)
+        });
+        showSnackbar("Stop updated successfully", "success");
+      } else if (isAddingStop) {
+        // Create new stop
+        await ApiService.postData(`/stops/`, {
+          ...stopFormData,
+          load: parseInt(id)
+        });
+        showSnackbar("Stop added successfully", "success");
+      }
+      
+      // Refresh stops data
+      fetchAllStops();
+      
+      // Reset edit state
+      setEditingStop(null);
+      setIsAddingStop(false);
+    } catch (error) {
+      console.error("Error saving stop:", error);
+      showSnackbar("Failed to save stop. Please try again.", "error");
+    }
+  };
+
+  // Fetch all stops and filter for current load
+  const fetchAllStops = async () => {
+    try {
+      const stops = await ApiService.getData('/stops/');
+      
+      // Filter stops for current load
+      const loadStops = stops.filter(stop => stop.load === parseInt(id));
+      
+      // Update load object with filtered stops
+      setLoad(prevLoad => ({
+        ...prevLoad,
+        stop: loadStops
+      }));
+      
+      setAllStops(stops);
+    } catch (error) {
+      console.error("Error fetching stops:", error);
+      showSnackbar("Failed to load stops", "error");
+    }
+  };
+
+  // Helper for equipment type display
+  const getEquipmentTypeName = (type) => {
+    const types = {
+      'DRYVAN': 'Dryvan',
+      'REEFER': 'Reefer',
+      'CARHAUL': 'Carhaul',
+      'FLATBED': 'Flatbed',
+      'STEPDECK': 'Stepdeck',
+      'POWERONLY': 'PowerOnly',
+      'RGN': 'Rgn',
+      'TANKERSTYLE': 'TankerStyle'
+    };
+    
+    return types[type] || type;
+  };
+  
+  // Get file type
+  const getFileType = (fileName) => {
+    if (!fileName) return 'unknown';
+    const extension = fileName.split('.').pop().toLowerCase();
+    
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(extension)) {
+      return 'image';
+    } else if (extension === 'pdf') {
+      return 'pdf';
+    } else if (['doc', 'docx'].includes(extension)) {
+      return 'doc';
+    } else if (['xls', 'xlsx', 'csv'].includes(extension)) {
+      return 'excel';
+    } else {
+      return 'other';
+    }
+  };
+  
+  // Get file icon
+  const getFileIcon = (fileType) => {
+    switch (fileType) {
+      case 'image': return <Image />;
+      case 'pdf': return <PictureAsPdf />;
+      case 'doc': return <Description />;
+      case 'excel': return <InsertDriveFile />;
+      default: return <InsertDriveFile />;
+    }
+  };
+  
+  // Handle file upload
+  const handleFileUpload = async (event, fileType) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    try {
+      const formData = new FormData();
+      formData.append(fileType, file);
+      
+      await ApiService.putMediaData(`/load/${id}/`, formData);
+      
+      // Refresh data
+      const updatedLoad = await ApiService.getData(`/load/${id}/`);
+      setLoad(updatedLoad);
+      
+      showSnackbar(`File uploaded successfully`, "success");
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      showSnackbar("Failed to upload file. Please try again.", "error");
+    }
+  };
+  
+  // Function to format file URL correctly
+  const getFormattedDocumentUrl = (url) => {
+    if (!url) return "";
+    return url.replace('https://0.0.0.0:8000/', 'https://api.biznes-armiya.uz/');
+  };
+  
+  // Handle view file
+  const handleViewFile = (url, fileName) => {
+    if (!url) return;
+    
+    // Format the URL to use production API
+    const formattedUrl = getFormattedDocumentUrl(url);
+    
+    const fileType = getFileType(fileName || url);
+    handleFilePreview(formattedUrl, fileType === 'pdf' ? 'pdf' : 'image', fileName);
+  };
+
+  // Fetch all reference data
+  useEffect(() => {
+    if (!isLoading && load) {
+      // Fetch drivers
+      const fetchDrivers = async () => {
+        try {
+          const driversData = await ApiService.getData('/driver/');
+          setDrivers(driversData);
+        } catch (error) {
+          console.error('Error fetching drivers:', error);
+        }
+      };
+      
+      // Fetch dispatchers
+    const fetchDispatchers = async () => {
+        try {
+          const dispatchersData = await ApiService.getData('/dispatcher/');
+          setDispatchers(dispatchersData);
+        } catch (error) {
+          console.error('Error fetching dispatchers:', error);
+        }
+      };
+      
+      // Fetch trucks
+      const fetchTrucks = async () => {
+        try {
+          const trucksData = await ApiService.getData('/truck/');
+          setTrucks(trucksData);
+        } catch (error) {
+          console.error('Error fetching trucks:', error);
+        }
+      };
+      
+      // Fetch trailers
+      const fetchTrailers = async () => {
+        try {
+          const trailersData = await ApiService.getData('/trailer/');
+          setTrailers(trailersData);
+        } catch (error) {
+          console.error('Error fetching trailers:', error);
+        }
+      };
+      
+    fetchDrivers();
+    fetchDispatchers();
+      fetchTrucks();
+      fetchTrailers();
+    }
+  }, [isLoading, load]);
+  
+  // Handle edit section
+  const handleEditSection = (section) => {
+    setEditingSection(section);
+    
+    // Initialize form data based on section
+    if (section === 'basic') {
+      setEditFormData({
+        load_id: load.load_id || '',
+        reference_id: load.reference_id || '',
+        company_name: load.company_name || '',
+        equipment_type: load.equipment_type || ''
+      });
+    } else if (section === 'personnel') {
+      setEditFormData({
+        driver: load.driver?.id || '',
+        dispatcher: load.dispatcher?.id || '',
+        driver_pay: load.driver_pay || ''
+      });
+    } else if (section === 'equipment') {
+      setEditFormData({
+        truck: load.truck?.id || '',
+        trailer: load.trailer?.id || ''
+      });
+    } else if (section === 'payment') {
+      setEditFormData({
+        load_pay: load.load_pay || '',
+        total_pay: load.total_pay || '',
+        per_mile: load.per_mile || '',
+        total_miles: load.total_miles || '',
+        // Add other pay fields
+        other_pay_amount: '',
+        other_pay_type: '',
+        other_pay_note: ''
+      });
+    } else if (section === 'notes') {
+      setEditFormData({
+        note: load.note || ''
+      });
+    } else if (section === 'documents') {
+      // No form data needed for documents
+    }
+  };
+  
+  // Handle cancel edit section
+  const handleCancelEdit = () => {
+    setEditingSection(null);
+    setEditFormData({});
+  };
+  
+  // Handle form field change
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  // Handle saving changes
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    try {
+      // Prepare data based on section
+      let dataToUpdate = {};
+      
+      if (editingSection === 'basic') {
+        dataToUpdate = {
+          load_id: editFormData.load_id,
+          reference_id: editFormData.reference_id,
+          company_name: editFormData.company_name,
+          equipment_type: editFormData.equipment_type
+        };
+      } else if (editingSection === 'personnel') {
+        dataToUpdate = {
+          driver: editFormData.driver ? parseInt(editFormData.driver) : null,
+          dispatcher: editFormData.dispatcher ? parseInt(editFormData.dispatcher) : null,
+          driver_pay: editFormData.driver_pay ? parseFloat(editFormData.driver_pay) : null
+        };
+      } else if (editingSection === 'equipment') {
+        dataToUpdate = {
+          truck: editFormData.truck ? parseInt(editFormData.truck) : null,
+          trailer: editFormData.trailer ? parseInt(editFormData.trailer) : null
+        };
+      } else if (editingSection === 'payment') {
+        dataToUpdate = {
+          load_pay: editFormData.load_pay ? parseFloat(editFormData.load_pay) : null,
+          total_pay: editFormData.total_pay ? parseFloat(editFormData.total_pay) : null,
+          per_mile: editFormData.per_mile ? parseFloat(editFormData.per_mile) : null,
+          total_miles: editFormData.total_miles ? parseFloat(editFormData.total_miles) : null
+        };
+      } else if (editingSection === 'notes') {
+        dataToUpdate = {
+          note: editFormData.note
+        };
+      }
+      
+      // Update the load data using PATCH to only update specific fields
+      const updatedLoad = await ApiService.patchData(`/load/${id}/`, dataToUpdate);
+      
+      // Update local state with only the changed fields
+      setLoad(prevLoad => ({
+        ...prevLoad,
+        ...dataToUpdate
+      }));
+      
+      showSnackbar('Load updated successfully', 'success');
+      
+      // Close edit form
+      setEditingSection(null);
+    } catch (error) {
+      console.error('Error updating load:', error);
+      showSnackbar('Failed to update load. Please try again.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  // Handle adding new driver
+  const handleAddDriver = () => {
+    // Navigate to driver creation page with return path
+    navigate(`/drivers/create?returnTo=/loads/view/${id}`);
+  };
+  
+  // Handle adding new dispatcher
+  const handleAddDispatcher = () => {
+    // Navigate to dispatcher creation page with return path
+    navigate(`/dispatchers/create?returnTo=/loads/view/${id}`);
+  };
+  
+  // Handle adding new truck
+  const handleAddTruck = () => {
+    // Navigate to truck creation page with return path
+    navigate(`/trucks/create?returnTo=/loads/view/${id}`);
+  };
+  
+  // Handle adding new trailer
+  const handleAddTrailer = () => {
+    // Navigate to trailer creation page with return path
+    navigate(`/trailers/create?returnTo=/loads/view/${id}`);
+  };
+
+  // Add this useEffect to fetch other pays
+  useEffect(() => {
+    const fetchOtherPays = async () => {
+      try {
+        const otherpayData = await ApiService.getData('/otherpay/');
+        // Filter other pays for this load
+        const loadOtherPays = otherpayData.filter(pay => pay.load === parseInt(id));
+        setOtherPays(loadOtherPays || []);
+      } catch (error) {
+        console.error('Error fetching other pays:', error);
+      }
+    };
+
+    if (!isLoading && load) {
+      fetchOtherPays();
+    }
+  }, [isLoading, load, id]);
+
   if (isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
@@ -1066,7 +2400,7 @@ const LoadViewPage = () => {
   }
 
   if (error || !load) {
-    return (
+  return (
       <Box sx={{ p: 3, textAlign: "center" }}>
         <Alert severity="error" sx={{ mb: 2 }}>
           {error || "Load not found"}
@@ -1089,336 +2423,1820 @@ const LoadViewPage = () => {
 
   const currentStep = getCurrentStep(load.load_status);
 
+  // Add function to handle adding other pay
+  const handleAddOtherPay = async () => {
+    if (!editFormData.other_pay_amount && !editFormData.other_pay_type) {
+      showSnackbar('Please enter amount and pay type', 'error');
+      return;
+    }
+
+    try {
+      const newOtherPay = {
+        amount: editFormData.other_pay_amount ? parseFloat(editFormData.other_pay_amount) : null,
+        pay_type: editFormData.other_pay_type || null,
+        note: editFormData.other_pay_note || null,
+        load: parseInt(id)
+      };
+
+      const response = await ApiService.postData('/otherpay/', newOtherPay);
+      
+      // Add the new other pay to the list
+      setOtherPays(prev => [...prev, response]);
+      
+      // Clear form fields
+      setEditFormData(prev => ({
+        ...prev,
+        other_pay_amount: '',
+        other_pay_type: '',
+        other_pay_note: ''
+      }));
+      
+      showSnackbar('Other pay added successfully', 'success');
+    } catch (error) {
+      console.error('Error adding other pay:', error);
+      showSnackbar('Failed to add other pay', 'error');
+    }
+  };
+
+  // Add function to delete other pay
+  const handleDeleteOtherPay = async (payId) => {
+    try {
+      await ApiService.deleteData(`/otherpay/${payId}/`);
+      
+      // Remove the deleted pay from the list
+      setOtherPays(prev => prev.filter(pay => pay.id !== payId));
+      
+      showSnackbar('Other pay deleted successfully', 'success');
+    } catch (error) {
+      console.error('Error deleting other pay:', error);
+      showSnackbar('Failed to delete other pay', 'error');
+    }
+  };
+
   return (
     <MainContainer>
-      {/* Load Details Panel */}
-      <Panel>
-        <PanelHeader>
-          <Typography variant="h6">Load Details</Typography>
-        </PanelHeader>
-        <PanelContent>
-          <FormGroup>
-            <FormLabel>Instructions</FormLabel>
-            <StyledTextarea
-              value={load.instructions || ""}
-              readOnly
-            />
-          </FormGroup>
-          
-          <FormGroup>
-            <FormLabel>Bills</FormLabel>
-            <StyledInput
-              value={load.bills || ""}
-              readOnly
-            />
-          </FormGroup>
-          
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <FormGroup sx={{ flex: 1 }}>
-              <FormLabel>Load Pay</FormLabel>
-              <StyledInput
-                value={load.load_pay || ""}
-                readOnly
-              />
-            </FormGroup>
-            
-            <FormGroup sx={{ flex: 1 }}>
-              <FormLabel>Total Miles</FormLabel>
-              <StyledInput
-                value={load.total_miles || ""}
-                readOnly
-              />
-            </FormGroup>
-          </Box>
-          
-          <FormGroup>
-            <FormLabel>Pickup Location</FormLabel>
-            <LocationInput>
-              <LocationOn />
-              <StyledInput
-                value={load.pickup_location || ""}
-                readOnly
-              />
-            </LocationInput>
-          </FormGroup>
-          
-          <FormGroup>
-            <FormLabel>Delivery Location</FormLabel>
-            <LocationInput>
-              <LocationOn />
-              <StyledInput
-                value={load.delivery_location || ""}
-                readOnly
-              />
-            </LocationInput>
-          </FormGroup>
-          
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <FormGroup sx={{ flex: 1 }}>
-              <FormLabel>Pickup Date</FormLabel>
-              <StyledInput
-                type="date"
-                value={load.pickup_date ? load.pickup_date.split('T')[0] : ""}
-                readOnly
-              />
-            </FormGroup>
-            
-            <FormGroup sx={{ flex: 1 }}>
-              <FormLabel>Delivery Date</FormLabel>
-              <StyledInput
-                type="date"
-                value={load.delivery_date ? load.delivery_date.split('T')[0] : ""}
-                readOnly
-              />
-            </FormGroup>
-          </Box>
-        </PanelContent>
-      </Panel>
+      {/* Create Load Modal */}
+      <CreateLoadModal
+        open={isCreateModalOpen}
+        onClose={handleCloseCreateModal}
+        onCreateSuccess={handleCreateLoadSuccess}
+      />
 
-      {/* Chat Panel */}
-      <Panel>
-        <PanelHeader>
-          <Typography variant="h6">Chat</Typography>
-        </PanelHeader>
-        
-        <Box sx={{ 
-          flex: 1, 
-          display: 'flex', 
-          flexDirection: 'column',
-          backgroundColor: "#f8f9fa",
-          borderRadius: theme => theme.spacing(1),
-          margin: theme => theme.spacing(0, 2),
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <ChatBackgroundOverlay />
-          <ChatContentWrapper>
-            <Box sx={{ 
-              padding: 2,
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              overflowY: 'auto'
-            }}>
-              {renderChatMessages()}
-              <div ref={chatEndRef} />
-            </Box>
-          </ChatContentWrapper>
+      <LeftPanel>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between', px: 2, pt: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <IconButton onClick={() => navigate(-1)} sx={{ mr: 1 }}>
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h5" component="h1">
+              Load Details
+            </Typography>
+          </Box>
         </Box>
-        
-        <Box sx={{ position: 'relative' }}>
-          {showEmojiPicker && (
-            <Box sx={{ 
-              position: 'absolute', 
-              bottom: '100%', 
-              right: 16, 
-              zIndex: 100,
-              boxShadow: 3,
-              borderRadius: 1,
-              overflow: 'hidden'
-            }}>
-              <EmojiPicker 
-                onEmojiClick={onEmojiClick} 
-                searchDisabled
-                skinTonesDisabled
-                width={300}
-                height={350}
-              />
-            </Box>
-          )}
-          
-          {selectedFile && (
-            <AttachmentPreview>
-              <FilePreview>
-                {isImageFile(selectedFile) ? (
-                  <Image fontSize="small" color="primary" />
-                ) : (
-                  <InsertDriveFile fontSize="small" color="primary" />
-                )}
-                <Typography variant="body2" noWrap sx={{ flex: 1 }}>
-                  {selectedFile.name}
+
+        {isLoadDataLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80%' }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <LeftPanelContent>
+            {/* Stops Information with Edit Functionality */}
+            <StopsContainer>
+              <StopsHeader>
+                <Typography variant="subtitle2" fontWeight={600}>
+                  Stops
                 </Typography>
-              </FilePreview>
-              <Tooltip title="Remove attachment">
-                <IconButton size="small" onClick={handleCancelFileSelection}>
+                <Box>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => setCompactView(!compactView)}
+                    sx={{ mr: 1 }}
+                  >
+                    {compactView ? 
+                      <EditIcon fontSize="small" /> : 
+                      <MdCheckCircle size={18} />
+                    }
+                  </IconButton>
+                  <Button 
+                    startIcon={<AddIcon />} 
+                    size="small" 
+                    onClick={handleAddStop}
+                    disabled={isAddingStop || editingStop !== null}
+                  >
+                    Add Stop
+                  </Button>
+                </Box>
+              </StopsHeader>
+              
+              {isAddingStop && (
+                <StopEditContainer>
+                  <Typography variant="subtitle2" gutterBottom>
+                    New Stop
+                  </Typography>
+                  
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="Stop Type"
+                        name="stop_name"
+                        value={stopFormData.stop_name}
+                        onChange={handleStopFormChange}
+                      >
+                        <MenuItem value="PICKUP">Pickup</MenuItem>
+                        <MenuItem value="DELIVERY">Delivery</MenuItem>
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Company Name"
+                        name="company_name"
+                        value={stopFormData.company_name}
+                        onChange={handleStopFormChange}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Contact Name"
+                        name="contact_name"
+                        value={stopFormData.contact_name}
+                        onChange={handleStopFormChange}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Reference ID"
+                        name="reference_id"
+                        value={stopFormData.reference_id}
+                        onChange={handleStopFormChange}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Appointment Date"
+                        name="appointmentdate"
+                        value={stopFormData.appointmentdate}
+                        onChange={handleStopFormChange}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Time"
+                        name="time"
+                        value={stopFormData.time}
+                        onChange={handleStopFormChange}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Address Line 1"
+                        name="address1"
+                        value={stopFormData.address1}
+                        onChange={handleStopFormChange}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Address Line 2"
+                        name="address2"
+                        value={stopFormData.address2}
+                        onChange={handleStopFormChange}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="State"
+                        name="state"
+                        value={stopFormData.state}
+                        onChange={handleStopFormChange}
+                      >
+                        {['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+                          'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+                          'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+                          'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+                          'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'].map(state => (
+                          <MenuItem key={state} value={state}>{state}</MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="City"
+                        name="city"
+                        value={stopFormData.city}
+                        onChange={handleStopFormChange}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="ZIP Code"
+                        name="zip_code"
+                        value={stopFormData.zip_code}
+                        onChange={handleStopFormChange}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Notes"
+                        name="note"
+                        multiline
+                        rows={2}
+                        value={stopFormData.note}
+                        onChange={handleStopFormChange}
+                      />
+                    </Grid>
+                  </Grid>
+                  
+                  <StopButtonGroup>
+                    <Button 
+                      variant="outlined"
+                      onClick={handleCancelEditStop}
+                    >
+                      Cancel
+                    </Button>
+            <Button
+              variant="contained"
+                      startIcon={<SaveIcon />}
+                      onClick={handleSaveStop}
+                    >
+                      Save
+                    </Button>
+                  </StopButtonGroup>
+                </StopEditContainer>
+              )}
+              
+              {/* Show stops when not adding a new one */}
+              {!isAddingStop && (load.stop && load.stop.length > 0 ? (
+                load.stop.map(stop => (
+                  editingStop === stop.id ? (
+                    <StopEditContainer key={stop.id}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Edit Stop
+                      </Typography>
+                      
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            select
+                            fullWidth
+                            size="small"
+                            label="Stop Type"
+                            name="stop_name"
+                            value={stopFormData.stop_name}
+                            onChange={handleStopFormChange}
+                          >
+                            <MenuItem value="PICKUP">Pickup</MenuItem>
+                            <MenuItem value="DELIVERY">Delivery</MenuItem>
+                          </TextField>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Company Name"
+                            name="company_name"
+                            value={stopFormData.company_name}
+                            onChange={handleStopFormChange}
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Contact Name"
+                            name="contact_name"
+                            value={stopFormData.contact_name}
+                            onChange={handleStopFormChange}
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Reference ID"
+                            name="reference_id"
+                            value={stopFormData.reference_id}
+                            onChange={handleStopFormChange}
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Appointment Date"
+                            name="appointmentdate"
+                            value={stopFormData.appointmentdate}
+                            onChange={handleStopFormChange}
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Time"
+                            name="time"
+                            value={stopFormData.time}
+                            onChange={handleStopFormChange}
+                          />
+                        </Grid>
+                        <Grid item xs={12}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Address Line 1"
+                            name="address1"
+                            value={stopFormData.address1}
+                            onChange={handleStopFormChange}
+                          />
+                        </Grid>
+                        <Grid item xs={12}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Address Line 2"
+                            name="address2"
+                            value={stopFormData.address2}
+                            onChange={handleStopFormChange}
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            select
+                            fullWidth
+                            size="small"
+                            label="State"
+                            name="state"
+                            value={stopFormData.state}
+                            onChange={handleStopFormChange}
+                          >
+                            {['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+                              'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+                              'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+                              'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+                              'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'].map(state => (
+                              <MenuItem key={state} value={state}>{state}</MenuItem>
+                            ))}
+                          </TextField>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="City"
+                            name="city"
+                            value={stopFormData.city}
+                            onChange={handleStopFormChange}
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="ZIP Code"
+                            name="zip_code"
+                            value={stopFormData.zip_code}
+                            onChange={handleStopFormChange}
+                          />
+                        </Grid>
+                        <Grid item xs={12}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Notes"
+                            name="note"
+                            multiline
+                            rows={2}
+                            value={stopFormData.note}
+                            onChange={handleStopFormChange}
+                          />
+                        </Grid>
+                      </Grid>
+                      
+                      <StopButtonGroup>
+                        <Button 
+                          variant="outlined"
+                          onClick={handleCancelEditStop}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          variant="contained"
+                          startIcon={<SaveIcon />}
+                          onClick={handleSaveStop}
+                        >
+                          Save
+                        </Button>
+                      </StopButtonGroup>
+                    </StopEditContainer>
+                  ) : (
+                    <StopItem 
+                      key={stop.id} 
+                      isPickup={stop.stop_name === "PICKUP"}
+                      isCompact={compactView}
+                    >
+                      <StopIconContainer 
+                        isPickup={stop.stop_name === "PICKUP"}
+                        isCompact={compactView}
+                      >
+                        {stop.stop_name === "PICKUP" ? 
+                          <MdFileUpload size={compactView ? 14 : 20} /> : 
+                          <MdFileDownload size={compactView ? 14 : 20} />
+                        }
+                      </StopIconContainer>
+                      <StopDetails>
+                        <StopHeader>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <StopAddress>
+                              {stop.stop_name === "PICKUP" ? "Pickup" : "Delivery"}
+                            </StopAddress>
+                            <IconButton 
+                              size="small" 
+                              onClick={() => handleEditStop(stop)}
+                              sx={{ ml: 1, display: compactView ? 'none' : 'flex' }}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                          <StopDate>
+                            {stop.appointmentdate || "Not specified"}
+                          </StopDate>
+                        </StopHeader>
+                        <Typography variant="body2">
+                          {stop.address1 ? stop.address1 : "No address specified"}
+                          {stop.city && `, ${stop.city}`}
+                          {stop.state && `, ${stop.state}`}
+                          {stop.zip_code && ` ${stop.zip_code}`}
+                        </Typography>
+                        {!compactView && (
+                          <>
+                            {stop.company_name && (
+                              <Typography variant="caption" color="text.secondary" display="block" mt={0.5}>
+                                Company: {stop.company_name}
+                              </Typography>
+                            )}
+                            {stop.contact_name && (
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                Contact: {stop.contact_name}
+                              </Typography>
+                            )}
+                          </>
+                        )}
+                      </StopDetails>
+                    </StopItem>
+                  )
+                ))
+              ) : (
+                !isAddingStop && (
+                  <Box sx={{ textAlign: 'center', p: 3, color: 'text.secondary' }}>
+                    <Typography variant="body2">No stops added yet</Typography>
+                    <Button 
+                      variant="outlined" 
+                      size="small" 
+                      startIcon={<AddIcon />}
+                      onClick={handleAddStop}
+                      sx={{ mt: 1 }}
+                    >
+                      Add First Stop
+                    </Button>
+                  </Box>
+                )
+              ))}
+            </StopsContainer>
+            
+            {/* Load and Broker Information Combined */}
+            <DetailCard>
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                Load Information
+              </Typography>
+              
+              <InfoRow>
+                <InfoLabel>Load ID</InfoLabel>
+                <InfoValue>{load.load_id || "Not assigned"}</InfoValue>
+              </InfoRow>
+              
+              <InfoRow>
+                <InfoLabel>Reference ID</InfoLabel>
+                <InfoValue>{load.reference_id || "Not assigned"}</InfoValue>
+              </InfoRow>
+              
+              <InfoRow>
+                <InfoLabel>Load Pay</InfoLabel>
+                <InfoValue>{load.load_pay ? `$${load.load_pay}` : "Not assigned"}</InfoValue>
+              </InfoRow>
+              
+              <InfoRow>
+                <InfoLabel>Driver Pay</InfoLabel>
+                <InfoValue>{load.driver_pay ? `$${load.driver_pay}` : "Not assigned"}</InfoValue>
+              </InfoRow>
+              
+              <InfoRow>
+                <InfoLabel>Total Miles</InfoLabel>
+                <InfoValue>{load.total_miles || "Not available"}</InfoValue>
+              </InfoRow>
+            </DetailCard>
+            
+            <DetailCard>
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                Broker Information
+              </Typography>
+              
+              <InfoRow>
+                <InfoLabel>Company</InfoLabel>
+                <InfoValue>{load.customer_broker?.company_name || "Not assigned"}</InfoValue>
+              </InfoRow>
+              
+              <InfoRow>
+                <InfoLabel>MC Number</InfoLabel>
+                <InfoValue>{load.customer_broker?.mc_number || "Not available"}</InfoValue>
+              </InfoRow>
+              
+              <InfoRow>
+                <InfoLabel>Contact</InfoLabel>
+                <InfoValue>{load.customer_broker?.contact_number || "Not available"}</InfoValue>
+              </InfoRow>
+              
+              <InfoRow>
+                <InfoLabel>Email</InfoLabel>
+                <InfoValue>{load.customer_broker?.email_address || "Not available"}</InfoValue>
+              </InfoRow>
+            </DetailCard>
+            
+            <DetailCard>
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                Driver & Equipment
+              </Typography>
+              
+              <InfoRow>
+                <InfoLabel>Driver</InfoLabel>
+                <InfoValue>
+                  {load.driver ? 
+                    `${load.driver.user?.first_name || ''} ${load.driver.user?.last_name || ''}` : 
+                    "Not assigned"}
+                </InfoValue>
+              </InfoRow>
+              
+              <InfoRow>
+                <InfoLabel>Dispatcher</InfoLabel>
+                <InfoValue>{load.dispatcher?.nickname || "Not assigned"}</InfoValue>
+              </InfoRow>
+              
+              <InfoRow>
+                <InfoLabel>Equipment</InfoLabel>
+                <InfoValue>
+                  {load.truck ? 
+                    `${load.truck.make || ''} ${load.truck.model || ''} (Unit: ${load.truck.unit_number || ''})` : 
+                    "No equipment assigned"}
+                </InfoValue>
+              </InfoRow>
+            </DetailCard>
+            
+            <DetailCard>
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                Additional Information
+              </Typography>
+              
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" fontWeight={500} gutterBottom>
+                  Instructions
+                </Typography>
+                <Typography variant="body2" sx={{ p: 1.5, bgcolor: '#f9f9f9', borderRadius: 1, minHeight: '80px' }}>
+                  {load.instructions || "No instructions provided"}
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="body2" fontWeight={500} gutterBottom>
+                  Bills
+                </Typography>
+                <Typography variant="body2" sx={{ p: 1.5, bgcolor: '#f9f9f9', borderRadius: 1 }}>
+                  {load.bills || "No bills information provided"}
+                </Typography>
+              </Box>
+            </DetailCard>
+          </LeftPanelContent>
+        )}
+      </LeftPanel>
+
+      <MiddlePanel>
+        <Panel>
+          <PanelHeader>
+            <Typography variant="h6">Chat</Typography>
+            
+            {!isLoadDataLoading && (
+              <StatusSelector>
+                <Select
+                  value={load?.load_status || 'OPEN'}
+                  onChange={handleStatusChange}
+                  disabled={isUpdatingStatus}
+                  sx={{
+                    height: 36,
+                    minWidth: 180,
+                    '.MuiSelect-select': {
+                      display: 'flex',
+                      alignItems: 'center',
+                      paddingY: 0.5
+                    }
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      sx: { maxHeight: 400 }
+                    }
+                  }}
+                  renderValue={(selected) => {
+                    const option = loadStatusOptions.find(opt => opt.value === selected);
+                    return (
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <StatusIconContainer color={option?.color}>
+                          {option?.icon}
+                        </StatusIconContainer>
+                        <Typography variant="body2" fontWeight={500}>
+                          {option?.label || 'Status'}
+                        </Typography>
+                      </Box>
+                    );
+                  }}
+                >
+                  {loadStatusOptions.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <StatusIconContainer color={option.color}>
+                          {option.icon}
+                        </StatusIconContainer>
+                        <Typography variant="body2">
+                          {option.label}
+                        </Typography>
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </StatusSelector>
+            )}
+            
+            <IconButton onClick={handleRefreshChat} disabled={isChatLoading}>
+              {isChatLoading ? (
+                <CircularProgress size={24} thickness={4} />
+              ) : (
+                <RefreshIcon />
+              )}
+            </IconButton>
+          </PanelHeader>
+          
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column',
+            backgroundColor: "#f8f9fa",
+            borderRadius: theme => theme.spacing(1),
+            margin: theme => theme.spacing(0, 2),
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <ChatBackgroundOverlay />
+            <ChatContentWrapper>
+              <Box sx={{ 
+                padding: 2,
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                overflowY: 'auto',
+                position: 'relative'
+              }}>
+                {isChatLoading && chatMessages.length === 0 ? (
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center', 
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                    zIndex: 10
+                  }}>
+                    <CircularProgress />
+                  </Box>
+                ) : (
+                  renderChatMessages()
+                )}
+                <div ref={chatEndRef} />
+              </Box>
+            </ChatContentWrapper>
+          </Box>
+          
+          <Box sx={{ position: 'relative' }}>
+            {showEmojiPicker && (
+              <Box sx={{ 
+                position: 'absolute', 
+                bottom: '100%', 
+                right: 16, 
+                zIndex: 100,
+                boxShadow: 3,
+                borderRadius: 1,
+                overflow: 'hidden'
+              }}>
+                <EmojiPicker 
+                  onEmojiClick={onEmojiClick} 
+                  searchDisabled
+                  skinTonesDisabled
+                  width={300}
+                  height={350}
+                />
+              </Box>
+            )}
+            
+            {selectedFile && (
+              <AttachmentPreview>
+                <FilePreview>
+                  {isImageFile(selectedFile) ? (
+                    <Image fontSize="small" color="primary" />
+                  ) : (
+                    <InsertDriveFile fontSize="small" color="primary" />
+                  )}
+                  <Typography variant="body2" noWrap sx={{ flex: 1 }}>
+                    {selectedFile.name}
+                  </Typography>
+                </FilePreview>
+                <Tooltip title="Remove attachment">
+                  <IconButton size="small" onClick={handleCancelFileSelection}>
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </AttachmentPreview>
+            )}
+            
+            {editingMessage && (
+              <Box sx={{ 
+                p: 1, 
+                bgcolor: 'primary.light', 
+                borderRadius: '4px 4px 0 0',
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <Typography variant="body2">Editing message</Typography>
+                <IconButton size="small" onClick={handleCancelMessageEdit} sx={{ color: 'white' }}>
                   <CloseIcon fontSize="small" />
                 </IconButton>
-              </Tooltip>
-            </AttachmentPreview>
-          )}
-          
-          {editingMessage && (
-            <Box sx={{ 
-              p: 1, 
-              bgcolor: 'primary.light', 
-              borderRadius: '4px 4px 0 0',
-              color: 'white',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <Typography variant="body2">Editing message</Typography>
-              <IconButton size="small" onClick={handleCancelEdit} sx={{ color: 'white' }}>
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          )}
-          
-          <MessageInput>
-            <input
-              type="file"
-              id="file-upload"
-              style={{ display: 'none' }}
-              onChange={handleFileSelect}
-            />
-            <label htmlFor="file-upload">
-              <IconButton component="span" color="primary">
-                <AttachFile />
-              </IconButton>
-            </label>
+              </Box>
+            )}
             
-            <TextField
-              fullWidth
-              placeholder={editingMessage ? "Edit your message..." : "Type a message..."}
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              onPaste={handlePaste}
-              size="small"
-              variant="outlined"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton 
-                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                      size="small"
-                      color="primary"
-                    >
-                      <CiDeliveryTruck size={20} />
-                    </IconButton>
-                  </InputAdornment>
-                )
-              }}
-            />
-            
-            <IconButton
+            <MessageInput>
+              <input
+                type="file"
+                id="file-upload"
+                style={{ display: 'none' }}
+                onChange={handleFileSelect}
+              />
+              <label htmlFor="file-upload">
+                <IconButton component="span" color="primary">
+                  <AttachFile />
+                </IconButton>
+              </label>
+              
+              <TextField
+                fullWidth
+                placeholder={editingMessage ? "Edit your message..." : "Type a message..."}
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                onPaste={handlePaste}
+                size="small"
+                variant="outlined"
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton 
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        size="small"
               color="primary"
-              onClick={() => handleSendMessage()}
-              disabled={!newMessage.trim() && !selectedFile && !editingMessage}
-            >
-              <Send />
-            </IconButton>
-          </MessageInput>
-        </Box>
-      </Panel>
+                      >
+                        <CiDeliveryTruck size={20} />
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
+              />
+              
+              <IconButton
+                color="primary"
+                onClick={() => handleSendMessage()}
+                disabled={!newMessage.trim() && !selectedFile && !editingMessage}
+              >
+                <Send />
+              </IconButton>
+            </MessageInput>
+          </Box>
+        </Panel>
+      </MiddlePanel>
 
-      {/* Load Information Panel */}
-      <Panel>
+      <RightPanel>
         <PanelHeader>
           <Typography variant="h6">Load Information</Typography>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<EditIcon />}
-              onClick={() => navigate(`/loads/edit/${id}`)}
-          >
-            EDIT
-          </Button>
         </PanelHeader>
         
         <PanelContent>
-          {/* Broker Information */}
-          <Typography variant="subtitle1" sx={{ fontWeight: 500, mb: 1 }}>
-            {load.customer_broker?.company_name || "No broker assigned"}
-          </Typography>
-          
-          {/* Driver Information */}
-          <InfoItem>
-            <InfoIcon>D</InfoIcon>
-            <InfoText>
-              <InfoLabel>Driver</InfoLabel>
-              <InfoValue>
-                {load.driver ? 
-                  `${load.driver.user?.first_name || ''} ${load.driver.user?.last_name || ''}` : 
-                  "Not assigned"}
-              </InfoValue>
-            </InfoText>
-          </InfoItem>
-          
-          {/* Dispatcher Information */}
-          <InfoItem>
-            <InfoIcon>D</InfoIcon>
-            <InfoText>
-              <InfoLabel>Dispatcher</InfoLabel>
-              <InfoValue>
-                {load.dispatcher?.nickname || "Not assigned"}
-              </InfoValue>
-            </InfoText>
-          </InfoItem>
-          
-          {/* Driver Pay */}
-          <InfoItem>
-            <InfoIcon>$</InfoIcon>
-            <InfoText>
-              <InfoLabel>Driver Pay</InfoLabel>
-              <InfoValue>
-                {load.driver_pay ? `$${load.driver_pay}` : "Not assigned"}
-              </InfoValue>
-            </InfoText>
-          </InfoItem>
-          
-          <Divider sx={{ my: 2 }} />
-          
-          {/* Equipment Information */}
-          <Typography variant="subtitle2" sx={{ fontWeight: 500, mb: 1 }}>
-            Equipment Information
-          </Typography>
-          
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {load.truck ? 
-              `${load.truck.make || ''} ${load.truck.model || ''} (Unit: ${load.truck.unit_number || ''})` : 
-              "No equipment assigned"}
-          </Typography>
-          
-          <Divider sx={{ my: 2 }} />
-          
-          {/* Documents */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
-              Documents
-            </Typography>
-            <Button
-              variant="text"
-              size="small"
-              startIcon={<AttachFile />}
-              component="label"
-            >
-              Upload
-              <input
-                type="file"
-                hidden
-                onChange={handleFileSelect}
-              />
+          {isLoadDataLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              {/* Basic Information */}
+              <InfoCard>
+                <InfoCardHeader>
+                  <InfoCardTitle>
+                    <Info />
+                    Basic Information
+                  </InfoCardTitle>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={editingSection === 'basic' ? <Close /> : <EditIcon />}
+                    onClick={editingSection === 'basic' ? handleCancelEdit : () => handleEditSection('basic')}
+                  >
+                    {editingSection === 'basic' ? 'CANCEL' : 'EDIT'}
+                  </Button>
+                </InfoCardHeader>
+                
+                {editingSection === 'basic' ? (
+                  // Edit form for basic information
+                  <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Load ID"
+                      name="load_id"
+                      value={editFormData.load_id}
+                      onChange={handleFormChange}
+                    />
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Reference ID"
+                      name="reference_id"
+                      value={editFormData.reference_id}
+                      onChange={handleFormChange}
+                    />
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Company Name"
+                      name="company_name"
+                      value={editFormData.company_name}
+                      onChange={handleFormChange}
+                    />
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Equipment Type</InputLabel>
+                      <Select
+                        name="equipment_type"
+                        value={editFormData.equipment_type || ''}
+                        onChange={handleFormChange}
+                        label="Equipment Type"
+                      >
+                        <MenuItem value="DRYVAN">Dryvan</MenuItem>
+                        <MenuItem value="REEFER">Reefer</MenuItem>
+                        <MenuItem value="CARHAUL">Carhaul</MenuItem>
+                        <MenuItem value="FLATBED">Flatbed</MenuItem>
+                        <MenuItem value="STEPDECK">Stepdeck</MenuItem>
+                        <MenuItem value="POWERONLY">PowerOnly</MenuItem>
+                        <MenuItem value="RGN">Rgn</MenuItem>
+                        <MenuItem value="TANKERSTYLE">TankerStyle</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                      <Button 
+                        variant="contained" 
+                        onClick={handleSaveChanges}
+                        disabled={isSaving}
+                        startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
+                      >
+                        Save
             </Button>
           </Box>
-          
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            No documents yet
-          </Typography>
-          
-          <Divider sx={{ my: 2 }} />
-          
-          {/* Status Stepper */}
-          <Box sx={{ mt: 2 }}>
-            {loadStatuses.map((step, index) => (
-              <StatusStep key={index} active={index <= currentStep}>
-                <div className="step-number">{step.id}</div>
-                <Typography className="step-label">{step.name}</Typography>
-              </StatusStep>
-            ))}
         </Box>
+                ) : (
+                  // Display mode for basic information
+                  <>
+                    <DetailItem>
+                      <DetailLabel>Load ID</DetailLabel>
+                      <DetailValue>{load.load_id || "Not assigned"}</DetailValue>
+                    </DetailItem>
+                    
+                    <DetailItem>
+                      <DetailLabel>Reference ID</DetailLabel>
+                      <DetailValue>{load.reference_id || "Not assigned"}</DetailValue>
+                    </DetailItem>
+                    
+                    <DetailItem>
+                      <DetailLabel>Company</DetailLabel>
+                      <DetailValue>{load.company_name || "Not assigned"}</DetailValue>
+                    </DetailItem>
+                    
+                    <DetailItem>
+                      <DetailLabel>Customer/Broker</DetailLabel>
+                      <DetailValue>{load.customer_broker?.company_name || "Not assigned"}</DetailValue>
+                    </DetailItem>
+                    
+                    <DetailItem>
+                      <DetailLabel>Created By</DetailLabel>
+                      <DetailValue>{load.created_by?.nickname || load.created_by?.email || "Not assigned"}</DetailValue>
+                    </DetailItem>
+                    
+                    <DetailItem>
+                      <DetailLabel>Created Date</DetailLabel>
+                      <DetailValue>{load.created_date ? new Date(load.created_date).toLocaleString() : "Not assigned"}</DetailValue>
+                    </DetailItem>
+                    
+                    <DetailItem noBorder>
+                      <DetailLabel>Equipment Type</DetailLabel>
+                      <DetailValue>{getEquipmentTypeName(load.equipment_type) || "Not assigned"}</DetailValue>
+                    </DetailItem>
+                  </>
+                )}
+              </InfoCard>
+              
+              {/* Personnel Information */}
+              <InfoCard>
+                <InfoCardHeader>
+                  <InfoCardTitle>
+                    <PersonOutline />
+                    Personnel
+                  </InfoCardTitle>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={editingSection === 'personnel' ? <Close /> : <EditIcon />}
+                    onClick={editingSection === 'personnel' ? handleCancelEdit : () => handleEditSection('personnel')}
+                  >
+                    {editingSection === 'personnel' ? 'CANCEL' : 'EDIT'}
+                  </Button>
+                </InfoCardHeader>
+                
+                {editingSection === 'personnel' ? (
+                  // Edit form for personnel
+                  <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Driver</InputLabel>
+                        <Select
+                          name="driver"
+                          value={editFormData.driver || ''}
+                          onChange={handleFormChange}
+                          label="Driver"
+                        >
+                          <MenuItem value="">None</MenuItem>
+                          {drivers.map(driver => (
+                            <MenuItem key={driver.id} value={driver.id}>
+                              {`${driver.user?.first_name || ''} ${driver.user?.last_name || ''}`}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      <IconButton 
+                        color="primary" 
+                        onClick={handleAddDriver}
+                        size="small"
+                      >
+                        <AddIcon />
+                      </IconButton>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Dispatcher</InputLabel>
+                        <Select
+                          name="dispatcher"
+                          value={editFormData.dispatcher || ''}
+                          onChange={handleFormChange}
+                          label="Dispatcher"
+                        >
+                          <MenuItem value="">None</MenuItem>
+                          {dispatchers.map(dispatcher => (
+                            <MenuItem key={dispatcher.id} value={dispatcher.id}>
+                              {dispatcher.nickname || dispatcher.email}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      <IconButton 
+                        color="primary" 
+                        onClick={handleAddDispatcher}
+                        size="small"
+                      >
+                        <AddIcon />
+                      </IconButton>
+                    </Box>
+                    
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Driver Pay"
+                      name="driver_pay"
+                      value={editFormData.driver_pay}
+                      onChange={handleFormChange}
+                      type="number"
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      }}
+                    />
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                      <Button 
+                        variant="contained" 
+                        onClick={handleSaveChanges}
+                        disabled={isSaving}
+                        startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
+                      >
+                        Save
+                      </Button>
+        </Box>
+      </Box>
+                ) : (
+                  // Display mode for personnel
+                  <>
+                    <DetailItem>
+                      <DetailLabel>Driver</DetailLabel>
+                      <DetailValue>
+                        {load.driver ? 
+                          `${load.driver.user?.first_name || ''} ${load.driver.user?.last_name || ''}`.trim() : 
+                          "Not assigned"}
+                      </DetailValue>
+                    </DetailItem>
+                    
+                    <DetailItem>
+                      <DetailLabel>Dispatcher</DetailLabel>
+                      <DetailValue>{load.dispatcher?.nickname || "Not assigned"}</DetailValue>
+                    </DetailItem>
+                    
+                    <DetailItem noBorder>
+                      <DetailLabel>Driver Pay</DetailLabel>
+                      <DetailValue>{load.driver_pay ? `$${load.driver_pay}` : "Not assigned"}</DetailValue>
+                    </DetailItem>
+                  </>
+                )}
+              </InfoCard>
+              
+              {/* Vehicle Information */}
+              <InfoCard>
+                <InfoCardHeader>
+                  <InfoCardTitle>
+                    <DriveEta />
+                    Equipment
+                  </InfoCardTitle>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={editingSection === 'equipment' ? <Close /> : <EditIcon />}
+                    onClick={editingSection === 'equipment' ? handleCancelEdit : () => handleEditSection('equipment')}
+                  >
+                    {editingSection === 'equipment' ? 'CANCEL' : 'EDIT'}
+                  </Button>
+                </InfoCardHeader>
+                
+                {editingSection === 'equipment' ? (
+                  // Edit form for equipment
+                  <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Truck</InputLabel>
+                        <Select
+                          name="truck"
+                          value={editFormData.truck || ''}
+                          onChange={handleFormChange}
+                          label="Truck"
+                        >
+                          <MenuItem value="">None</MenuItem>
+                          {trucks.map(truck => (
+                            <MenuItem key={truck.id} value={truck.id}>
+                              {`${truck.make || ''} ${truck.model || ''} (${truck.unit_number || 'No unit'})`}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      <IconButton 
+                        color="primary" 
+                        onClick={handleAddTruck}
+                        size="small"
+                      >
+                        <AddIcon />
+                      </IconButton>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Trailer</InputLabel>
+                        <Select
+                          name="trailer"
+                          value={editFormData.trailer || ''}
+                          onChange={handleFormChange}
+                          label="Trailer"
+                        >
+                          <MenuItem value="">None</MenuItem>
+                          {trailers.map(trailer => (
+                            <MenuItem key={trailer.id} value={trailer.id}>
+                              {`${trailer.trailer_type || ''} (${trailer.unit_number || 'No unit'})`}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      <IconButton 
+                        color="primary" 
+                        onClick={handleAddTrailer}
+                        size="small"
+                      >
+                        <AddIcon />
+                      </IconButton>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                      <Button 
+                        variant="contained" 
+                        onClick={handleSaveChanges}
+                        disabled={isSaving}
+                        startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
+                      >
+                        Save
+                      </Button>
+                    </Box>
+                  </Box>
+                ) : (
+                  // Display mode for equipment
+                  <>
+                    {load.truck ? (
+                      <>
+                        <DetailItem>
+                          <DetailLabel>Truck</DetailLabel>
+                          <DetailValue>{`${load.truck.make || ''} ${load.truck.model || ''}`}</DetailValue>
+                        </DetailItem>
+                        
+                        <DetailItem>
+                          <DetailLabel>Unit Number</DetailLabel>
+                          <DetailValue>{load.truck.unit_number || "Not available"}</DetailValue>
+                        </DetailItem>
+                        
+                        <DetailItem noBorder>
+                          <DetailLabel>Plate Number</DetailLabel>
+                          <DetailValue>{load.truck.plate_number || "Not available"}</DetailValue>
+                        </DetailItem>
+                      </>
+                    ) : (
+                      <Box sx={{ p: 1, color: 'text.secondary' }}>
+                        <Typography variant="body2">No equipment assigned</Typography>
+          </Box>
+                    )}
+                  </>
+                )}
+              </InfoCard>
+              
+              {/* Payment Information */}
+              <InfoCard>
+                <InfoCardHeader>
+                  <InfoCardTitle>
+                    <AttachMoney />
+                    Payment Details
+                  </InfoCardTitle>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={editingSection === 'payment' ? <Close /> : <EditIcon />}
+                    onClick={editingSection === 'payment' ? handleCancelEdit : () => handleEditSection('payment')}
+                  >
+                    {editingSection === 'payment' ? 'CANCEL' : 'EDIT'}
+                  </Button>
+                </InfoCardHeader>
+                
+                {editingSection === 'payment' ? (
+                  // Edit form for payment
+                  <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Load Pay"
+                      name="load_pay"
+                      value={editFormData.load_pay}
+                      onChange={handleFormChange}
+                      type="number"
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      }}
+                    />
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Total Pay"
+                      name="total_pay"
+                      value={editFormData.total_pay}
+                      onChange={handleFormChange}
+                      type="number"
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      }}
+                    />
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Per Mile"
+                      name="per_mile"
+                      value={editFormData.per_mile}
+                      onChange={handleFormChange}
+                      type="number"
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      }}
+                    />
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Total Miles"
+                      name="total_miles"
+                      value={editFormData.total_miles}
+                      onChange={handleFormChange}
+                      type="number"
+                    />
+                    
+                    <Divider sx={{ my: 1 }} />
+                    
+                    <Typography variant="subtitle2">Add Other Pay</Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={4}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Amount"
+                          name="other_pay_amount"
+                          value={editFormData.other_pay_amount}
+                          onChange={handleFormChange}
+                          type="number"
+                          InputProps={{
+                            startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>Pay Type</InputLabel>
+                          <Select
+                            name="other_pay_type"
+                            value={editFormData.other_pay_type || ''}
+                            onChange={handleFormChange}
+                            label="Pay Type"
+                          >
+                            <MenuItem value="DETENTION">Detention</MenuItem>
+                            <MenuItem value="EQUIPMENT">Equipment</MenuItem>
+                            <MenuItem value="LAYOVER">Layover</MenuItem>
+                            <MenuItem value="LUMPER">Lumper</MenuItem>
+                            <MenuItem value="DRIVERASSIST">Driver Assist</MenuItem>
+                            <MenuItem value="TRAILERWASH">Trailer Wash</MenuItem>
+                            <MenuItem value="ESCORTFEE">Escort Fee</MenuItem>
+                            <MenuItem value="BONUS">Bonus</MenuItem>
+                            <MenuItem value="CHARGEBACK">Charge Back</MenuItem>
+                            <MenuItem value="OTHER">Other</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <Box sx={{ display: 'flex', height: '100%', alignItems: 'center' }}>
+                          <Button 
+                            variant="contained" 
+                            onClick={handleAddOtherPay}
+                            startIcon={<AddIcon />}
+                            size="small"
+                            fullWidth
+                          >
+                            Add
+                          </Button>
+      </Box>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Note"
+                          name="other_pay_note"
+                          value={editFormData.other_pay_note}
+                          onChange={handleFormChange}
+                          multiline
+                          rows={2}
+                        />
+                      </Grid>
+                    </Grid>
+                    
+                    {otherPays.length > 0 && (
+                      <>
+                        <Typography variant="subtitle2" sx={{ mt: 1 }}>Existing Other Pays</Typography>
+                        <Box sx={{ maxHeight: '200px', overflowY: 'auto' }}>
+                          {otherPays.map(pay => (
+                            <Box 
+                              key={pay.id} 
+                              sx={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'center',
+                                p: 1,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: 1,
+                                mb: 1
+                              }}
+                            >
+                              <Box>
+                                <Typography variant="body2" fontWeight={500}>
+                                  {pay.pay_type || 'No type'} - ${pay.amount || '0'}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {pay.note || 'No note'}
+                                </Typography>
+    </Box>
+                              <IconButton size="small" color="error" onClick={() => handleDeleteOtherPay(pay.id)}>
+                                <Delete fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          ))}
+                        </Box>
+                      </>
+                    )}
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                      <Button 
+                        variant="contained" 
+                        onClick={handleSaveChanges}
+                        disabled={isSaving}
+                        startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
+                      >
+                        Save
+                      </Button>
+                    </Box>
+                  </Box>
+                ) : (
+                  // Display mode for payment
+                  <>
+                    <DetailItem>
+                      <DetailLabel>Load Pay</DetailLabel>
+                      <DetailValue>{load.load_pay ? `$${load.load_pay}` : "Not assigned"}</DetailValue>
+                    </DetailItem>
+                    
+                    <DetailItem>
+                      <DetailLabel>Total Pay</DetailLabel>
+                      <DetailValue>{load.total_pay ? `$${load.total_pay}` : "Not assigned"}</DetailValue>
+                    </DetailItem>
+                    
+                    <DetailItem>
+                      <DetailLabel>Per Mile</DetailLabel>
+                      <DetailValue>{load.per_mile ? `$${load.per_mile}` : "Not assigned"}</DetailValue>
+                    </DetailItem>
+                    
+                    <DetailItem>
+                      <DetailLabel>Total Miles</DetailLabel>
+                      <DetailValue>{load.total_miles || "Not available"}</DetailValue>
+                    </DetailItem>
+                    
+                    {otherPays.length > 0 && (
+                      <>
+                        <Divider sx={{ my: 1 }} />
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, my: 1 }}>Other Pays</Typography>
+                        
+                        {otherPays.map(pay => (
+                          <DetailItem key={pay.id} noBorder={pay === otherPays[otherPays.length - 1]}>
+                            <DetailLabel>{pay.pay_type || "Other Pay"}</DetailLabel>
+                            <DetailValue>
+                              {pay.amount ? `$${pay.amount}` : "No amount"}{pay.note ? ` - ${pay.note}` : ''}
+                            </DetailValue>
+                          </DetailItem>
+                        ))}
+                      </>
+                    )}
+                  </>
+                )}
+              </InfoCard>
+              
+              {/* Documents */}
+              <InfoCard>
+                <InfoCardHeader>
+                  <InfoCardTitle>
+                    <DocumentScanner />
+                    Documents
+                  </InfoCardTitle>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={editingSection === 'documents' ? <Close /> : <EditIcon />}
+                      onClick={editingSection === 'documents' ? handleCancelEdit : () => handleEditSection('documents')}
+                    >
+                      {editingSection === 'documents' ? 'CANCEL' : 'EDIT'}
+                    </Button>
+                    <Button
+                      startIcon={<FileUpload />}
+                      size="small"
+                      variant="text"
+                      component="label"
+                    >
+                      Upload
+                      <input
+                        type="file"
+                        hidden
+                        onChange={(e) => handleFileUpload(e, 'document')}
+                      />
+                    </Button>
+                  </Box>
+                </InfoCardHeader>
+                
+                {editingSection === 'documents' ? (
+                  // Edit form for documents
+                  <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {/* Rate Con */}
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                        Rate Con
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <TextField 
+                          fullWidth
+                          disabled
+                          size="small"
+                          placeholder="No file selected"
+                          value={load.rate_con ? 'Rate Con Document' : ''}
+                        />
+                        <Button
+                          variant="outlined"
+                          component="label"
+                          size="small"
+                        >
+                          Browse
+                          <input
+                            type="file"
+                            hidden
+                            onChange={(e) => handleFileUpload(e, 'rate_con')}
+                          />
+                        </Button>
+                      </Box>
+                    </Box>
+                    
+                    {/* BOL */}
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                        Bill of Lading (BOL)
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <TextField 
+                          fullWidth
+                          disabled
+                          size="small"
+                          placeholder="No file selected"
+                          value={load.bol ? 'BOL Document' : ''}
+                        />
+                        <Button
+                          variant="outlined"
+                          component="label"
+                          size="small"
+                        >
+                          Browse
+                          <input
+                            type="file"
+                            hidden
+                            onChange={(e) => handleFileUpload(e, 'bol')}
+                          />
+                        </Button>
+                      </Box>
+                    </Box>
+                    
+                    {/* POD */}
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                        Proof of Delivery (POD)
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <TextField 
+                          fullWidth
+                          disabled
+                          size="small"
+                          placeholder="No file selected"
+                          value={load.pod ? 'POD Document' : ''}
+                        />
+                        <Button
+                          variant="outlined"
+                          component="label"
+                          size="small"
+                        >
+                          Browse
+                          <input
+                            type="file"
+                            hidden
+                            onChange={(e) => handleFileUpload(e, 'pod')}
+                          />
+                        </Button>
+                      </Box>
+                    </Box>
+                    
+                    {/* Commercial Invoice */}
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                        Commercial Invoice
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <TextField 
+                          fullWidth
+                          disabled
+                          size="small"
+                          placeholder="No file selected"
+                          value={load.comercial_invoice ? 'Invoice Document' : ''}
+                        />
+                        <Button
+                          variant="outlined"
+                          component="label"
+                          size="small"
+                        >
+                          Browse
+                          <input
+                            type="file"
+                            hidden
+                            onChange={(e) => handleFileUpload(e, 'comercial_invoice')}
+                          />
+                        </Button>
+                      </Box>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                      <Button 
+                        variant="outlined" 
+                        onClick={handleCancelEdit}
+                        sx={{ mr: 1 }}
+                      >
+                        Close
+                      </Button>
+                    </Box>
+                  </Box>
+                ) : (
+                  // Display mode for documents
+                  <>
+                    {/* Rate Con */}
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
+                      Rate Con
+                    </Typography>
+                    
+                    {load.rate_con ? (
+                      <FileItem>
+                        <FileIcon fileType={getFileType(load.rate_con)}>
+                          {getFileIcon(getFileType(load.rate_con))}
+                        </FileIcon>
+                        
+                        <FileDetails>
+                          <FileName>Rate Con Document</FileName>
+                          <FileInfo>Added on {new Date().toLocaleDateString()}</FileInfo>
+                        </FileDetails>
+                        
+                        <FileActions>
+                          <IconButton size="small" onClick={() => handleViewFile(load.rate_con, 'Rate Con')}>
+                            <Visibility fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => downloadFile(load.rate_con, 'rate_con')}>
+                            <GetApp fontSize="small" />
+                          </IconButton>
+                        </FileActions>
+                      </FileItem>
+                    ) : (
+                      <Box component="label" sx={{ cursor: 'pointer', display: 'block', mb: 2 }}>
+                        <EmptyFilesMessage>
+                          <DocumentScanner />
+                          <Typography variant="body2">No Rate Con uploaded</Typography>
+                          <Button 
+                            variant="text" 
+                            size="small" 
+                            sx={{ mt: 0.5, fontSize: '0.75rem' }}
+                          >
+                            Upload Rate Con
+                          </Button>
+                          <input
+                            type="file"
+                            hidden
+                            onChange={(e) => handleFileUpload(e, 'rate_con')}
+                          />
+                        </EmptyFilesMessage>
+                      </Box>
+                    )}
+                    
+                    {/* BOL */}
+                    <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
+                      Bill of Lading (BOL)
+                    </Typography>
+                    
+                    {load.bol ? (
+                      <FileItem>
+                        <FileIcon fileType={getFileType(load.bol)}>
+                          {getFileIcon(getFileType(load.bol))}
+                        </FileIcon>
+                        
+                        <FileDetails>
+                          <FileName>Bill of Lading</FileName>
+                          <FileInfo>Added on {new Date().toLocaleDateString()}</FileInfo>
+                        </FileDetails>
+                        
+                        <FileActions>
+                          <IconButton size="small" onClick={() => handleViewFile(load.bol, 'BOL')}>
+                            <Visibility fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => downloadFile(load.bol, 'bol')}>
+                            <GetApp fontSize="small" />
+                          </IconButton>
+                        </FileActions>
+                      </FileItem>
+                    ) : (
+                      <Box component="label" sx={{ cursor: 'pointer', display: 'block', mb: 2 }}>
+                        <EmptyFilesMessage>
+                          <DocumentScanner />
+                          <Typography variant="body2">No BOL uploaded</Typography>
+                          <Button 
+                            variant="text" 
+                            size="small" 
+                            sx={{ mt: 0.5, fontSize: '0.75rem' }}
+                          >
+                            Upload BOL
+                          </Button>
+                          <input
+                            type="file"
+                            hidden
+                            onChange={(e) => handleFileUpload(e, 'bol')}
+                          />
+                        </EmptyFilesMessage>
+                      </Box>
+                    )}
+                    
+                    {/* POD */}
+                    <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
+                      Proof of Delivery (POD)
+                    </Typography>
+                    
+                    {load.pod ? (
+                      <FileItem>
+                        <FileIcon fileType={getFileType(load.pod)}>
+                          {getFileIcon(getFileType(load.pod))}
+                        </FileIcon>
+                        
+                        <FileDetails>
+                          <FileName>Proof of Delivery</FileName>
+                          <FileInfo>Added on {new Date().toLocaleDateString()}</FileInfo>
+                        </FileDetails>
+                        
+                        <FileActions>
+                          <IconButton size="small" onClick={() => handleViewFile(load.pod, 'POD')}>
+                            <Visibility fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => downloadFile(load.pod, 'pod')}>
+                            <GetApp fontSize="small" />
+                          </IconButton>
+                        </FileActions>
+                      </FileItem>
+                    ) : (
+                      <Box component="label" sx={{ cursor: 'pointer', display: 'block', mb: 2 }}>
+                        <EmptyFilesMessage>
+                          <DocumentScanner />
+                          <Typography variant="body2">No POD uploaded</Typography>
+                          <Button 
+                            variant="text" 
+                            size="small" 
+                            sx={{ mt: 0.5, fontSize: '0.75rem' }}
+                          >
+                            Upload POD
+                          </Button>
+                          <input
+                            type="file"
+                            hidden
+                            onChange={(e) => handleFileUpload(e, 'pod')}
+                          />
+                        </EmptyFilesMessage>
+                      </Box>
+                    )}
+                    
+                    {/* Commercial Invoice */}
+                    <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
+                      Commercial Invoice
+                    </Typography>
+                    
+                    {load.comercial_invoice ? (
+                      <FileItem>
+                        <FileIcon fileType={getFileType(load.comercial_invoice)}>
+                          {getFileIcon(getFileType(load.comercial_invoice))}
+                        </FileIcon>
+                        
+                        <FileDetails>
+                          <FileName>Commercial Invoice</FileName>
+                          <FileInfo>Added on {new Date().toLocaleDateString()}</FileInfo>
+                        </FileDetails>
+                        
+                        <FileActions>
+                          <IconButton size="small" onClick={() => handleViewFile(load.comercial_invoice, 'Invoice')}>
+                            <Visibility fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => downloadFile(load.comercial_invoice, 'comercial_invoice')}>
+                            <GetApp fontSize="small" />
+                          </IconButton>
+                        </FileActions>
+                      </FileItem>
+                    ) : (
+                      <Box component="label" sx={{ cursor: 'pointer', display: 'block' }}>
+                        <EmptyFilesMessage>
+                          <DocumentScanner />
+                          <Typography variant="body2">No Commercial Invoice uploaded</Typography>
+                          <Button 
+                            variant="text" 
+                            size="small" 
+                            sx={{ mt: 0.5, fontSize: '0.75rem' }}
+                          >
+                            Upload Invoice
+                          </Button>
+                          <input
+                            type="file"
+                            hidden
+                            onChange={(e) => handleFileUpload(e, 'comercial_invoice')}
+                          />
+                        </EmptyFilesMessage>
+                      </Box>
+                    )}
+                  </>
+                )}
+              </InfoCard>
+              
+              {/* Notes */}
+              {(load.note || editingSection === 'notes') && (
+                <InfoCard>
+                  <InfoCardHeader>
+                    <InfoCardTitle>
+                      <Description />
+                      Notes
+                    </InfoCardTitle>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={editingSection === 'notes' ? <Close /> : <EditIcon />}
+                      onClick={editingSection === 'notes' ? handleCancelEdit : () => handleEditSection('notes')}
+                    >
+                      {editingSection === 'notes' ? 'CANCEL' : 'EDIT'}
+                    </Button>
+                  </InfoCardHeader>
+                  
+                  {editingSection === 'notes' ? (
+                    // Edit form for notes
+                    <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={4}
+                        label="Notes"
+                        name="note"
+                        value={editFormData.note}
+                        onChange={handleFormChange}
+                      />
+                      
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                        <Button 
+                          variant="contained" 
+                          onClick={handleSaveChanges}
+                          disabled={isSaving}
+                          startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
+                        >
+                          Save
+                        </Button>
+                      </Box>
+                    </Box>
+                  ) : (
+                    // Display mode for notes
+                    <Typography variant="body2" sx={{ p: 1 }}>
+                      {load.note}
+                    </Typography>
+                  )}
+                </InfoCard>
+              )}
+            </>
+          )}
         </PanelContent>
-      </Panel>
+      </RightPanel>
 
       {/* File Preview Modal */}
       <FilePreviewModal
@@ -1448,7 +4266,7 @@ const LoadViewPage = () => {
             <IconButton onClick={handleClosePreview}>
               <CloseIcon />
             </IconButton>
-        </Box>
+          </Box>
         </DialogTitle>
         <DialogContent sx={{ padding: 0 }}>
           {previewModal.type === 'image' ? (
@@ -1467,13 +4285,17 @@ const LoadViewPage = () => {
       </FilePreviewModal>
 
       {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={5000}
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={3000} 
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

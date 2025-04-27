@@ -230,6 +230,38 @@ const ApiService = {
     }
   },
 
+  patchData: async (endpoint, data) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('Token not found. Please login again.');
+      }
+      const response = await axios.patch(`${BASE_URL}${endpoint}`, data, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('API Error Details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        endpoint: endpoint,
+        requestData: data
+      });
+      
+      if (error.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        window.location.href = '/login';
+        throw new Error('Session expired. Please login again.');
+      }
+      
+      throw error.response?.data?.detail || error.message || 'An unknown error occurred';
+    }
+  },
+
   // Auth related methods
   login: async (credentials) => {
     try {
@@ -256,9 +288,33 @@ const ApiService = {
   // Login xatosi uchun qo'shimcha funksiya
   postRegister: async (endpoint, data) => {
     try {
-      const response = await axios.post(`${BASE_URL}${endpoint}`, data);
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('Token not found. Please login again.');
+      }
+      
+      // FormData tipidagi so'rovlar uchun Content-Type headerini o'rnatmaymiz
+      // Chunki browser o'zi boundary bilan to'g'ri Content-Type qo'yadi
+      const headers = {
+        'Authorization': `Bearer ${token}`
+      };
+      
+      // Agar FormData emas bo'lsa, Content-Type headerini qo'shamiz
+      if (!(data instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+      }
+      
+      const response = await axios.post(`${BASE_URL}${endpoint}`, data, {
+        headers: headers
+      });
+      
       return response.data;
     } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        window.location.href = '/login';
+        throw new Error('Session expired. Please login again.');
+      }
       throw error.response?.data || error.message;
     }
   },

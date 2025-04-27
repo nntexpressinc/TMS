@@ -145,7 +145,7 @@ const DispatcherCreatePage = () => {
     setLoading(true);
     setError(null);
     try {
-      // 1. Create user first
+      // 1. Create user first - FormData ishlatamiz
       const userFormData = new FormData();
       userFormData.append('email', userData.email);
       userFormData.append('company_name', userData.company_name || '');
@@ -157,22 +157,39 @@ const DispatcherCreatePage = () => {
       userFormData.append('country', userData.country);
       userFormData.append('state', userData.state);
       userFormData.append('postal_zip', userData.postal_zip);
-      userFormData.append('ext', userData.ext || '');
+      
+      // ext maydonini butun son sifatida qo'shamiz yoki umuman qo'shmaymiz
+      if (userData.ext && userData.ext.trim() !== '') {
+        // Raqamga aylantirish uchun harakat qilamiz
+        const extValue = parseInt(userData.ext);
+        if (!isNaN(extValue)) {
+          userFormData.append('ext', extValue);
+        }
+      }
+      
       userFormData.append('fax', userData.fax || '');
       userFormData.append('role', userData.role);
       userFormData.append('password', userData.password);
       userFormData.append('password2', userData.password);
+      
+      // Profile photo o'zgargan bo'lsa
       if (profilePhotoFile) {
+        // Rasmni ham birga yuboramiz
         userFormData.append('profile_photo', profilePhotoFile);
       }
+      
+      // FormData ishlatib API ga yuboramiz
       const userResponse = await ApiService.postRegister(
         "/auth/register/",
         userFormData
       );
+      
       if (!userResponse || !userResponse.user_id) {
         throw new Error('Failed to create user: No user ID received');
       }
+      
       toast.success('User account created successfully');
+      
       // 2. Create dispatcher with the user ID
       const formattedDispatcherData = {
         user: userResponse.user_id,
@@ -183,16 +200,20 @@ const DispatcherCreatePage = () => {
         company_name: dispatcherData.company_name || null,
         office: dispatcherData.office || null
       };
+      
       const dispatcherResponse = await ApiService.postData(
         "/dispatcher/",
         formattedDispatcherData
       );
+      
       if (!dispatcherResponse) {
         throw new Error('Failed to create dispatcher profile');
       }
+      
       toast.success('Dispatcher profile created successfully');
       navigate("/dispatcher");
     } catch (error) {
+      console.error("Error creating dispatcher:", error);
       let errorMessage = "Failed to create account.";
       if (error.response?.data) {
         if (typeof error.response.data === 'string') {

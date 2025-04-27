@@ -28,6 +28,7 @@ import CheckIcon from '@mui/icons-material/Check';
 // CreateLoadModal komponenti
 const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
   const [loadData, setLoadData] = useState({
+    load_id: "",
     reference_id: "",
     customer_broker: null
   });
@@ -81,8 +82,8 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
   };
 
   const handleCreateLoad = async () => {
-    if (!loadData.reference_id || !loadData.customer_broker) {
-      setError("Reference ID and Customer/Broker are required");
+    if (!loadData.reference_id || !loadData.customer_broker || !loadData.load_id) {
+      setError("Load ID, Reference ID and Customer/Broker are required");
       return;
     }
 
@@ -91,6 +92,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
 
     try {
       const response = await ApiService.postData("/load/", {
+        load_id: loadData.load_id,
         reference_id: loadData.reference_id,
         customer_broker: loadData.customer_broker.id,
         load_status: "OPEN", // Default status
@@ -188,6 +190,18 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
+                label="Load ID"
+                name="load_id"
+                value={loadData.load_id}
+                onChange={handleChange}
+                required
+                error={!loadData.load_id}
+                helperText={!loadData.load_id ? "Load ID is required" : ""}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
                 label="Reference ID"
                 name="reference_id"
                 value={loadData.reference_id}
@@ -241,7 +255,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
           <Button 
             variant="contained" 
             onClick={handleCreateLoad}
-            disabled={loading || !loadData.reference_id || !loadData.customer_broker}
+            disabled={loading || !loadData.reference_id || !loadData.customer_broker || !loadData.load_id}
             startIcon={loading ? <CircularProgress size={20} /> : <AddIcon />}
           >
             Create Load
@@ -633,52 +647,6 @@ const LoadsPage = () => {
 
   const columns = [
     {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 120,
-      headerAlign: 'center',
-      align: 'center',
-      pinned: 'left',
-      renderCell: (params) => (
-        <Box sx={{
-          display: 'flex',
-          gap: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          width: '100%',
-          height: '100%',
-          paddingTop: '4px'
-        }}>
-          <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={() => handleEditLoad(params.row.id)}
-              sx={{
-                padding: '6px',
-                color: '#6366F1',
-                '&:hover': { backgroundColor: '#EEF2FF' }
-              }}
-            >
-              <EditIcon sx={{ fontSize: '20px' }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="View">
-            <IconButton
-              size="small"
-              onClick={() => handleViewLoad(params.row.id)}
-              sx={{
-                padding: '6px',
-                color: '#3B82F6',
-                '&:hover': { backgroundColor: '#EFF6FF' }
-              }}
-            >
-              <VisibilityIcon sx={{ fontSize: '20px' }} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )
-    },
-    {
       field: 'load_id',
       headerName: 'Load ID',
       width: 200,
@@ -694,10 +662,16 @@ const LoadsPage = () => {
           justifyContent: 'center',
           py: '4px'
         }}>
-          <Typography sx={{
-            whiteSpace: 'nowrap',
-            overflow: 'visible'
-          }}>
+          <Typography
+            sx={{ 
+              whiteSpace: 'nowrap',
+              overflow: 'visible',
+              cursor: 'pointer',
+              color: '#3B82F6',
+              textDecoration: 'underline'
+            }}
+            onClick={() => handleViewLoad(params.row.id)}
+          >
             {params.value}
           </Typography>
           <IconButton

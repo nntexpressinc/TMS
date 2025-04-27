@@ -197,12 +197,21 @@ const DriverEditPage = () => {
       if (!selectedUser || !selectedUser.id) throw new Error('User must be selected');
       const allowedFields = [
         'email', 'company_name', 'first_name', 'last_name', 'telephone', 'city', 'address',
-        'country', 'state', 'postal_zip', 'ext', 'fax', 'role', 'company'
+        'country', 'state', 'postal_zip', 'fax', 'role', 'company'
       ];
       const cleanUserData = {};
       allowedFields.forEach(field => {
         if (userData[field] !== undefined) cleanUserData[field] = userData[field];
       });
+      
+      // ext maydonini alohida ko'rib chiqamiz
+      if (userData.ext && userData.ext.trim() !== '') {
+        const extValue = parseInt(userData.ext);
+        if (!isNaN(extValue)) {
+          cleanUserData.ext = extValue;
+        }
+      }
+      
       let formData;
       if (profilePhotoFile) {
         formData = new FormData();
