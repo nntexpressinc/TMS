@@ -2251,7 +2251,12 @@ const LoadViewPage = () => {
         driver_pay: load.driver_pay || ''
       });
     } else if (section === 'equipment') {
+      // Ensure trailer data is correctly included in form data
       setEditFormData({
+        truck: load.truck?.id || '',
+        trailer: load.trailer?.id || ''
+      });
+      console.log("Edit equipment formData:", {
         truck: load.truck?.id || '',
         trailer: load.trailer?.id || ''
       });
@@ -2311,10 +2316,13 @@ const LoadViewPage = () => {
           driver_pay: editFormData.driver_pay ? parseFloat(editFormData.driver_pay) : null
         };
       } else if (editingSection === 'equipment') {
+        // Tuzatilgan qism - trailerga tegishli ma'lumotlarni ham qo'shish
         dataToUpdate = {
           truck: editFormData.truck ? parseInt(editFormData.truck) : null,
           trailer: editFormData.trailer ? parseInt(editFormData.trailer) : null
         };
+        
+        console.log("Equipment update data:", dataToUpdate);
       } else if (editingSection === 'payment') {
         dataToUpdate = {
           load_pay: editFormData.load_pay ? parseFloat(editFormData.load_pay) : null,
@@ -2330,12 +2338,13 @@ const LoadViewPage = () => {
       
       // Update the load data using PATCH to only update specific fields
       const updatedLoad = await ApiService.patchData(`/load/${id}/`, dataToUpdate);
+      console.log("Updated load response:", updatedLoad);
       
-      // Update local state with only the changed fields
-      setLoad(prevLoad => ({
-        ...prevLoad,
-        ...dataToUpdate
-      }));
+      // Refresh data after update to ensure all fields are up to date
+      const refreshedLoad = await ApiService.getData(`/load/${id}/`);
+      
+      // Update local state with complete data
+      setLoad(refreshedLoad);
       
       showSnackbar('Load updated successfully', 'success');
       
@@ -2361,16 +2370,16 @@ const LoadViewPage = () => {
     navigate(`/dispatchers/create?returnTo=/loads/view/${id}`);
   };
   
-  // Handle adding new truck
+  // Tuzatilgan handleAddTruck funksiyasi
   const handleAddTruck = () => {
     // Navigate to truck creation page with return path
-    navigate(`/trucks/create?returnTo=/loads/view/${id}`);
+    navigate(`/truck/create?returnTo=/loads/view/${id}`);
   };
   
-  // Handle adding new trailer
+  // Tuzatilgan handleAddTrailer funksiyasi
   const handleAddTrailer = () => {
     // Navigate to trailer creation page with return path
-    navigate(`/trailers/create?returnTo=/loads/view/${id}`);
+    navigate(`/trailer/create?returnTo=/loads/view/${id}`);
   };
 
   // Add this useEffect to fetch other pays
@@ -3259,6 +3268,28 @@ const LoadViewPage = () => {
       <RightPanel>
         <PanelHeader>
           <Typography variant="h6">Load Information</Typography>
+          
+          <IconButton onClick={() => {
+            setIsLoadDataLoading(true);
+            ApiService.getData(`/load/${id}/`)
+              .then(data => {
+                setLoad(data);
+                fetchAllStops();
+              })
+              .catch(error => {
+                console.error("Error fetching load data:", error);
+                showSnackbar("Ma'lumotlarni yangilashda xatolik yuz berdi", "error");
+              })
+              .finally(() => {
+                setIsLoadDataLoading(false);
+              });
+          }} disabled={isLoadDataLoading}>
+            {isLoadDataLoading ? (
+              <CircularProgress size={24} thickness={4} />
+            ) : (
+              <RefreshIcon />
+            )}
+          </IconButton>
         </PanelHeader>
         
         <PanelContent>
@@ -3523,6 +3554,7 @@ const LoadViewPage = () => {
                 {editingSection === 'equipment' ? (
                   // Edit form for equipment
                   <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>Truck</Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <FormControl fullWidth size="small">
                         <InputLabel>Truck</InputLabel>
@@ -3544,11 +3576,13 @@ const LoadViewPage = () => {
                         color="primary" 
                         onClick={handleAddTruck}
                         size="small"
+                        title="Add new truck"
                       >
                         <AddIcon />
                       </IconButton>
                     </Box>
                     
+                    <Typography variant="subtitle2" sx={{ fontWeight: 500, mt: 1 }}>Trailer</Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <FormControl fullWidth size="small">
                         <InputLabel>Trailer</InputLabel>
@@ -3570,6 +3604,7 @@ const LoadViewPage = () => {
                         color="primary" 
                         onClick={handleAddTrailer}
                         size="small"
+                        title="Add new trailer"
                       >
                         <AddIcon />
                       </IconButton>
@@ -3587,12 +3622,17 @@ const LoadViewPage = () => {
                     </Box>
                   </Box>
                 ) : (
-                  // Display mode for equipment
+                  // Display mode for equipment - IMPROVED SECTION
                   <>
+                    {/* Truck information */}
+                    <Typography variant="subtitle2" sx={{ mt: 1, mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
+                      Truck
+                    </Typography>
+                    
                     {load.truck ? (
                       <>
                         <DetailItem>
-                          <DetailLabel>Truck</DetailLabel>
+                          <DetailLabel>Make/Model</DetailLabel>
                           <DetailValue>{`${load.truck.make || ''} ${load.truck.model || ''}`}</DetailValue>
                         </DetailItem>
                         
@@ -3601,15 +3641,45 @@ const LoadViewPage = () => {
                           <DetailValue>{load.truck.unit_number || "Not available"}</DetailValue>
                         </DetailItem>
                         
-                        <DetailItem noBorder>
+                        <DetailItem>
                           <DetailLabel>Plate Number</DetailLabel>
                           <DetailValue>{load.truck.plate_number || "Not available"}</DetailValue>
                         </DetailItem>
                       </>
                     ) : (
+                      <Box sx={{ p: 1, color: 'text.secondary', mb: 2 }}>
+                        <Typography variant="body2">No truck assigned</Typography>
+                      </Box>
+                    )}
+                    
+                    {/* Trailer information - improved section */}
+                    <Divider sx={{ my: 2 }} />
+                    
+                    <Typography variant="subtitle2" sx={{ mt: 1, mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
+                      Trailer
+                    </Typography>
+                    
+                    {load.trailer ? (
+                      <>
+                        <DetailItem>
+                          <DetailLabel>Type</DetailLabel>
+                          <DetailValue>{load.trailer.trailer_type || "Not available"}</DetailValue>
+                        </DetailItem>
+                        
+                        <DetailItem>
+                          <DetailLabel>Unit Number</DetailLabel>
+                          <DetailValue>{load.trailer.unit_number || "Not available"}</DetailValue>
+                        </DetailItem>
+                        
+                        <DetailItem noBorder>
+                          <DetailLabel>VIN Number</DetailLabel>
+                          <DetailValue>{load.trailer.vin_number || "Not available"}</DetailValue>
+                        </DetailItem>
+                      </>
+                    ) : (
                       <Box sx={{ p: 1, color: 'text.secondary' }}>
-                        <Typography variant="body2">No equipment assigned</Typography>
-          </Box>
+                        <Typography variant="body2">No trailer assigned</Typography>
+                      </Box>
                     )}
                   </>
                 )}
