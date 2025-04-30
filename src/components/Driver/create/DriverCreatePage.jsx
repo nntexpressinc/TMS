@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -33,6 +33,7 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 const DriverCreatePage = () => {
   const [loading, setLoading] = useState(false);
+  const [roles, setRoles] = useState([]);
   const [userData, setUserData] = useState({
     email: "",
     company_name: "",
@@ -47,7 +48,7 @@ const DriverCreatePage = () => {
     postal_zip: "",
     ext: 0,
     fax: "",
-    role: 3,
+    role: "",
     password: "",
     password2: ""
   });
@@ -185,6 +186,19 @@ const DriverCreatePage = () => {
     { value: 'ASSIGNED_DISPATCHER', label: 'Assigned_dispatcher' },
     { value: 'PERCENT_SALARY', label: 'Percent_salary' }
   ];
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const response = await ApiService.getData("/auth/role/");
+        setRoles(response);
+      } catch (error) {
+        console.error("Error fetching roles:", error);
+        toast.error("Failed to fetch roles");
+      }
+    };
+    fetchRoles();
+  }, []);
 
   const handleUserChange = (e) => {
     const { name, value } = e.target;
@@ -391,6 +405,15 @@ const DriverCreatePage = () => {
           { name: 'company_name', label: 'Company Name', required: true, value: userData.company_name, onChange: handleUserChange }
         ],
         [
+          { 
+            name: 'role', 
+            label: 'Role', 
+            type: 'select',
+            required: true,
+            value: userData.role,
+            onChange: handleUserChange,
+            options: roles.map(role => ({ value: role.id, label: role.name }))
+          },
           { 
             name: 'profile_photo', 
             label: 'Profile Photo', 

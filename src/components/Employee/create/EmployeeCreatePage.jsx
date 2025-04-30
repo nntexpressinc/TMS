@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -69,6 +69,7 @@ const positions = [
 
 const EmployeeCreatePage = () => {
   const [loading, setLoading] = useState(false);
+  const [roles, setRoles] = useState([]);
   const [userData, setUserData] = useState({
     email: "",
     company_name: "",
@@ -83,7 +84,7 @@ const EmployeeCreatePage = () => {
     postal_zip: "",
     ext: "",
     fax: "",
-    role: 8,
+    role: "",
     password: "",
     password2: ""
   });
@@ -100,6 +101,19 @@ const EmployeeCreatePage = () => {
   const [profilePhotoFile, setProfilePhotoFile] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const response = await ApiService.getData("/auth/role/");
+        setRoles(response);
+      } catch (error) {
+        console.error("Error fetching roles:", error);
+        toast.error("Failed to fetch roles");
+      }
+    };
+    fetchRoles();
+  }, []);
 
   const handleUserChange = (e) => {
     const { name, value } = e.target;
@@ -238,6 +252,15 @@ const EmployeeCreatePage = () => {
           { name: 'company_name', label: 'Company Name', value: userData.company_name, onChange: handleUserChange }
         ],
         [
+          { 
+            name: 'role', 
+            label: 'Role', 
+            type: 'select',
+            required: true,
+            value: userData.role,
+            onChange: handleUserChange,
+            options: roles.map(role => ({ value: role.id, label: role.name }))
+          },
           { 
             name: 'profile_photo', 
             label: 'Profile Photo', 
