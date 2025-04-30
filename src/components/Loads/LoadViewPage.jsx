@@ -2111,6 +2111,30 @@ const LoadViewPage = () => {
       return;
     }
     
+    // If appointment date is being set, clear FCFS fields
+    if (name === 'appointmentdate' && value) {
+      setStopFormData(prevData => ({
+        ...prevData,
+        [name]: value,
+        // Clear FCFS fields if appointment date is set
+        fcfs: '',
+        plus_hour: ''
+      }));
+      return;
+    }
+    
+    // If FCFS fields are being set, clear appointment date
+    if ((name === 'fcfs' || name === 'plus_hour') && value) {
+      setStopFormData(prevData => ({
+        ...prevData,
+        [name]: value,
+        // Clear appointment date if FCFS fields are set
+        ...(name === 'fcfs' || prevData.fcfs || prevData.plus_hour ? { appointmentdate: '' } : {})
+      }));
+      return;
+    }
+    
+    // Normal field update
     setStopFormData(prevData => ({
       ...prevData,
       [name]: value
@@ -2888,10 +2912,10 @@ const LoadViewPage = () => {
                         onChange={handleStopFormChange}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label="Appointment Date"
+                        label="Appointment Time"
                         name="appointmentdate"
                         type="datetime-local"
                         value={stopFormData.appointmentdate || ''}
@@ -2899,6 +2923,8 @@ const LoadViewPage = () => {
                         InputLabelProps={{
                           shrink: true,
                         }}
+                        // Disable if FCFS fields are filled
+                        disabled={!!(stopFormData.fcfs || stopFormData.plus_hour)}
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -2913,6 +2939,8 @@ const LoadViewPage = () => {
                           shrink: true,
                         }}
                         helperText="Start time of the interval"
+                        // Disable if appointment date is filled
+                        disabled={!!stopFormData.appointmentdate}
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -2930,6 +2958,8 @@ const LoadViewPage = () => {
                           step: 300 // 5 min
                         }}
                         helperText="Additional time for the interval (HH:MM)"
+                        // Disable if appointment date is filled
+                        disabled={!!stopFormData.appointmentdate}
                       />
                     </Grid>
                     <Grid item xs={12}>
@@ -2952,6 +2982,16 @@ const LoadViewPage = () => {
                         onChange={handleStopFormChange}
                       />
                     </Grid>
+                    <Grid item xs={12} >
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="City"
+                        name="city"
+                        value={stopFormData.city}
+                        onChange={handleStopFormChange}
+                      />
+                    </Grid>
                     <Grid item xs={12} md={6}>
                       <TextField
                         select
@@ -2971,16 +3011,7 @@ const LoadViewPage = () => {
                         ))}
                       </TextField>
                     </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="City"
-                        name="city"
-                        value={stopFormData.city}
-                        onChange={handleStopFormChange}
-                      />
-                    </Grid>
+                 
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
@@ -3107,10 +3138,10 @@ const LoadViewPage = () => {
                             onChange={handleStopFormChange}
                           />
                         </Grid>
-                        <Grid item xs={12} md={6}>
+                        <Grid item xs={12}>
                           <TextField
                             fullWidth
-                            label="Appointment Date"
+                            label="Appointment Time"
                             name="appointmentdate"
                             type="datetime-local"
                             value={stopFormData.appointmentdate || ''}
@@ -3118,6 +3149,8 @@ const LoadViewPage = () => {
                             InputLabelProps={{
                               shrink: true,
                             }}
+                            // Disable if FCFS fields are filled
+                            disabled={!!(stopFormData.fcfs || stopFormData.plus_hour)}
                           />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -3132,6 +3165,8 @@ const LoadViewPage = () => {
                               shrink: true,
                             }}
                             helperText="Start time of the interval"
+                            // Disable if appointment date is filled
+                            disabled={!!stopFormData.appointmentdate}
                           />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -3149,6 +3184,8 @@ const LoadViewPage = () => {
                               step: 300 // 5 min
                             }}
                             helperText="Additional time for the interval (HH:MM)"
+                            // Disable if appointment date is filled
+                            disabled={!!stopFormData.appointmentdate}
                           />
                         </Grid>
                         {/* <Grid item xs={12}>
