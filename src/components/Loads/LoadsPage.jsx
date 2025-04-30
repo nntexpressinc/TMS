@@ -487,14 +487,14 @@ const LoadsPage = () => {
       if (storedAccessToken) {
         try {
           const data = await ApiService.getData(`/load/`, storedAccessToken);
-          console.log(data, "fetch load log");
+          console.log("API Response:", data);
 
           const formattedData = data.map(load => {
             return {
               id: load.id,
               created_by: load.created_by?.nickname || '',
               customer_broker: load.customer_broker?.company_name || '',
-              driver: load.driver ? `${load.driver.first_name} ${load.driver.last_name}` : '',
+              driver: load.driver || null,  // O'zgartirildi: butun driver obyektini saqlaymiz
               dispatcher: load.dispatcher?.nickname || '',
               created_by_id: load.created_by?.id,
               customer_broker_id: load.customer_broker?.id,
@@ -508,7 +508,7 @@ const LoadsPage = () => {
               load_id: load.load_id,
               trip_id: load.trip_id,
               co_driver: load.co_driver,
-              truck: load.truck,
+              truck: load.truck || null,  // O'zgartirildi: butun truck obyektini saqlaymiz
               load_status: load.load_status,
               equipment_type: load.equipment_type,
               trip_status: load.trip_status,
@@ -534,6 +534,7 @@ const LoadsPage = () => {
               tags: load.tags
             };
           });
+          console.log("Formatted Data:", formattedData);
           setLoads(formattedData);
           setFilteredLoads(formattedData);
         } catch (error) {
@@ -649,50 +650,60 @@ const LoadsPage = () => {
     {
       field: 'load_id',
       headerName: 'Load ID',
-      width: 200,
+      width: 280,
       align: 'center',
       headerAlign: 'center',
-      renderCell: (params) => (
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          width: '100%',
-          height: '100%',
-          justifyContent: 'center',
-          py: '4px'
-        }}>
-          <Typography
-            sx={{ 
-              whiteSpace: 'nowrap',
-              overflow: 'visible',
-              cursor: 'pointer',
-              color: '#3B82F6',
-              textDecoration: 'underline'
-            }}
-            onClick={() => handleViewLoad(params.row.id)}
-          >
-            {params.value}
-          </Typography>
-          <IconButton
-            size="small"
-            onClick={() => handleCopyId(params.value)}
-            sx={{
-              padding: '4px',
-              color: copiedId === params.value ? '#10B981' : '#6B7280',
-              '&:hover': {
-                backgroundColor: copiedId === params.value ? '#D1FAE5' : '#F3F4F6'
-              }
-            }}
-          >
-            {copiedId === params.value ? (
-              <CheckIcon sx={{ fontSize: '16px' }} />
-            ) : (
-              <ContentCopyIcon sx={{ fontSize: '16px' }} />
-            )}
-          </IconButton>
-        </Box>
-      )
+      renderCell: (params) => {
+        const loadId = params.value || '-';
+        const formatLoadId = (id) => {
+          if (id === '-') return id;
+          if (id.length <= 10) return id;
+          const firstPart = id.substring(0, 5);
+          const lastPart = id.substring(id.length - 5);
+          return `${firstPart}...${lastPart}`;
+        };
+        return (
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            width: '100%',
+            height: '100%',
+            justifyContent: 'center',
+            py: '4px'
+          }}>
+            <Typography
+              sx={{ 
+                whiteSpace: 'nowrap',
+                overflow: 'visible',
+                cursor: 'pointer',
+                color: '#3B82F6',
+                textDecoration: 'underline'
+              }}
+              onClick={() => handleViewLoad(params.row.id)}
+            >
+              {formatLoadId(loadId)}
+            </Typography>
+            <IconButton
+              size="small"
+              onClick={() => handleCopyId(loadId)}
+              sx={{
+                padding: '4px',
+                color: copiedId === loadId ? '#10B981' : '#6B7280',
+                '&:hover': {
+                  backgroundColor: copiedId === loadId ? '#D1FAE5' : '#F3F4F6'
+                }
+              }}
+            >
+              {copiedId === loadId ? (
+                <CheckIcon sx={{ fontSize: '16px' }} />
+              ) : (
+                <ContentCopyIcon sx={{ fontSize: '16px' }} />
+              )}
+            </IconButton>
+          </Box>
+        );
+      }
     },
     { field: 'company_name', headerName: 'Company Name', width: 120 },
     {
@@ -753,7 +764,23 @@ const LoadsPage = () => {
         </Box>
       )
     },
-    { field: 'created_date', headerName: 'Created Date', width: 120 },
+    {
+      field: 'created_date',
+      headerName: 'Created Date',
+      width: 180,
+      valueGetter: (params) => {
+        if (!params.value) return '-';
+        const date = new Date(params.value);
+        return date.toLocaleString('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+      }
+    },
     {
       field: 'customer_broker',
       headerName: 'Customer Broker',
@@ -774,19 +801,51 @@ const LoadsPage = () => {
       field: 'driver',
       headerName: 'Driver',
       width: 150,
-      renderCell: (params) => (
-        <Box
-          sx={{
-            cursor: 'pointer',
-            '&:hover': { textDecoration: 'underline' }
-          }}
-          onClick={() => handleViewDriver(params.row.driver_id)}
-        >
-          {params.value}
-        </Box>
-      )
+      valueGetter: (params) => {
+        const driver = params.row.driver;
+        if (!driver) return '-';
+        const firstName = driver.user?.first_name || '';
+        const lastName = driver.user?.last_name || '';
+        return `${firstName} ${lastName}`.trim() || '-';
+      },
+      renderCell: (params) => {
+        const driver = params.row.driver;
+        if (!driver) return '-';
+        
+        const firstName = driver.user?.first_name || '';
+        const lastName = driver.user?.last_name || '';
+        const fullName = `${firstName} ${lastName}`.trim();
+        
+        const formatName = (name) => {
+          if (!name || name === '-') return '-';
+          if (name.length <= 15) return name;
+          return `${name.substring(0, 12)}...`;
+        };
+
+        return (
+          <Tooltip title={fullName}>
+            <Box
+              sx={{
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' }
+              }}
+              onClick={() => handleViewDriver(driver.id)}
+            >
+              {formatName(fullName)}
+            </Box>
+          </Tooltip>
+        );
+      }
     },
-    { field: 'truck', headerName: 'Truck', width: 100 },
+    { 
+      field: 'truck', 
+      headerName: 'Truck', 
+      width: 120,
+      valueGetter: (params) => {
+        const truck = params.row.truck;
+        return truck ? `${truck.make || ''} ${truck.model || ''} ${truck.unit_number || ''}`.trim() : '-';
+      }
+    },
     {
       field: 'load_status',
       headerName: 'Load Status',
@@ -1027,6 +1086,11 @@ const LoadsPage = () => {
                 quickFilterProps: { debounceMs: 500 },
               },
             }}
+            disableColumnMenu={false}
+            disableColumnSelector={false}
+            disableDensitySelector={false}
+            disableSelectionOnClick
+            columnBuffer={5}
             sx={{
               backgroundColor: 'white',
               borderRadius: '12px',
@@ -1044,6 +1108,10 @@ const LoadsPage = () => {
                 '& .MuiDataGrid-columnHeaderTitle': {
                   fontWeight: 600,
                   color: '#111827'
+                },
+                '& .MuiDataGrid-columnSeparator': {
+                  visibility: 'visible',
+                  color: '#E5E7EB'
                 }
               },
               '& .MuiDataGrid-cell:focus': {

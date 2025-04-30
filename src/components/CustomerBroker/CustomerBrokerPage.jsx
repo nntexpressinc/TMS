@@ -154,7 +154,9 @@ const CustomerBrokerPage = () => {
           <Typography
             sx={{ 
               whiteSpace: 'nowrap',
-              overflow: 'visible',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '120px',
               cursor: 'pointer',
               color: '#3B82F6',
               textDecoration: 'underline'

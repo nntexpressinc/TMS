@@ -59,10 +59,23 @@ import {
   Info,
   DocumentScanner,
   GetApp,
-  AttachMoney,
+  AttachMoney as AttachMoneyIcon,
   Save,
   Close,
-  Delete
+  Delete,
+  LocalShipping as LocalShippingIcon,
+  Numbers as NumbersIcon,
+  QrCode as QrCodeIcon,
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  Directions as DirectionsIcon,
+  DirectionsCar as DirectionsCarIcon,
+  Person as PersonIcon,
+  SupportAgent as SupportAgentIcon,
+  Assignment as AssignmentIcon,
+  Receipt as ReceiptIcon,
+  Badge as BadgeIcon,
+  ContentCopy as ContentCopyIcon
 } from "@mui/icons-material";
 import { MdFileUpload, MdFileDownload, MdLocalShipping, MdDirectionsCar, MdAssignmentTurnedIn, MdDoneAll, MdAltRoute, MdCheckCircle, MdHome } from 'react-icons/md';
 import { ApiService } from "../../api/auth";
@@ -1142,7 +1155,7 @@ const LoadViewPage = () => {
     company_name: "",
     contact_name: "",
     reference_id: "",
-    appointmentdate: "",
+    appointment_date: "",
     time: "",
     address1: "",
     address2: "",
@@ -1164,6 +1177,8 @@ const LoadViewPage = () => {
   const [trailers, setTrailers] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   const [otherPays, setOtherPays] = useState([]);
+  const chatContainerRef = useRef(null);
+  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   
   // Define load statuses with icons and colors
   const loadStatusOptions = [
@@ -1185,9 +1200,8 @@ const LoadViewPage = () => {
     
     setIsUpdatingStatus(true);
     try {
-      // Use putData instead of patchData since we're having issues
+      // Faqat load_status maydonini yuboramiz
       await ApiService.putData(`/load/${id}/`, {
-        ...load,
         load_status: newStatus
       });
       
@@ -1999,7 +2013,7 @@ const LoadViewPage = () => {
       company_name: stop.company_name || "",
       contact_name: stop.contact_name || "",
       reference_id: stop.reference_id || "",
-      appointmentdate: stop.appointmentdate || "",
+      appointment_date: stop.appointment_date || "",
       time: stop.time || "",
       address1: stop.address1 || "",
       address2: stop.address2 || "",
@@ -2034,7 +2048,7 @@ const LoadViewPage = () => {
       company_name: "",
       contact_name: "",
       reference_id: "",
-      appointmentdate: "",
+      appointment_date: "",
       time: "",
       address1: "",
       address2: "",
@@ -2049,19 +2063,20 @@ const LoadViewPage = () => {
   // Function to save stop
   const handleSaveStop = async () => {
     try {
+      // Format appointment_date
+      const formattedData = {
+        ...stopFormData,
+        load: parseInt(id),
+        appointment_date: stopFormData.appointment_date ? new Date(stopFormData.appointment_date).toISOString() : null
+      };
+
       if (editingStop) {
         // Update existing stop
-        await ApiService.putData(`/stops/${editingStop}/`, {
-          ...stopFormData,
-          load: parseInt(id)
-        });
+        await ApiService.putData(`/stops/${editingStop}/`, formattedData);
         showSnackbar("Stop updated successfully", "success");
       } else if (isAddingStop) {
         // Create new stop
-        await ApiService.postData(`/stops/`, {
-          ...stopFormData,
-          load: parseInt(id)
-        });
+        await ApiService.postData(`/stops/`, formattedData);
         showSnackbar("Stop added successfully", "success");
       }
       
@@ -2400,6 +2415,33 @@ const LoadViewPage = () => {
     }
   }, [isLoading, load, id]);
 
+  // Scroll pozitsiyasini tekshirish uchun
+  const handleScroll = () => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShouldScrollToBottom(isNearBottom);
+    }
+  };
+
+  // Yangi xabarlar kelganda scroll qilish
+  useEffect(() => {
+    if (shouldScrollToBottom && chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [chatMessages, shouldScrollToBottom]);
+
+  // Chat container uchun scroll event listener
+  useEffect(() => {
+    const chatContainer = chatContainerRef.current;
+    if (chatContainer) {
+      chatContainer.addEventListener('scroll', handleScroll);
+      return () => {
+        chatContainer.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, []);
+
   if (isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
@@ -2588,24 +2630,17 @@ const LoadViewPage = () => {
                         onChange={handleStopFormChange}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        size="small"
                         label="Appointment Date"
-                        name="appointmentdate"
-                        value={stopFormData.appointmentdate}
+                        name="appointment_date"
+                        type="datetime-local"
+                        value={stopFormData.appointment_date || ''}
                         onChange={handleStopFormChange}
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Time"
-                        name="time"
-                        value={stopFormData.time}
-                        onChange={handleStopFormChange}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
                       />
                     </Grid>
                     <Grid item xs={12}>
@@ -2756,11 +2791,14 @@ const LoadViewPage = () => {
                         <Grid item xs={12} md={6}>
                           <TextField
                             fullWidth
-                            size="small"
                             label="Appointment Date"
-                            name="appointmentdate"
-                            value={stopFormData.appointmentdate}
+                            name="appointment_date"
+                            type="datetime-local"
+                            value={stopFormData.appointment_date || ''}
                             onChange={handleStopFormChange}
+                            InputLabelProps={{
+                              shrink: true,
+                            }}
                           />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -2892,7 +2930,7 @@ const LoadViewPage = () => {
                             </IconButton>
                           </Box>
                           <StopDate>
-                            {stop.appointmentdate || "Not specified"}
+                            {stop.appointment_date || "Not specified"}
                           </StopDate>
                         </StopHeader>
                         <Typography variant="body2">
@@ -2938,114 +2976,360 @@ const LoadViewPage = () => {
             </StopsContainer>
             
             {/* Load and Broker Information Combined */}
-            <DetailCard>
-              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+            <DetailCard sx={{ 
+              bgcolor: '#fff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              borderRadius: 1,
+              p: 2,
+              mb: 1.5
+            }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                mb: 2,
+                pb: 1,
+                borderBottom: '1px solid #f0f0f0'
+              }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 Load Information
               </Typography>
+              </Box>
               
-              <InfoRow>
-                <InfoLabel>Load ID</InfoLabel>
-                <InfoValue>{load.load_id || "Not assigned"}</InfoValue>
-              </InfoRow>
-              
-              <InfoRow>
-                <InfoLabel>Reference ID</InfoLabel>
-                <InfoValue>{load.reference_id || "Not assigned"}</InfoValue>
-              </InfoRow>
-              
-              <InfoRow>
-                <InfoLabel>Load Pay</InfoLabel>
-                <InfoValue>{load.load_pay ? `$${load.load_pay}` : "Not assigned"}</InfoValue>
-              </InfoRow>
-              
-              <InfoRow>
-                <InfoLabel>Driver Pay</InfoLabel>
-                <InfoValue>{load.driver_pay ? `$${load.driver_pay}` : "Not assigned"}</InfoValue>
-              </InfoRow>
-              
-              <InfoRow>
-                <InfoLabel>Total Miles</InfoLabel>
-                <InfoValue>{load.total_miles || "Not available"}</InfoValue>
-              </InfoRow>
+              <Grid container spacing={2}>
+                <Grid item xs={6} md={3}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Load ID
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Tooltip title={load.load_id || "Not assigned"} placement="top">
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 500,
+                          maxWidth: '120px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {load.load_id || "Not assigned"}
+                        </Typography>
+                      </Tooltip>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleCopyToClipboard(load.load_id, 'Load ID')}
+                        sx={{ padding: 0.2 }}
+                      >
+                        <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={6} md={3}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Reference ID
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Tooltip title={load.reference_id || "Not assigned"} placement="top">
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 500,
+                          maxWidth: '120px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {load.reference_id || "Not assigned"}
+                        </Typography>
+                      </Tooltip>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleCopyToClipboard(load.reference_id, 'Reference ID')}
+                        sx={{ padding: 0.2 }}
+                      >
+                        <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={6} md={3}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Load Pay
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      fontWeight: 600,
+                      color: load.load_pay ? '#2e7d32' : 'text.primary'
+                    }}>
+                      {load.load_pay ? `$${load.load_pay}` : "Not assigned"}
+                    </Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={6} md={3}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Driver Pay
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      fontWeight: 600,
+                      color: load.driver_pay ? '#2e7d32' : 'text.primary'
+                    }}>
+                      {load.driver_pay ? `$${load.driver_pay}` : "Not assigned"}
+                    </Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={6} md={3}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Total Miles
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {load.total_miles || "Not available"}
+                    </Typography>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={6} md={3}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Status
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      fontWeight: 500,
+                      color: load.status === 'COMPLETED' ? '#2e7d32' : 
+                             load.status === 'IN_PROGRESS' ? '#1976d2' : 
+                             load.status === 'CANCELLED' ? '#d32f2f' : 'text.primary'
+                    }}>
+                      {load.status || "Not set"}
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
             </DetailCard>
             
-            <DetailCard>
-              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+            <DetailCard sx={{ 
+              bgcolor: '#fff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              borderRadius: 1,
+              p: 2,
+              mb: 1.5
+            }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                mb: 2,
+                pb: 1,
+                borderBottom: '1px solid #f0f0f0'
+              }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 Broker Information
               </Typography>
+              </Box>
               
-              <InfoRow>
-                <InfoLabel>Company</InfoLabel>
-                <InfoValue>{load.customer_broker?.company_name || "Not assigned"}</InfoValue>
-              </InfoRow>
-              
-              <InfoRow>
-                <InfoLabel>MC Number</InfoLabel>
-                <InfoValue>{load.customer_broker?.mc_number || "Not available"}</InfoValue>
-              </InfoRow>
-              
-              <InfoRow>
-                <InfoLabel>Contact</InfoLabel>
-                <InfoValue>{load.customer_broker?.contact_number || "Not available"}</InfoValue>
-              </InfoRow>
-              
-              <InfoRow>
-                <InfoLabel>Email</InfoLabel>
-                <InfoValue>{load.customer_broker?.email_address || "Not available"}</InfoValue>
-              </InfoRow>
+              <Grid container spacing={2}>
+                <Grid item xs={6} md={3}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Company
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {load.customer_broker?.company_name || "Not assigned"}
+                      </Typography>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleCopyToClipboard(load.customer_broker?.company_name, 'Company')}
+                        sx={{ padding: 0.2 }}
+                      >
+                        <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={6} md={3}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      MC Number
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {load.customer_broker?.mc_number || "Not available"}
+                      </Typography>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleCopyToClipboard(load.customer_broker?.mc_number, 'MC Number')}
+                        sx={{ padding: 0.2 }}
+                      >
+                        <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={6} md={3}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Contact
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {load.customer_broker?.contact_number || "Not available"}
+                      </Typography>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleCopyToClipboard(load.customer_broker?.contact_number, 'Contact')}
+                        sx={{ padding: 0.2 }}
+                      >
+                        <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={6} md={3}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Email
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="body2" sx={{ 
+                        fontWeight: 500,
+                        maxWidth: '140px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {load.customer_broker?.email_address || "Not available"}
+                      </Typography>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleCopyToClipboard(load.customer_broker?.email_address, 'Email')}
+                        sx={{ padding: 0.2 }}
+                      >
+                        <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </Grid>
+              </Grid>
             </DetailCard>
             
-            <DetailCard>
-              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+            <DetailCard sx={{ 
+              bgcolor: '#fff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              borderRadius: 1,
+              p: 2,
+              mb: 1.5
+            }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                mb: 2,
+                pb: 1,
+                borderBottom: '1px solid #f0f0f0'
+              }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 Driver & Equipment
               </Typography>
+              </Box>
               
-              <InfoRow>
-                <InfoLabel>Driver</InfoLabel>
-                <InfoValue>
+              <Grid container spacing={2}>
+                <Grid item xs={6} md={4}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Driver
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
                   {load.driver ? 
                     `${load.driver.user?.first_name || ''} ${load.driver.user?.last_name || ''}` : 
                     "Not assigned"}
-                </InfoValue>
-              </InfoRow>
-              
-              <InfoRow>
-                <InfoLabel>Dispatcher</InfoLabel>
-                <InfoValue>{load.dispatcher?.nickname || "Not assigned"}</InfoValue>
-              </InfoRow>
-              
-              <InfoRow>
-                <InfoLabel>Equipment</InfoLabel>
-                <InfoValue>
+                    </Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={6} md={4}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Dispatcher
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {load.dispatcher?.nickname || "Not assigned"}
+                    </Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={12} md={4}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Equipment
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
                   {load.truck ? 
                     `${load.truck.make || ''} ${load.truck.model || ''} (Unit: ${load.truck.unit_number || ''})` : 
                     "No equipment assigned"}
-                </InfoValue>
-              </InfoRow>
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
             </DetailCard>
             
-            <DetailCard>
-              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+            <DetailCard sx={{ 
+              bgcolor: '#fff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              borderRadius: 1,
+              p: 2
+            }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                mb: 2,
+                pb: 1,
+                borderBottom: '1px solid #f0f0f0'
+              }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 Additional Information
               </Typography>
+              </Box>
               
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" fontWeight={500} gutterBottom>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
                   Instructions
                 </Typography>
-                <Typography variant="body2" sx={{ p: 1.5, bgcolor: '#f9f9f9', borderRadius: 1, minHeight: '80px' }}>
+                    <Box sx={{ 
+                      p: 1.5, 
+                      bgcolor: '#fafafa',
+                      borderRadius: 1,
+                      border: '1px solid #f0f0f0',
+                      minHeight: '60px',
+                      fontSize: '0.875rem'
+                    }}>
                   {load.instructions || "No instructions provided"}
-                </Typography>
               </Box>
+                  </Box>
+                </Grid>
               
+                <Grid item xs={12} md={6}>
               <Box>
-                <Typography variant="body2" fontWeight={500} gutterBottom>
+                    <Typography variant="caption" color="text.secondary">
                   Bills
                 </Typography>
-                <Typography variant="body2" sx={{ p: 1.5, bgcolor: '#f9f9f9', borderRadius: 1 }}>
+                    <Box sx={{ 
+                      p: 1.5, 
+                      bgcolor: '#fafafa',
+                      borderRadius: 1,
+                      border: '1px solid #f0f0f0',
+                      fontSize: '0.875rem'
+                    }}>
                   {load.bills || "No bills information provided"}
-                </Typography>
               </Box>
+                  </Box>
+                </Grid>
+              </Grid>
             </DetailCard>
           </LeftPanelContent>
         )}
@@ -3133,8 +3417,21 @@ const LoadViewPage = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 overflowY: 'auto',
-                position: 'relative'
-              }}>
+                position: 'relative',
+                '&::-webkit-scrollbar': {
+                  width: '6px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: '#f1f1f1',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: '#888',
+                  borderRadius: '3px',
+                },
+                '&::-webkit-scrollbar-thumb:hover': {
+                  background: '#555',
+                }
+              }} ref={chatContainerRef}>
                 {isChatLoading && chatMessages.length === 0 ? (
                   <Box sx={{ 
                     display: 'flex', 
@@ -3689,7 +3986,7 @@ const LoadViewPage = () => {
               <InfoCard>
                 <InfoCardHeader>
                   <InfoCardTitle>
-                    <AttachMoney />
+                    <AttachMoneyIcon />
                     Payment Details
                   </InfoCardTitle>
                   <Button

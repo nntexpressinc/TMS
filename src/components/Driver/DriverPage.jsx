@@ -133,12 +133,21 @@ const DriverPage = () => {
     {
       field: 'user_email',
       headerName: 'Email',
-      width: 220,
+      width: 280,
       align: 'center',
       headerAlign: 'center',
       valueGetter: (params) => params.row.user?.email || '-',
       renderCell: (params) => {
         const email = params.row.user?.email || '-';
+        const formatEmail = (email) => {
+          if (email === '-') return email;
+          if (email.length <= 16) return email;
+          const [username, domain] = email.split('@');
+          if (username.length > 8) {
+            return `${username.substring(0, 8)}...@${domain}`;
+          }
+          return email;
+        };
         return (
           <Box sx={{
             display: 'flex',
@@ -159,7 +168,7 @@ const DriverPage = () => {
               }}
               onClick={() => email !== '-' && handleView(params.row.id)}
             >
-              {email}
+              {formatEmail(email)}
             </Typography>
             {email !== '-' && (
               <IconButton

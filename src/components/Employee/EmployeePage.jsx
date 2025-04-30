@@ -134,51 +134,49 @@ const EmployeePage = () => {
       headerAlign: 'center',
       renderCell: (params) => {
         const nickname = params.row.nickname || '-';
-        const shortNick = nickname.length > 8 ? nickname.slice(0, 8) + '...' : nickname;
+        const shortNick = nickname.length > 8 ? nickname.substring(0, 8) + '...' : nickname;
         return (
-          <Tooltip title={nickname}>
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              width: '100%',
-              height: '100%',
-              justifyContent: 'center',
-              py: '4px'
-            }}>
-              <Typography
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            width: '100%',
+            height: '100%',
+            justifyContent: 'center',
+            py: '4px'
+          }}>
+            <Typography
+              sx={{
+                whiteSpace: 'nowrap',
+                overflow: 'visible',
+                cursor: nickname !== '-' ? 'pointer' : 'default',
+                color: nickname !== '-' ? '#3B82F6' : 'inherit',
+                textDecoration: nickname !== '-' ? 'underline' : 'none'
+              }}
+              onClick={() => nickname !== '-' && navigate(`/employee/${params.row.id}`)}
+            >
+              {shortNick}
+            </Typography>
+            {nickname !== '-' && (
+              <IconButton
+                size="small"
+                onClick={() => handleCopyId(nickname)}
                 sx={{
-                  whiteSpace: 'nowrap',
-                  overflow: 'visible',
-                  cursor: nickname !== '-' ? 'pointer' : 'default',
-                  color: nickname !== '-' ? '#3B82F6' : 'inherit',
-                  textDecoration: nickname !== '-' ? 'underline' : 'none'
+                  padding: '4px',
+                  color: copiedId === nickname ? '#10B981' : '#6B7280',
+                  '&:hover': {
+                    backgroundColor: copiedId === nickname ? '#D1FAE5' : '#F3F4F6'
+                  }
                 }}
-                onClick={() => nickname !== '-' && navigate(`/employee/${params.row.id}`)}
               >
-                {shortNick}
-              </Typography>
-              {nickname !== '-' && (
-                <IconButton
-                  size="small"
-                  onClick={() => handleCopyId(nickname)}
-                  sx={{
-                    padding: '4px',
-                    color: copiedId === nickname ? '#10B981' : '#6B7280',
-                    '&:hover': {
-                      backgroundColor: copiedId === nickname ? '#D1FAE5' : '#F3F4F6'
-                    }
-                  }}
-                >
-                  {copiedId === nickname ? (
-                    <CheckIcon sx={{ fontSize: '16px' }} />
-                  ) : (
-                    <ContentCopyIcon sx={{ fontSize: '16px' }} />
-                  )}
-                </IconButton>
-              )}
-            </Box>
-          </Tooltip>
+                {copiedId === nickname ? (
+                  <CheckIcon sx={{ fontSize: '16px' }} />
+                ) : (
+                  <ContentCopyIcon sx={{ fontSize: '16px' }} />
+                )}
+              </IconButton>
+            )}
+          </Box>
         );
       }
     },
