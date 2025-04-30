@@ -2853,7 +2853,7 @@ const LoadViewPage = () => {
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        label="First Come First Serve Time"
+                        label="FCFS From"
                         name="fcfs"
                         type="datetime-local"
                         value={stopFormData.fcfs || ''}
@@ -2867,7 +2867,7 @@ const LoadViewPage = () => {
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        label="Plus Hours"
+                        label="FCFS To"
                         name="plus_hour"
                         type="time"
                         value={stopFormData.plus_hour || ''}
@@ -3060,7 +3060,7 @@ const LoadViewPage = () => {
                         <Grid item xs={12} md={6}>
                           <TextField
                             fullWidth
-                            label="First Come First Serve Time"
+                            label="FCFS From"
                             name="fcfs"
                             type="datetime-local"
                             value={stopFormData.fcfs || ''}
@@ -3074,7 +3074,7 @@ const LoadViewPage = () => {
                         <Grid item xs={12} md={6}>
                           <TextField
                             fullWidth
-                            label="Plus Hours"
+                            label="FCFS To"
                             name="plus_hour"
                             type="time"
                             value={stopFormData.plus_hour || ''}
@@ -3088,7 +3088,7 @@ const LoadViewPage = () => {
                             helperText="Additional time for the interval (HH:MM)"
                           />
                         </Grid>
-                        <Grid item xs={12}>
+                        {/* <Grid item xs={12}>
                           <TextField
                             fullWidth
                             size="small"
@@ -3097,7 +3097,7 @@ const LoadViewPage = () => {
                             value={stopFormData.time}
                             onChange={handleStopFormChange}
                           />
-                        </Grid>
+                        </Grid> */}
                         <Grid item xs={12}>
                           <TextField
                             fullWidth
