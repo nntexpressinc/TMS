@@ -82,7 +82,7 @@ const formatDate = (date) => {
 const getProfilePhoto = (url) => {
   if (!url) return 'https://ui-avatars.com/api/?name=User&background=random';
   if (url.startsWith('http')) return url;
-  return `https://api.biznes-armiya.uz${url}`;
+  return `https://api1.biznes-armiya.uz${url}`;
 };
 
 const DriverPDF = ({ driver, user, payments, expenses }) => {
