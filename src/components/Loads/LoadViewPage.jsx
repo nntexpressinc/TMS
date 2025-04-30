@@ -1182,6 +1182,12 @@ const LoadViewPage = () => {
   const [otherPays, setOtherPays] = useState([]);
   const chatContainerRef = useRef(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+  // First, add state for delete confirmation dialog
+  const [deleteStopDialog, setDeleteStopDialog] = useState({
+    open: false,
+    stopId: null,
+    stopName: ''
+  });
   
   // Define load statuses with icons and colors
   const loadStatusOptions = [
@@ -2257,6 +2263,13 @@ const LoadViewPage = () => {
       }));
       
       setAllStops(stops);
+      
+      // Ensure editing states are reset after fetching stops
+      // This prevents issues with the Add Stop button being disabled
+      setEditingStop(null);
+      setIsAddingStop(false);
+      
+      console.log("Fetched stops:", loadStops);
     } catch (error) {
       console.error("Error fetching stops:", error);
       showSnackbar("Failed to load stops", "error");
@@ -2713,6 +2726,43 @@ const LoadViewPage = () => {
     return options;
   };
 
+  // Fix the handleDeleteStop function to properly reset editing state
+  const handleDeleteStop = async (stopId) => {
+    try {
+      await ApiService.deleteData(`/stops/${stopId}/`);
+      
+      // Reset editing state
+      setEditingStop(null);
+      setIsAddingStop(false);
+      
+      // Reset delete dialog
+      setDeleteStopDialog({ open: false, stopId: null, stopName: '' });
+      
+      // Show success message
+      showSnackbar("Stop deleted successfully", "success");
+      
+      // Refresh stops data
+      fetchAllStops();
+    } catch (error) {
+      console.error("Error deleting stop:", error);
+      showSnackbar("Failed to delete stop. Please try again.", "error");
+    }
+  };
+
+  // Add function to open delete confirmation dialog
+  const openDeleteDialog = (event, stop) => {
+    // Prevent event bubbling to edit stop
+    event.stopPropagation();
+    
+    setDeleteStopDialog({
+      open: true,
+      stopId: stop.id,
+      stopName: stop.stop_name === "PICKUP" ? "Pickup" : 
+                stop.stop_name === "DELIVERY" ? "Delivery" : 
+                stop.stop_name
+    });
+  };
+
   return (
     <MainContainer>
       {/* Create Load Modal */}
@@ -2747,6 +2797,7 @@ const LoadViewPage = () => {
                   Stops
                 </Typography>
                 <Box>
+                  {/* Commented out by user
                   <IconButton 
                     size="small" 
                     onClick={() => setCompactView(!compactView)}
@@ -2756,7 +2807,7 @@ const LoadViewPage = () => {
                       <EditIcon fontSize="small" /> : 
                       <MdCheckCircle size={18} />
                     }
-                  </IconButton>
+                  </IconButton> */}
                   <Button 
                     startIcon={<AddIcon />} 
                     size="small" 
@@ -2977,9 +3028,20 @@ const LoadViewPage = () => {
                 load.stop.map(stop => (
                   editingStop === stop.id ? (
                     <StopEditContainer key={stop.id}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Edit Stop
-                      </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Edit Stop
+                        </Typography>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          startIcon={<Delete fontSize="small" />}
+                          onClick={(e) => openDeleteDialog(e, stop)}
+                        >
+                          Delete Stop
+                        </Button>
+                      </Box>
                       
                       <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
@@ -3014,6 +3076,7 @@ const LoadViewPage = () => {
                             </Select>
                           </FormControl>
                         </Grid>
+                        
                         <Grid item xs={12} md={6}>
                           <TextField
                             fullWidth
@@ -3279,6 +3342,15 @@ const LoadViewPage = () => {
                           </>
                         )}
                       </StopDetails>
+                      {compactView && (
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleEditStop(stop)}
+                          sx={{ ml: 1 }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      )}
                     </StopItem>
                   )
                 ))
@@ -4991,6 +5063,50 @@ const LoadViewPage = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Add delete confirmation dialog */}
+      <Dialog
+        open={deleteStopDialog.open}
+        onClose={() => {
+          setDeleteStopDialog({ open: false, stopId: null, stopName: '' });
+          // Ensure editing state is reset when dialog is closed without deletion
+          if (editingStop) {
+            setEditingStop(null);
+          }
+        }}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          Confirm Deletion
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" id="alert-dialog-description">
+            Are you sure you want to delete this stop ({deleteStopDialog.stopName})? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              setDeleteStopDialog({ open: false, stopId: null, stopName: '' });
+              // Ensure editing state is reset when dialog is cancelled
+              if (editingStop) {
+                setEditingStop(null);
+              }
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={() => handleDeleteStop(deleteStopDialog.stopId)} 
+            variant="contained" 
+            color="error" 
+            autoFocus
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </MainContainer>
   );
 };
