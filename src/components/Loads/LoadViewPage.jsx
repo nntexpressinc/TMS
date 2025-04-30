@@ -75,7 +75,8 @@ import {
   Assignment as AssignmentIcon,
   Receipt as ReceiptIcon,
   Badge as BadgeIcon,
-  ContentCopy as ContentCopyIcon
+  ContentCopy as ContentCopyIcon,
+  Timeline as TimelineIcon
 } from "@mui/icons-material";
 import { MdFileUpload, MdFileDownload, MdLocalShipping, MdDirectionsCar, MdAssignmentTurnedIn, MdDoneAll, MdAltRoute, MdCheckCircle, MdHome } from 'react-icons/md';
 import { ApiService } from "../../api/auth";
@@ -1155,7 +1156,7 @@ const LoadViewPage = () => {
     company_name: "",
     contact_name: "",
     reference_id: "",
-    appointment_date: "",
+    appointmentdate: "",
     time: "",
     address1: "",
     address2: "",
@@ -1163,7 +1164,9 @@ const LoadViewPage = () => {
     state: "",
     city: "",
     zip_code: "",
-    note: ""
+    note: "",
+    fcfs: "",
+    plus_hour: ""
   });
   const [isAddingStop, setIsAddingStop] = useState(false);
   const [allStops, setAllStops] = useState([]);
@@ -2008,12 +2011,46 @@ const LoadViewPage = () => {
   // Function to handle edit stop
   const handleEditStop = (stop) => {
     setEditingStop(stop.id);
+    
+    // Format date fields for HTML datetime-local input (requires YYYY-MM-DDThh:mm format)
+    const formatDateTimeForInput = (dateStr) => {
+      if (!dateStr) return '';
+      
+      try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return ''; // Invalid date
+        
+        // Format to YYYY-MM-DDThh:mm
+        return date.toISOString().slice(0, 16);
+      } catch (error) {
+        console.error("Error formatting date:", error);
+        return '';
+      }
+    };
+
+    // Format time string for HTML time input (requires hh:mm format)
+    const formatTimeForInput = (timeStr) => {
+      if (!timeStr) return '';
+      
+      try {
+        // If it's already in hh:mm or hh:mm:ss format, extract hh:mm
+        if (timeStr.includes(':')) {
+          return timeStr.substring(0, 5); // Extract hh:mm part
+        }
+        return '';
+      } catch (error) {
+        console.error("Error formatting time:", error);
+        return '';
+      }
+    };
+
+    // Set form data with properly formatted date values
     setStopFormData({
       stop_name: stop.stop_name || "",
       company_name: stop.company_name || "",
       contact_name: stop.contact_name || "",
       reference_id: stop.reference_id || "",
-      appointment_date: stop.appointment_date || "",
+      appointmentdate: formatDateTimeForInput(stop.appointmentdate),
       time: stop.time || "",
       address1: stop.address1 || "",
       address2: stop.address2 || "",
@@ -2021,7 +2058,15 @@ const LoadViewPage = () => {
       state: stop.state || "",
       city: stop.city || "",
       zip_code: stop.zip_code || "",
-      note: stop.note || ""
+      note: stop.note || "",
+      fcfs: formatDateTimeForInput(stop.fcfs),
+      plus_hour: formatTimeForInput(stop.plus_hour)
+    });
+
+    console.log("Editing stop with formatted data:", {
+      appointmentdate: formatDateTimeForInput(stop.appointmentdate),
+      fcfs: formatDateTimeForInput(stop.fcfs),
+      plus_hour: formatTimeForInput(stop.plus_hour)
     });
   };
 
@@ -2034,6 +2079,32 @@ const LoadViewPage = () => {
   // Function to handle form field changes
   const handleStopFormChange = (e) => {
     const { name, value } = e.target;
+    
+    // Handle adding new stop
+    if (name === 'stop_name' && value === 'add-new') {
+      const existingStops = load.stop || [];
+      const existingNumberedStops = existingStops
+        .filter(s => s.stop_name && s.stop_name.startsWith('Stop-'))
+        .map(s => s.stop_name);
+      
+      const maxStopNumber = existingNumberedStops.reduce((max, stopName) => {
+        const match = stopName.match(/Stop-(\d+)/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          return num > max ? num : max;
+        }
+        return max;
+      }, 1);
+      
+      const nextStopName = `Stop-${maxStopNumber + 1}`;
+      
+      setStopFormData(prev => ({
+        ...prev,
+        stop_name: nextStopName
+      }));
+      return;
+    }
+    
     setStopFormData(prevData => ({
       ...prevData,
       [name]: value
@@ -2043,12 +2114,41 @@ const LoadViewPage = () => {
   // Function to add new stop
   const handleAddStop = () => {
     setIsAddingStop(true);
+    
+    // Determine the existing stops and next stop number
+    const existingStops = load.stop || [];
+    const existingNumberedStops = existingStops
+      .filter(s => s.stop_name && s.stop_name.startsWith('Stop-'))
+      .map(s => s.stop_name);
+    
+    let initialStopName = "PICKUP";
+    
+    // If we already have a PICKUP, check if we have a DELIVERY
+    if (existingStops.some(s => s.stop_name === "PICKUP")) {
+      // If we don't have a DELIVERY yet, suggest that
+      if (!existingStops.some(s => s.stop_name === "DELIVERY")) {
+        initialStopName = "DELIVERY";
+      } else {
+        // We have both PICKUP and DELIVERY, suggest next numbered stop
+        const maxStopNumber = existingNumberedStops.reduce((max, stopName) => {
+          const match = stopName.match(/Stop-(\d+)/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            return num > max ? num : max;
+          }
+          return max;
+        }, 1);
+        
+        initialStopName = `Stop-${maxStopNumber + 1}`;
+      }
+    }
+    
     setStopFormData({
-      stop_name: "PICKUP",
+      stop_name: initialStopName,
       company_name: "",
       contact_name: "",
       reference_id: "",
-      appointment_date: "",
+      appointmentdate: "",
       time: "",
       address1: "",
       address2: "",
@@ -2056,19 +2156,68 @@ const LoadViewPage = () => {
       state: "",
       city: "",
       zip_code: "",
-      note: ""
+      note: "",
+      fcfs: "",
+      plus_hour: ""
     });
   };
 
   // Function to save stop
   const handleSaveStop = async () => {
     try {
-      // Format appointment_date
-      const formattedData = {
+      // Create a copy of the form data
+      let formattedData = {
         ...stopFormData,
-        load: parseInt(id),
-        appointment_date: stopFormData.appointment_date ? new Date(stopFormData.appointment_date).toISOString() : null
+        load: parseInt(id)
       };
+
+      // Handle appointmentdate field
+      if (stopFormData.appointmentdate) {
+        formattedData.appointmentdate = new Date(stopFormData.appointmentdate).toISOString();
+        // If appointmentdate is set, fcfs and plus_hour are optional, set them to null if empty
+        if (!stopFormData.fcfs) {
+          formattedData.fcfs = null;
+        }
+        if (!stopFormData.plus_hour) {
+          formattedData.plus_hour = null;
+        }
+      } else {
+        formattedData.appointmentdate = null;
+      }
+
+      // Handle fcfs field
+      if (stopFormData.fcfs) {
+        formattedData.fcfs = new Date(stopFormData.fcfs).toISOString();
+        // If fcfs is set but appointmentdate is not, make appointmentdate optional
+        if (!stopFormData.appointmentdate) {
+          formattedData.appointmentdate = null;
+        }
+      } else {
+        formattedData.fcfs = null;
+      }
+
+      // Handle plus_hour field (expected format: hh:mm:ss)
+      if (stopFormData.plus_hour) {
+        // Ensure it's in the correct format (hh:mm:ss)
+        formattedData.plus_hour = stopFormData.plus_hour.includes(':') 
+          ? stopFormData.plus_hour.length === 5 
+            ? `${stopFormData.plus_hour}:00` // Add seconds if only hh:mm
+            : stopFormData.plus_hour
+          : `${stopFormData.plus_hour}:00:00`; // Convert to hh:mm:ss if only a number
+      } else {
+        formattedData.plus_hour = null;
+      }
+
+      // For numeric fields, ensure they are numbers or null
+      if (formattedData.zip_code) {
+        formattedData.zip_code = parseInt(formattedData.zip_code) || null;
+      }
+      
+      if (formattedData.reference_id && !isNaN(formattedData.reference_id)) {
+        formattedData.reference_id = parseInt(formattedData.reference_id) || null;
+      }
+
+      console.log("Saving stop with data:", formattedData);
 
       if (editingStop) {
         // Update existing stop
@@ -2088,7 +2237,8 @@ const LoadViewPage = () => {
       setIsAddingStop(false);
     } catch (error) {
       console.error("Error saving stop:", error);
-      showSnackbar("Failed to save stop. Please try again.", "error");
+      console.error("Error details:", error.response?.data);
+      showSnackbar("Failed to save stop. Please check the form fields and try again.", "error");
     }
   };
 
@@ -2524,6 +2674,45 @@ const LoadViewPage = () => {
     }
   };
 
+  // Add a function to generate stop options
+  const generateStopOptions = (stops) => {
+    // Always have PICKUP and DELIVERY as options
+    const options = [
+      { value: "PICKUP", label: "Pickup" },
+      { value: "DELIVERY", label: "Delivery" }
+    ];
+    
+    // Add any existing numbered stops (Stop-2, Stop-3, etc.)
+    const existingNumberedStops = stops
+      .filter(s => s.stop_name.startsWith('Stop-'))
+      .map(s => s.stop_name);
+    
+    // Add all existing numbered stops to options
+    existingNumberedStops.forEach(stopName => {
+      if (!options.some(opt => opt.value === stopName)) {
+        options.push({ value: stopName, label: stopName });
+      }
+    });
+    
+    // Add the next numbered stop option
+    const maxStopNumber = existingNumberedStops.reduce((max, stopName) => {
+      const match = stopName.match(/Stop-(\d+)/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        return num > max ? num : max;
+      }
+      return max;
+    }, 1);
+    
+    // Add the next stop in sequence
+    const nextStopName = `Stop-${maxStopNumber + 1}`;
+    if (!options.some(opt => opt.value === nextStopName)) {
+      options.push({ value: nextStopName, label: nextStopName });
+    }
+    
+    return options;
+  };
+
   return (
     <MainContainer>
       {/* Create Load Modal */}
@@ -2587,18 +2776,36 @@ const LoadViewPage = () => {
                   
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={6}>
-                      <TextField
-                        select
-                        fullWidth
-                        size="small"
-                        label="Stop Type"
-                        name="stop_name"
-                        value={stopFormData.stop_name}
-                        onChange={handleStopFormChange}
-                      >
-                        <MenuItem value="PICKUP">Pickup</MenuItem>
-                        <MenuItem value="DELIVERY">Delivery</MenuItem>
-                      </TextField>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Stop Type</InputLabel>
+                        <Select
+                          name="stop_name"
+                          value={stopFormData.stop_name}
+                          onChange={handleStopFormChange}
+                          label="Stop Type"
+                        >
+                          {generateStopOptions(load.stop || []).map(option => (
+                            <MenuItem key={option.value} value={option.value}>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                {option.value === "PICKUP" ? (
+                                  <MdFileUpload size={16} style={{ marginRight: 8, color: '#4caf50' }} />
+                                ) : option.value === "DELIVERY" ? (
+                                  <MdFileDownload size={16} style={{ marginRight: 8, color: '#f44336' }} />
+                                ) : (
+                                  <TimelineIcon fontSize="small" style={{ marginRight: 8, color: '#2196f3' }} />
+                                )}
+                                {option.label}
+                              </Box>
+                            </MenuItem>
+                          ))}
+                          <MenuItem value="add-new" sx={{ color: 'primary.main', fontWeight: 500 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <AddIcon fontSize="small" style={{ marginRight: 8 }} />
+                              Add Next Stop
+                            </Box>
+                          </MenuItem>
+                        </Select>
+                      </FormControl>
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <TextField
@@ -2630,17 +2837,48 @@ const LoadViewPage = () => {
                         onChange={handleStopFormChange}
                       />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
                         label="Appointment Date"
-                        name="appointment_date"
+                        name="appointmentdate"
                         type="datetime-local"
-                        value={stopFormData.appointment_date || ''}
+                        value={stopFormData.appointmentdate || ''}
                         onChange={handleStopFormChange}
                         InputLabelProps={{
                           shrink: true,
                         }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="First Come First Serve Time"
+                        name="fcfs"
+                        type="datetime-local"
+                        value={stopFormData.fcfs || ''}
+                        onChange={handleStopFormChange}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        helperText="Start time of the interval"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Plus Hours"
+                        name="plus_hour"
+                        type="time"
+                        value={stopFormData.plus_hour || ''}
+                        onChange={handleStopFormChange}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        inputProps={{
+                          step: 300 // 5 min
+                        }}
+                        helperText="Additional time for the interval (HH:MM)"
                       />
                     </Grid>
                     <Grid item xs={12}>
@@ -2745,18 +2983,36 @@ const LoadViewPage = () => {
                       
                       <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
-                          <TextField
-                            select
-                            fullWidth
-                            size="small"
-                            label="Stop Type"
-                            name="stop_name"
-                            value={stopFormData.stop_name}
-                            onChange={handleStopFormChange}
-                          >
-                            <MenuItem value="PICKUP">Pickup</MenuItem>
-                            <MenuItem value="DELIVERY">Delivery</MenuItem>
-                          </TextField>
+                          <FormControl fullWidth size="small">
+                            <InputLabel>Stop Type</InputLabel>
+                            <Select
+                              name="stop_name"
+                              value={stopFormData.stop_name}
+                              onChange={handleStopFormChange}
+                              label="Stop Type"
+                            >
+                              {generateStopOptions(load.stop || []).map(option => (
+                                <MenuItem key={option.value} value={option.value}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    {option.value === "PICKUP" ? (
+                                      <MdFileUpload size={16} style={{ marginRight: 8, color: '#4caf50' }} />
+                                    ) : option.value === "DELIVERY" ? (
+                                      <MdFileDownload size={16} style={{ marginRight: 8, color: '#f44336' }} />
+                                    ) : (
+                                      <TimelineIcon fontSize="small" style={{ marginRight: 8, color: '#2196f3' }} />
+                                    )}
+                                    {option.label}
+                                  </Box>
+                                </MenuItem>
+                              ))}
+                              <MenuItem value="add-new" sx={{ color: 'primary.main', fontWeight: 500 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <AddIcon fontSize="small" style={{ marginRight: 8 }} />
+                                  Add Next Stop
+                                </Box>
+                              </MenuItem>
+                            </Select>
+                          </FormControl>
                         </Grid>
                         <Grid item xs={12} md={6}>
                           <TextField
@@ -2792,9 +3048,9 @@ const LoadViewPage = () => {
                           <TextField
                             fullWidth
                             label="Appointment Date"
-                            name="appointment_date"
+                            name="appointmentdate"
                             type="datetime-local"
-                            value={stopFormData.appointment_date || ''}
+                            value={stopFormData.appointmentdate || ''}
                             onChange={handleStopFormChange}
                             InputLabelProps={{
                               shrink: true,
@@ -2802,6 +3058,37 @@ const LoadViewPage = () => {
                           />
                         </Grid>
                         <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            label="First Come First Serve Time"
+                            name="fcfs"
+                            type="datetime-local"
+                            value={stopFormData.fcfs || ''}
+                            onChange={handleStopFormChange}
+                            InputLabelProps={{
+                              shrink: true,
+                            }}
+                            helperText="Start time of the interval"
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            label="Plus Hours"
+                            name="plus_hour"
+                            type="time"
+                            value={stopFormData.plus_hour || ''}
+                            onChange={handleStopFormChange}
+                            InputLabelProps={{
+                              shrink: true,
+                            }}
+                            inputProps={{
+                              step: 300 // 5 min
+                            }}
+                            helperText="Additional time for the interval (HH:MM)"
+                          />
+                        </Grid>
+                        <Grid item xs={12}>
                           <TextField
                             fullWidth
                             size="small"
@@ -2910,16 +3197,21 @@ const LoadViewPage = () => {
                         isPickup={stop.stop_name === "PICKUP"}
                         isCompact={compactView}
                       >
-                        {stop.stop_name === "PICKUP" ? 
-                          <MdFileUpload size={compactView ? 14 : 20} /> : 
+                        {stop.stop_name === "PICKUP" ? (
+                          <MdFileUpload size={compactView ? 14 : 20} />
+                        ) : stop.stop_name === "DELIVERY" ? (
                           <MdFileDownload size={compactView ? 14 : 20} />
-                        }
+                        ) : (
+                          <TimelineIcon fontSize={compactView ? 'small' : 'medium'} />
+                        )}
                       </StopIconContainer>
                       <StopDetails>
                         <StopHeader>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <StopAddress>
-                              {stop.stop_name === "PICKUP" ? "Pickup" : "Delivery"}
+                              {stop.stop_name === "PICKUP" ? "Pickup" : 
+                               stop.stop_name === "DELIVERY" ? "Delivery" : 
+                               stop.stop_name}
                             </StopAddress>
                             <IconButton 
                               size="small" 
@@ -2930,7 +3222,26 @@ const LoadViewPage = () => {
                             </IconButton>
                           </Box>
                           <StopDate>
-                            {stop.appointment_date || "Not specified"}
+                            {stop.appointmentdate ? new Date(stop.appointmentdate).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: 'numeric',
+                              hour12: true
+                            }) : stop.fcfs ? (
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <Typography variant="caption">
+                                  FCFS: {new Date(stop.fcfs).toLocaleString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: 'numeric',
+                                    minute: 'numeric',
+                                    hour12: true
+                                  })}
+                                  {stop.plus_hour ? ` + ${stop.plus_hour}` : ''}
+                                </Typography>
+                              </Box>
+                            ) : "Not specified"}
                           </StopDate>
                         </StopHeader>
                         <Typography variant="body2">
@@ -2949,6 +3260,20 @@ const LoadViewPage = () => {
                             {stop.contact_name && (
                               <Typography variant="caption" color="text.secondary" display="block">
                                 Contact: {stop.contact_name}
+                              </Typography>
+                            )}
+                            {/* Display FCFS information in expanded view */}
+                            {stop.fcfs && (
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                FCFS: {new Date(stop.fcfs).toLocaleString('en-US', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: 'numeric',
+                                  minute: 'numeric',
+                                  hour12: true
+                                })}
+                                {stop.plus_hour ? ` + ${stop.plus_hour}` : ''}
                               </Typography>
                             )}
                           </>
