@@ -38,6 +38,10 @@ const ENDPOINTS = {
   CUSTOMER_BROKER: '/customer_broker/',
   CUSTOMER_BROKER_DETAIL: (id) => `/customer_broker/${id}/`,
   
+  // Team management
+  TEAMS: '/team/',
+  TEAM_DETAIL: (id) => `/team/${id}/`,
+  
   // Chat
   CHAT: '/chat/',
   CHAT_MESSAGES: (id) => `/chat/${id}/messages/`,

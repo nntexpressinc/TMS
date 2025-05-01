@@ -48,6 +48,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       title: t("Unit Management"),
       icon: <FaTruck />,
       link: "/manage-units",
+    },
+    {
+      id: 'team-management',
+      title: t("Team Management"),
+      icon: <FaUsers />,
+      link: "/manage-teams",
     }
   ];
 
