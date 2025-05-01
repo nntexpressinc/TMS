@@ -2014,7 +2014,7 @@ const LoadViewPage = () => {
     navigate(`/loads/view/${newLoad.id}`);
   };
 
-  // Function to handle edit stop
+  // Completely replace the handleEditStop function
   const handleEditStop = (stop) => {
     setEditingStop(stop.id);
     
@@ -2023,6 +2023,7 @@ const LoadViewPage = () => {
       if (!dateStr) return '';
       
       try {
+        // Check if dateStr is already a valid date string or needs conversion
         const date = new Date(dateStr);
         if (isNaN(date.getTime())) return ''; // Invalid date
         
@@ -2034,24 +2035,14 @@ const LoadViewPage = () => {
       }
     };
 
-    // Format time string for HTML time input (requires hh:mm format)
-    const formatTimeForInput = (timeStr) => {
-      if (!timeStr) return '';
-      
-      try {
-        // If it's already in hh:mm or hh:mm:ss format, extract hh:mm
-        if (timeStr.includes(':')) {
-          return timeStr.substring(0, 5); // Extract hh:mm part
-        }
-        return '';
-      } catch (error) {
-        console.error("Error formatting time:", error);
-        return '';
-      }
-    };
-
+    console.log("Original stop data:", {
+      appointmentdate: stop.appointmentdate,
+      fcfs: stop.fcfs,
+      plus_hour: stop.plus_hour
+    });
+    
     // Set form data with properly formatted date values
-    setStopFormData({
+    const formattedData = {
       stop_name: stop.stop_name || "",
       company_name: stop.company_name || "",
       contact_name: stop.contact_name || "",
@@ -2066,14 +2057,16 @@ const LoadViewPage = () => {
       zip_code: stop.zip_code || "",
       note: stop.note || "",
       fcfs: formatDateTimeForInput(stop.fcfs),
-      plus_hour: formatTimeForInput(stop.plus_hour)
+      plus_hour: formatDateTimeForInput(stop.plus_hour)
+    };
+    
+    console.log("Formatted stop data for form:", {
+      appointmentdate: formattedData.appointmentdate,
+      fcfs: formattedData.fcfs,
+      plus_hour: formattedData.plus_hour
     });
-
-    console.log("Editing stop with formatted data:", {
-      appointmentdate: formatDateTimeForInput(stop.appointmentdate),
-      fcfs: formatDateTimeForInput(stop.fcfs),
-      plus_hour: formatTimeForInput(stop.plus_hour)
-    });
+    
+    setStopFormData(formattedData);
   };
 
   // Function to handle cancel edit
@@ -2226,14 +2219,9 @@ const LoadViewPage = () => {
         formattedData.fcfs = null;
       }
 
-      // Handle plus_hour field (expected format: hh:mm:ss)
+      // Handle plus_hour field - now it's a datetime-local field
       if (stopFormData.plus_hour) {
-        // Ensure it's in the correct format (hh:mm:ss)
-        formattedData.plus_hour = stopFormData.plus_hour.includes(':') 
-          ? stopFormData.plus_hour.length === 5 
-            ? `${stopFormData.plus_hour}:00` // Add seconds if only hh:mm
-            : stopFormData.plus_hour
-          : `${stopFormData.plus_hour}:00:00`; // Convert to hh:mm:ss if only a number
+        formattedData.plus_hour = new Date(stopFormData.plus_hour).toISOString();
       } else {
         formattedData.plus_hour = null;
       }
@@ -2280,10 +2268,29 @@ const LoadViewPage = () => {
       // Filter stops for current load
       const loadStops = stops.filter(stop => stop.load === parseInt(id));
       
-      // Update load object with filtered stops
+      // Sort stops by type: Pickup first, Delivery last, others in between
+      const sortedStops = [...loadStops].sort((a, b) => {
+        if (a.stop_name === "PICKUP") return -1; // PICKUP always first
+        if (b.stop_name === "PICKUP") return 1;
+        if (a.stop_name === "DELIVERY") return 1; // DELIVERY always last
+        if (b.stop_name === "DELIVERY") return -1;
+        
+        // For numbered stops (Stop-2, Stop-3, etc.), sort by number
+        const aMatch = a.stop_name.match(/Stop-(\d+)/);
+        const bMatch = b.stop_name.match(/Stop-(\d+)/);
+        
+        if (aMatch && bMatch) {
+          return parseInt(aMatch[1]) - parseInt(bMatch[1]);
+        }
+        
+        // Default case - use alphabetical sorting for other stop types
+        return a.stop_name.localeCompare(b.stop_name);
+      });
+      
+      // Update load object with sorted stops
       setLoad(prevLoad => ({
         ...prevLoad,
-        stop: loadStops
+        stop: sortedStops
       }));
       
       setAllStops(stops);
@@ -2293,7 +2300,7 @@ const LoadViewPage = () => {
       setEditingStop(null);
       setIsAddingStop(false);
       
-      console.log("Fetched stops:", loadStops);
+      console.log("Fetched and sorted stops:", sortedStops);
     } catch (error) {
       console.error("Error fetching stops:", error);
       showSnackbar("Failed to load stops", "error");
@@ -2948,16 +2955,13 @@ const LoadViewPage = () => {
                         fullWidth
                         label="FCFS To"
                         name="plus_hour"
-                        type="time"
+                        type="datetime-local"
                         value={stopFormData.plus_hour || ''}
                         onChange={handleStopFormChange}
                         InputLabelProps={{
                           shrink: true,
                         }}
-                        inputProps={{
-                          step: 300 // 5 min
-                        }}
-                        helperText="Additional time for the interval (HH:MM)"
+                        helperText="End time of the interval"
                         // Disable if appointment date is filled
                         disabled={!!stopFormData.appointmentdate}
                       />
@@ -3174,16 +3178,13 @@ const LoadViewPage = () => {
                             fullWidth
                             label="FCFS To"
                             name="plus_hour"
-                            type="time"
+                            type="datetime-local"
                             value={stopFormData.plus_hour || ''}
                             onChange={handleStopFormChange}
                             InputLabelProps={{
                               shrink: true,
                             }}
-                            inputProps={{
-                              step: 300 // 5 min
-                            }}
-                            helperText="Additional time for the interval (HH:MM)"
+                            helperText="End time of the interval"
                             // Disable if appointment date is filled
                             disabled={!!stopFormData.appointmentdate}
                           />
@@ -3338,7 +3339,13 @@ const LoadViewPage = () => {
                                     minute: 'numeric',
                                     hour12: true
                                   })}
-                                  {stop.plus_hour ? ` + ${stop.plus_hour}` : ''}
+                                  {stop.plus_hour ? ` - ${new Date(stop.plus_hour).toLocaleString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: 'numeric',
+                                    minute: 'numeric',
+                                    hour12: true
+                                  })}` : ''}
                                 </Typography>
                               </Box>
                             ) : "Not specified"}
@@ -3373,7 +3380,14 @@ const LoadViewPage = () => {
                                   minute: 'numeric',
                                   hour12: true
                                 })}
-                                {stop.plus_hour ? ` + ${stop.plus_hour}` : ''}
+                                {stop.plus_hour ? ` - ${new Date(stop.plus_hour).toLocaleString('en-US', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: 'numeric',
+                                  minute: 'numeric',
+                                  hour12: true
+                                })}` : ''}
                               </Typography>
                             )}
                           </>
