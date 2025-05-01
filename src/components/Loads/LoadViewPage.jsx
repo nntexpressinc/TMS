@@ -1179,6 +1179,7 @@ const LoadViewPage = () => {
   const [trucks, setTrucks] = useState([]);
   const [trailers, setTrailers] = useState([]);
   const [units, setUnits] = useState([]); // Added state for units
+  const [teams, setTeams] = useState([]); // Added state for teams
   const [isSaving, setIsSaving] = useState(false);
   const [otherPays, setOtherPays] = useState([]);
   const chatContainerRef = useRef(null);
@@ -2685,6 +2686,17 @@ const LoadViewPage = () => {
     }
   };
 
+  // Add new function to fetch teams data
+  const fetchTeams = async () => {
+    try {
+      const teamsData = await ApiService.getData('/team/');
+      setTeams(teamsData);
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+      showSnackbar('Teamlarni yuklashda xatolik yuz berdi', 'error');
+    }
+  };
+
   // Fetch all reference data including units
   useEffect(() => {
     if (!isLoading && load) {
@@ -2733,6 +2745,7 @@ const LoadViewPage = () => {
       fetchTrucks();
       fetchTrailers();
       fetchUnits(); // Add fetching units
+      fetchTeams(); // Add fetching teams
     }
   }, [isLoading, load]);
 
@@ -4344,7 +4357,7 @@ const LoadViewPage = () => {
                       <DetailLabel>Team</DetailLabel>
                       <DetailValue>
                         {load.team_id 
-                          ? `Team-${load.team_id}` 
+                          ? (teams.find(team => team.id === load.team_id)?.name || `Team-${load.team_id}`)
                           : "Not assigned"}
                       </DetailValue>
                     </DetailItem>
