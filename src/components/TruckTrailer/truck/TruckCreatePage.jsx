@@ -185,7 +185,7 @@ const TruckCreatePage = () => {
     setTruckData(prev => ({
       ...prev,
       unit: newValue ? newValue.id : null,
-      unit_number: newValue ? newValue.unit_number : ''
+      unit_number: newValue ? newValue.unit_number.toString() : ''
     }));
   };
 
@@ -202,7 +202,7 @@ const TruckCreatePage = () => {
         last_annual_inspection_date: truckData.last_annual_inspection_date || null,
         year: parseInt(truckData.year) || new Date().getFullYear(),
         weight: parseInt(truckData.weight) || 0,
-        unit_number: parseInt(truckData.unit_number) || 0,
+        unit_number: truckData.unit_number ? truckData.unit_number.toString() : null,
       };
 
       const response = await ApiService.postData("/truck/", formattedData);

@@ -149,7 +149,7 @@ const TruckEdit = () => {
     setFormData(prev => ({
       ...prev,
       unit: newValue ? newValue.id : null,
-      unit_number: newValue ? newValue.unit_number : ''
+      unit_number: newValue ? newValue.unit_number.toString() : ''
     }));
   };
 
@@ -158,7 +158,13 @@ const TruckEdit = () => {
     setLoading(true);
 
     try {
-      const response = await ApiService.putData(`/truck/${id}/`, formData);
+      // Unit number ni string formatida saqlash
+      const updatedFormData = {
+        ...formData,
+        unit_number: formData.unit_number ? formData.unit_number.toString() : null
+      };
+      
+      const response = await ApiService.putData(`/truck/${id}/`, updatedFormData);
       
       // Unit ma'lumotlarini yangilash
       const selectedUnit = units.find(unit => unit.id === formData.unit);

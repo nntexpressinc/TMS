@@ -1178,6 +1178,7 @@ const LoadViewPage = () => {
   const [dispatchers, setDispatchers] = useState([]);
   const [trucks, setTrucks] = useState([]);
   const [trailers, setTrailers] = useState([]);
+  const [units, setUnits] = useState([]); // Added state for units
   const [isSaving, setIsSaving] = useState(false);
   const [otherPays, setOtherPays] = useState([]);
   const chatContainerRef = useRef(null);
@@ -2451,7 +2452,9 @@ const LoadViewPage = () => {
         load_id: load.load_id || '',
         reference_id: load.reference_id || '',
         company_name: load.company_name || '',
-        equipment_type: load.equipment_type || ''
+        equipment_type: load.equipment_type || '',
+        unit_id: load.unit_id || null, // Add unit_id field
+        team_id: load.team_id || null // Add team_id field
       });
     } else if (section === 'personnel') {
       setEditFormData({
@@ -2463,11 +2466,17 @@ const LoadViewPage = () => {
       // Ensure trailer data is correctly included in form data
       setEditFormData({
         truck: load.truck?.id || '',
-        trailer: load.trailer?.id || ''
+        trailer: load.trailer?.id || '',
+        equipment_type: load.equipment_type || '',
+        unit_id: load.unit_id || null, // Add unit_id field here too
+        team_id: load.team_id || null // Add team_id field here too
       });
       console.log("Edit equipment formData:", {
         truck: load.truck?.id || '',
-        trailer: load.trailer?.id || ''
+        trailer: load.trailer?.id || '',
+        equipment_type: load.equipment_type || '',
+        unit_id: load.unit_id || null,
+        team_id: load.team_id || null
       });
     } else if (section === 'payment') {
       setEditFormData({
@@ -2504,7 +2513,7 @@ const LoadViewPage = () => {
     }));
   };
   
-  // Handle saving changes
+  // Handle saving changes - updated to include unit_id
   const handleSaveChanges = async () => {
     setIsSaving(true);
     try {
@@ -2516,8 +2525,28 @@ const LoadViewPage = () => {
           load_id: editFormData.load_id,
           reference_id: editFormData.reference_id,
           company_name: editFormData.company_name,
-          equipment_type: editFormData.equipment_type
+          equipment_type: editFormData.equipment_type,
+          unit_id: editFormData.unit_id || null,
+          team_id: editFormData.team_id || null
         };
+
+        // If unit is selected, update truck, trailer, and driver as well
+        if (editFormData.unit_id) {
+          const selectedUnit = units.find(unit => unit.id === editFormData.unit_id);
+          if (selectedUnit) {
+            if (selectedUnit.truck && selectedUnit.truck.length > 0) {
+              dataToUpdate.truck = selectedUnit.truck[0];
+            }
+            if (selectedUnit.trailer && selectedUnit.trailer.length > 0) {
+              dataToUpdate.trailer = selectedUnit.trailer[0];
+            }
+            if (selectedUnit.driver && selectedUnit.driver.length > 0) {
+              dataToUpdate.driver = selectedUnit.driver[0];
+            }
+            // Also update team_id from unit
+            dataToUpdate.team_id = selectedUnit.team_id;
+          }
+        }
       } else if (editingSection === 'personnel') {
         dataToUpdate = {
           driver: editFormData.driver ? parseInt(editFormData.driver) : null,
@@ -2528,8 +2557,17 @@ const LoadViewPage = () => {
         // Tuzatilgan qism - trailerga tegishli ma'lumotlarni ham qo'shish
         dataToUpdate = {
           truck: editFormData.truck ? parseInt(editFormData.truck) : null,
-          trailer: editFormData.trailer ? parseInt(editFormData.trailer) : null
+          trailer: editFormData.trailer ? parseInt(editFormData.trailer) : null,
+          equipment_type: editFormData.equipment_type || null
         };
+        
+        // If unit is selected, update team_id from unit too
+        if (editFormData.unit_id) {
+          const selectedUnit = units.find(unit => unit.id === editFormData.unit_id);
+          if (selectedUnit) {
+            dataToUpdate.team_id = selectedUnit.team_id;
+          }
+        }
         
         console.log("Equipment update data:", dataToUpdate);
       } else if (editingSection === 'payment') {
@@ -2635,6 +2673,68 @@ const LoadViewPage = () => {
       };
     }
   }, []);
+
+  // Add new function to fetch units data
+  const fetchUnits = async () => {
+    try {
+      const unitsData = await ApiService.getData('/unit/');
+      setUnits(unitsData);
+    } catch (error) {
+      console.error('Error fetching units:', error);
+      showSnackbar('Unitlarni yuklashda xatolik yuz berdi', 'error');
+    }
+  };
+
+  // Fetch all reference data including units
+  useEffect(() => {
+    if (!isLoading && load) {
+      // Fetch drivers
+      const fetchDrivers = async () => {
+        try {
+          const driversData = await ApiService.getData('/driver/');
+          setDrivers(driversData);
+        } catch (error) {
+          console.error('Error fetching drivers:', error);
+        }
+      };
+      
+      // Fetch dispatchers
+      const fetchDispatchers = async () => {
+        try {
+          const dispatchersData = await ApiService.getData('/dispatcher/');
+          setDispatchers(dispatchersData);
+        } catch (error) {
+          console.error('Error fetching dispatchers:', error);
+        }
+      };
+      
+      // Fetch trucks
+      const fetchTrucks = async () => {
+        try {
+          const trucksData = await ApiService.getData('/truck/');
+          setTrucks(trucksData);
+        } catch (error) {
+          console.error('Error fetching trucks:', error);
+        }
+      };
+      
+      // Fetch trailers
+      const fetchTrailers = async () => {
+        try {
+          const trailersData = await ApiService.getData('/trailer/');
+          setTrailers(trailersData);
+        } catch (error) {
+          console.error('Error fetching trailers:', error);
+        }
+      };
+      
+      fetchDrivers();
+      fetchDispatchers();
+      fetchTrucks();
+      fetchTrailers();
+      fetchUnits(); // Add fetching units
+    }
+  }, [isLoading, load]);
 
   if (isLoading) {
     return (
@@ -2792,6 +2892,76 @@ const LoadViewPage = () => {
                 stop.stop_name === "DELIVERY" ? "Delivery" : 
                 stop.stop_name
     });
+  };
+
+  // Handle unit change - Auto-populate truck, trailer, and driver from selected unit
+  const handleUnitChange = (event, unit) => {
+    if (!unit) {
+      // Reset unit-related fields if no unit is selected
+      setEditFormData(prev => ({
+        ...prev,
+        unit_id: null,
+        truck: '',
+        trailer: '',
+        driver: '',
+        equipment_type: '',
+        team_id: null // Reset team_id too
+      }));
+      return;
+    }
+
+    // Set unit ID and team_id
+    setEditFormData(prev => ({
+      ...prev,
+      unit_id: unit.id,
+      team_id: unit.team_id // Add team_id from unit
+    }));
+
+    // Auto-populate truck if unit has a truck
+    if (unit.truck && unit.truck.length > 0) {
+      const truckId = unit.truck[0]; // Get first truck ID
+      setEditFormData(prev => ({
+        ...prev,
+        truck: truckId
+      }));
+    }
+
+    // Auto-populate trailer if unit has a trailer
+    if (unit.trailer && unit.trailer.length > 0) {
+      const trailerId = unit.trailer[0]; // Get first trailer ID
+      
+      // Set trailer ID in form data
+      setEditFormData(prev => ({
+        ...prev,
+        trailer: trailerId
+      }));
+      
+      // Get trailer information and set equipment type based on trailer type
+      const fetchTrailerInfo = async () => {
+        try {
+          const trailerInfo = await ApiService.getData(`/trailer/${trailerId}/`);
+          if (trailerInfo && trailerInfo.type) {
+            setEditFormData(prev => ({
+              ...prev,
+              equipment_type: trailerInfo.type // Set equipment type from trailer type
+            }));
+          }
+        } catch (error) {
+          console.error('Error fetching trailer info:', error);
+        }
+      };
+      
+      fetchTrailerInfo();
+    }
+
+    // Auto-populate driver if unit has a driver
+    if (unit.driver && unit.driver.length > 0) {
+      const driverId = unit.driver[0]; // Get first driver ID
+      setEditFormData(prev => ({
+        ...prev,
+        driver: driverId
+      }));
+    }
   };
 
   return (
@@ -4088,6 +4258,26 @@ const LoadViewPage = () => {
                       value={editFormData.company_name}
                       onChange={handleFormChange}
                     />
+                    {/* Add Unit Autocomplete */}
+                    <Autocomplete
+                      options={units}
+                      getOptionLabel={(option) => `Unit ${option.unit_number}`}
+                      onChange={handleUnitChange}
+                      value={units.find(unit => unit.id === editFormData.unit_id) || null}
+                      renderOption={(props, option) => (
+                        <li {...props}>
+                          Unit {option.unit_number}
+                        </li>
+                      )}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Unit Number"
+                          size="small"
+                          helperText="Unit tanlanganda truck, trailer va driver ma'lumotlari avtomatik to'ldiriladi"
+                        />
+                      )}
+                    />
                     <FormControl fullWidth size="small">
                       <InputLabel>Equipment Type</InputLabel>
                       <Select
@@ -4095,6 +4285,7 @@ const LoadViewPage = () => {
                         value={editFormData.equipment_type || ''}
                         onChange={handleFormChange}
                         label="Equipment Type"
+                        disabled={!!editFormData.unit_id} // Disable if unit is selected
                       >
                         <MenuItem value="DRYVAN">Dryvan</MenuItem>
                         <MenuItem value="REEFER">Reefer</MenuItem>
@@ -4114,9 +4305,9 @@ const LoadViewPage = () => {
                         startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
                       >
                         Save
-            </Button>
-          </Box>
-        </Box>
+                      </Button>
+                    </Box>
+                  </Box>
                 ) : (
                   // Display mode for basic information
                   <>
@@ -4138,6 +4329,24 @@ const LoadViewPage = () => {
                     <DetailItem>
                       <DetailLabel>Customer/Broker</DetailLabel>
                       <DetailValue>{load.customer_broker?.company_name || "Not assigned"}</DetailValue>
+                    </DetailItem>
+                    
+                    <DetailItem>
+                      <DetailLabel>Unit Number</DetailLabel>
+                      <DetailValue>
+                        {units.find(unit => unit.id === load.unit_id)?.unit_number 
+                          ? `Unit ${units.find(unit => unit.id === load.unit_id)?.unit_number}` 
+                          : "Not assigned"}
+                      </DetailValue>
+                    </DetailItem>
+                    
+                    <DetailItem>
+                      <DetailLabel>Team</DetailLabel>
+                      <DetailValue>
+                        {load.team_id 
+                          ? `Team-${load.team_id}` 
+                          : "Not assigned"}
+                      </DetailValue>
                     </DetailItem>
                     
                     <DetailItem>
@@ -4308,6 +4517,7 @@ const LoadViewPage = () => {
                           value={editFormData.truck || ''}
                           onChange={handleFormChange}
                           label="Truck"
+                          disabled={!!editFormData.unit_id} // Disable if unit is selected
                         >
                           <MenuItem value="">None</MenuItem>
                           {trucks.map(truck => (
@@ -4322,6 +4532,7 @@ const LoadViewPage = () => {
                         onClick={handleAddTruck}
                         size="small"
                         title="Add new truck"
+                        disabled={!!editFormData.unit_id} // Disable if unit is selected
                       >
                         <AddIcon />
                       </IconButton>
@@ -4336,6 +4547,7 @@ const LoadViewPage = () => {
                           value={editFormData.trailer || ''}
                           onChange={handleFormChange}
                           label="Trailer"
+                          disabled={!!editFormData.unit_id} // Disable if unit is selected
                         >
                           <MenuItem value="">None</MenuItem>
                           {trailers.map(trailer => (
@@ -4350,10 +4562,32 @@ const LoadViewPage = () => {
                         onClick={handleAddTrailer}
                         size="small"
                         title="Add new trailer"
+                        disabled={!!editFormData.unit_id} // Disable if unit is selected
                       >
                         <AddIcon />
                       </IconButton>
                     </Box>
+                    
+                    <Typography variant="subtitle2" sx={{ fontWeight: 500, mt: 1 }}>Equipment Type</Typography>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Equipment Type</InputLabel>
+                      <Select
+                        name="equipment_type"
+                        value={editFormData.equipment_type || ''}
+                        onChange={handleFormChange}
+                        label="Equipment Type"
+                        disabled={!!editFormData.unit_id} // Disable if unit is selected
+                      >
+                        <MenuItem value="DRYVAN">Dryvan</MenuItem>
+                        <MenuItem value="REEFER">Reefer</MenuItem>
+                        <MenuItem value="CARHAUL">Carhaul</MenuItem>
+                        <MenuItem value="FLATBED">Flatbed</MenuItem>
+                        <MenuItem value="STEPDECK">Stepdeck</MenuItem>
+                        <MenuItem value="POWERONLY">PowerOnly</MenuItem>
+                        <MenuItem value="RGN">Rgn</MenuItem>
+                        <MenuItem value="TANKERSTYLE">TankerStyle</MenuItem>
+                      </Select>
+                    </FormControl>
                     
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
                       <Button 
@@ -4408,7 +4642,7 @@ const LoadViewPage = () => {
                       <>
                         <DetailItem>
                           <DetailLabel>Type</DetailLabel>
-                          <DetailValue>{load.trailer.trailer_type || "Not available"}</DetailValue>
+                          <DetailValue>{load.trailer.trailer_type || load.trailer.type || "Not available"}</DetailValue>
                         </DetailItem>
                         
                         <DetailItem>
