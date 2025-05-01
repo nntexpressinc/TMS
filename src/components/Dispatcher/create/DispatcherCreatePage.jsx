@@ -49,7 +49,7 @@ const US_STATES = [
 ];
 
 const employeeStatuses = [
-  { value: 'ACTIVE', label: 'Active' },
+  { value: 'ACTIVE (DF)', label: 'ACTIVE (DF)' },
   { value: 'Terminate', label: 'Terminate' },
   { value: 'Applicant', label: 'Applicant' },
   { value: '', label: 'None' },
@@ -91,7 +91,7 @@ const DispatcherCreatePage = () => {
   const [dispatcherData, setDispatcherData] = useState({
     user: null,
     nickname: "",
-    employee_status: "ACTIVE",
+    employee_status: "ACTIVE (DF)",
     mc_number: "",
     position: "EMPLOYEE",
     company_name: "",
