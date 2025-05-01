@@ -5,7 +5,7 @@ import { ApiService } from '../../api/auth';
 import './UnitManagement.scss';
 import CreateEditUnitModal from './CreateEditUnitModal';
 
-const UnitItem = ({ unit, isActive, dispatcherCount, onSelect, onEdit, onDelete }) => {
+const UnitItem = ({ unit, isActive, teamName, resourcesCount, onSelect, onEdit, onDelete }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = React.useRef(null);
 
@@ -23,10 +23,16 @@ const UnitItem = ({ unit, isActive, dispatcherCount, onSelect, onEdit, onDelete 
     <div className={`role-item ${isActive ? 'active' : ''}`} onClick={onSelect}>
       <div className="role-info">
         <h3>{unit.unit_number !== undefined ? `Unit #${unit.unit_number}` : 'Unassigned Unit'}</h3>
-        <span className="user-count">
-          <FaUsers className="count-icon" />
-          {dispatcherCount || 0} dispatchers
-        </span>
+        <div className="unit-details">
+          {teamName && (
+            <span className="team-name">
+              <FaUsers className="icon" /> {teamName}
+            </span>
+          )}
+          <span className="resource-count">
+            <FaTruck className="icon" /> {resourcesCount || 0} resources
+          </span>
+        </div>
       </div>
       <div className="role-actions" ref={dropdownRef}>
         <button
@@ -89,7 +95,6 @@ const ResourceSection = ({ type, data = [], loading, units, onUpdateUnit }) => {
   
   const getIcon = (type) => {
     switch(type) {
-      case 'dispatchers': return <FaUser className="resource-icon" />;
       case 'trucks': return <FaTruck className="resource-icon" />;
       case 'drivers': return <FaTruckMoving className="resource-icon" />;
       case 'trailers': return <FaTrailer className="resource-icon" />;
@@ -232,12 +237,13 @@ const ResourceSection = ({ type, data = [], loading, units, onUpdateUnit }) => {
 const UnitManagementPage = () => {
   const { t } = useTranslation();
   const [units, setUnits] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState(null);
-  const [activeTab, setActiveTab] = useState('dispatchers');
+  const [activeTab, setActiveTab] = useState('trucks');
   const [searchQuery, setSearchQuery] = useState('');
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
@@ -247,14 +253,12 @@ const UnitManagementPage = () => {
   });
 
   // Barcha resurslar (id bo'yicha)
-  const [allDispatchers, setAllDispatchers] = useState([]);
   const [allTrucks, setAllTrucks] = useState([]);
   const [allDrivers, setAllDrivers] = useState([]);
   const [allTrailers, setAllTrailers] = useState([]);
   const [allEmployees, setAllEmployees] = useState([]);
 
   const sections = [
-    { id: 'dispatchers', title: 'Dispatchers', icon: <FaUser /> },
     { id: 'trucks', title: 'Trucks', icon: <FaTruck /> },
     { id: 'drivers', title: 'Drivers', icon: <FaTruckMoving /> },
     { id: 'trailers', title: 'Trailers', icon: <FaTrailer /> },
@@ -266,16 +270,16 @@ const UnitManagementPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const [unitsData, dispatchers, trucks, drivers, trailers, employees] = await Promise.all([
+      const [unitsData, teamsData, trucks, drivers, trailers, employees] = await Promise.all([
         ApiService.getData('/unit/'),
-        ApiService.getData('/dispatcher/'),
+        ApiService.getData('/team/'),
         ApiService.getData('/truck/'),
         ApiService.getData('/driver/'),
         ApiService.getData('/trailer/'),
         ApiService.getData('/employee/')
       ]);
       setUnits(unitsData);
-      setAllDispatchers(dispatchers);
+      setTeams(teamsData);
       setAllTrucks(trucks);
       setAllDrivers(drivers);
       setAllTrailers(trailers);
@@ -403,7 +407,6 @@ const UnitManagementPage = () => {
             item.vin
           );
           break;
-        case 'dispatchers':
         case 'employees':
           searchableFields.push(
             item.position,
@@ -431,7 +434,6 @@ const UnitManagementPage = () => {
     if (!unit) {
       // Unit #None uchun: unit biriktirilmaganlarni ko'rsat
       resources = {
-        dispatchers: allDispatchers.filter(d => !d.unit_id),
         trucks: allTrucks.filter(t => !t.unit_id),
         drivers: allDrivers.filter(d => !d.unit_id),
         trailers: allTrailers.filter(t => !t.unit_id),
@@ -440,7 +442,6 @@ const UnitManagementPage = () => {
     } else {
       // Unit tanlangan holatda
       resources = {
-        dispatchers: allDispatchers.filter(d => unit.dispatcher?.includes(d.id)),
         trucks: allTrucks.filter(t => unit.truck?.includes(t.id)),
         drivers: allDrivers.filter(d => unit.driver?.includes(d.id)),
         trailers: allTrailers.filter(t => unit.trailer?.includes(t.id)),
@@ -450,12 +451,25 @@ const UnitManagementPage = () => {
 
     // Qidiruv natijalarini filterlash
     return {
-      dispatchers: filterResources(resources.dispatchers, searchQuery),
       trucks: filterResources(resources.trucks, searchQuery),
       drivers: filterResources(resources.drivers, searchQuery),
       trailers: filterResources(resources.trailers, searchQuery),
       employees: filterResources(resources.employees, searchQuery)
     };
+  };
+
+  const getTeamNameById = (teamId) => {
+    if (!teamId) return null;
+    const team = teams.find(t => t.id === teamId);
+    return team ? team.name : null;
+  };
+
+  const getResourcesCount = (unit) => {
+    if (!unit) return 0;
+    return (unit.truck?.length || 0) + 
+           (unit.driver?.length || 0) + 
+           (unit.trailer?.length || 0) + 
+           (unit.employee?.length || 0);
   };
 
   const resources = getUnitResources(selectedUnit);
@@ -467,14 +481,11 @@ const UnitManagementPage = () => {
       newUnit,
       onConfirm: async () => {
         try {
-          const resourceType = activeTab.slice(0, -1); // 'dispatchers' -> 'dispatcher'
+          const resourceType = activeTab.slice(0, -1); // 'trucks' -> 'truck'
           
           // Joriy resurs turining barcha elementlarini olish
           let currentResources;
           switch(resourceType) {
-            case 'dispatcher':
-              currentResources = allDispatchers;
-              break;
             case 'driver':
               currentResources = allDrivers;
               break;
@@ -608,7 +619,8 @@ const UnitManagementPage = () => {
             <UnitItem
               unit={{ unit_number: undefined }}
               isActive={selectedUnit === null}
-              dispatcherCount={allDispatchers.filter(d => !d.unit).length}
+              teamName={null}
+              resourcesCount={0}
               onSelect={() => handleSelectUnit(null)}
               onEdit={() => {}}
               onDelete={() => {}}
@@ -618,7 +630,8 @@ const UnitManagementPage = () => {
                 key={unit.id}
                 unit={unit}
                 isActive={selectedUnit?.id === unit.id}
-                dispatcherCount={unit.dispatcher?.length || 0}
+                teamName={getTeamNameById(unit.team_id)}
+                resourcesCount={getResourcesCount(unit)}
                 onSelect={() => handleSelectUnit(unit)}
                 onEdit={() => handleEditUnit(unit)}
                 onDelete={() => handleDeleteUnit(unit.id)}
@@ -633,6 +646,12 @@ const UnitManagementPage = () => {
                 <>
                   <span className="unit-label">Unit:</span>
                   <strong className="unit-number">#{selectedUnit.unit_number}</strong>
+                  {selectedUnit.team_id && (
+                    <span className="unit-team">
+                      <span className="team-label">Team:</span>
+                      <strong className="team-name">{getTeamNameById(selectedUnit.team_id)}</strong>
+                    </span>
+                  )}
                 </>
               ) : (
                 <span className="unassigned-label">Unassigned Resources</span>
