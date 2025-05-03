@@ -30,9 +30,16 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
   const [loadData, setLoadData] = useState({
     load_id: "",
     reference_id: "",
-    customer_broker: null
+    customer_broker: null,
+    unit_id: null,
+    truck_id: null,
+    trailer_id: null,
+    driver_id: null,
+    team_id: null,
+    equipment_type: ""
   });
   const [brokers, setBrokers] = useState([]);
+  const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showBrokerModal, setShowBrokerModal] = useState(false);
@@ -61,8 +68,19 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
       }
     };
 
+    const fetchUnits = async () => {
+      try {
+        const data = await ApiService.getData("/unit/");
+        setUnits(data);
+      } catch (error) {
+        console.error("Error fetching units:", error);
+        setError("Failed to load units. Please try again.");
+      }
+    };
+
     if (open) {
       fetchBrokers();
+      fetchUnits();
     }
   }, [open]);
 
@@ -81,6 +99,78 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
     }));
   };
 
+  const handleUnitChange = (event, newValue) => {
+    if (!newValue) {
+      // Reset unit-related fields if no unit is selected
+      setLoadData(prev => ({
+        ...prev,
+        unit_id: null,
+        truck_id: null,
+        trailer_id: null,
+        driver_id: null,
+        team_id: null,
+        equipment_type: ''
+      }));
+      return;
+    }
+
+    const unitId = newValue.id;
+    
+    // Set unit ID
+    setLoadData(prev => ({
+      ...prev,
+      unit_id: unitId,
+      // Add team_id from unit if it exists
+      team_id: newValue.team_id || null
+    }));
+
+    // Auto-populate truck if unit has a truck
+    if (newValue.truck && newValue.truck.length > 0) {
+      const truckId = newValue.truck[0]; // Get first truck ID
+      setLoadData(prev => ({
+        ...prev,
+        truck_id: truckId
+      }));
+    }
+
+    // Auto-populate trailer if unit has a trailer
+    if (newValue.trailer && newValue.trailer.length > 0) {
+      const trailerId = newValue.trailer[0]; // Get first trailer ID
+      
+      // Set trailer ID in form data
+      setLoadData(prev => ({
+        ...prev,
+        trailer_id: trailerId
+      }));
+      
+      // Get trailer information and set equipment type based on trailer type
+      const fetchTrailerInfo = async () => {
+        try {
+          const trailerInfo = await ApiService.getData(`/trailer/${trailerId}/`);
+          if (trailerInfo && trailerInfo.type) {
+            setLoadData(prev => ({
+              ...prev,
+              equipment_type: trailerInfo.type // Set equipment type from trailer type
+            }));
+          }
+        } catch (error) {
+          console.error('Error fetching trailer info:', error);
+        }
+      };
+      
+      fetchTrailerInfo();
+    }
+
+    // Auto-populate driver if unit has a driver
+    if (newValue.driver && newValue.driver.length > 0) {
+      const driverId = newValue.driver[0]; // Get first driver ID
+      setLoadData(prev => ({
+        ...prev,
+        driver_id: driverId
+      }));
+    }
+  };
+
   const handleCreateLoad = async () => {
     if (!loadData.reference_id || !loadData.customer_broker || !loadData.load_id) {
       setError("Load ID, Reference ID and Customer/Broker are required");
@@ -95,8 +185,14 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
         load_id: loadData.load_id,
         reference_id: loadData.reference_id,
         customer_broker: loadData.customer_broker.id,
-        load_status: "OPEN", // Default status
-        company_name: loadData.customer_broker.company_name // Additional data
+        unit_id: loadData.unit_id,
+        truck: loadData.truck_id,
+        trailer: loadData.trailer_id,
+        driver: loadData.driver_id,
+        team_id: loadData.team_id,
+        equipment_type: loadData.equipment_type,
+        load_status: "OPEN",
+        company_name: loadData.customer_broker.company_name
       });
       
       console.log("Load created:", response);
@@ -247,6 +343,50 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
                   <AddIcon />
                 </IconButton>
               </Box>
+            </Grid>
+            <Grid item xs={12}>
+              <Autocomplete
+                fullWidth
+                options={units}
+                getOptionLabel={(option) => {
+                  if (typeof option === 'string') return option;
+                  return `${option.unit_number || option.id}${option.description ? ` - ${option.description}` : ''}`;
+                }}
+                value={units.find(unit => unit.id === loadData.unit_id) || null}
+                onChange={handleUnitChange}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Unit"
+                    placeholder="Search and select unit"
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <>
+                          <InputAdornment position="start">
+                            <SearchIcon color="action" />
+                          </InputAdornment>
+                          {params.InputProps.startAdornment}
+                        </>
+                      )
+                    }}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                      <Typography variant="body1" fontWeight="medium">
+                        {option.unit_number || option.id}
+                      </Typography>
+                      {option.description && (
+                        <Typography variant="caption" color="text.secondary">
+                          {option.description}
+                        </Typography>
+                      )}
+                    </Box>
+                  </li>
+                )}
+              />
             </Grid>
           </Grid>
         </DialogContent>
