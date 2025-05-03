@@ -278,12 +278,12 @@ const UnitManagementPage = () => {
         ApiService.getData('/trailer/'),
         ApiService.getData('/employee/')
       ]);
-      setUnits(unitsData);
-      setTeams(teamsData);
-      setAllTrucks(trucks);
-      setAllDrivers(drivers);
-      setAllTrailers(trailers);
-      setAllEmployees(employees);
+      setUnits(Array.isArray(unitsData) ? unitsData : []);
+      setTeams(Array.isArray(teamsData) ? teamsData : []);
+      setAllTrucks(Array.isArray(trucks) ? trucks : []);
+      setAllDrivers(Array.isArray(drivers) ? drivers : []);
+      setAllTrailers(Array.isArray(trailers) ? trailers : []);
+      setAllEmployees(Array.isArray(employees) ? employees : []);
 
       // Agar tanlangan unit bo'lsa, uni yangilash
       if (selectedUnit) {

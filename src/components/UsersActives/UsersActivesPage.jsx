@@ -13,11 +13,11 @@ const DispatcherPage = () => {
       setLoading(true);
       try {
         const data = await ApiService.getData('/auth/my-locations/');
-        console.log("Kelgan ma'lumotlar:", data);
+        console.log("Fetch data:", data);
         setLocations(data);
       } catch (error) {
-        console.error("Xatolik:", error);
-        setError("Ma'lumotlarni yuklashda xatolik yuz berdi!");
+        console.error("Error:", error);
+        setError("Fetch data error");
       } finally {
         setLoading(false);
       }

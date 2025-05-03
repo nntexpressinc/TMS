@@ -118,15 +118,19 @@ const ManageUsersPage = () => {
         ApiService.getData('/auth/users/')
       ]);
 
+      // Ma'lumotlarni massivga o'tkazish
+      const rolesArray = Array.isArray(rolesData) ? rolesData : [];
+      const usersArray = Array.isArray(usersData) ? usersData : [];
+
       // Rollar bo'yicha userlar sonini hisoblash
       const counts = {};
-      usersData.forEach(user => {
+      usersArray.forEach(user => {
         counts[user.role] = (counts[user.role] || 0) + 1;
       });
       setUserCounts(counts);
 
-      setRoles(rolesData);
-      setUsers(usersData);
+      setRoles(rolesArray);
+      setUsers(usersArray);
     } catch (error) {
       console.error('Error fetching data:', error);
       setError(error.message);

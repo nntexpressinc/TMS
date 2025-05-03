@@ -6,6 +6,14 @@ import PayReportPDF from './PayReportPDF';
 import './AccountingPage.css';
 import moment from 'moment';
 
+// Yordamchi funksiya
+const ensureArray = (data) => {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (typeof data === 'object') return [data];
+  return [];
+};
+
 const AccountingPage = () => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -21,9 +29,10 @@ const AccountingPage = () => {
     const fetchDrivers = async () => {
       try {
         const data = await getDrivers();
-        setDrivers(data);
+        setDrivers(ensureArray(data)); // Ma'lumotlarni massivga o'tkazish
       } catch (err) {
         setError(t('Failed to fetch drivers'));
+        setDrivers([]); // Xatolik bo'lganda bo'sh massiv o'rnatish
       }
     };
     fetchDrivers();
@@ -126,7 +135,7 @@ const AccountingPage = () => {
                 required
               >
                 <option value="">{t('Select driver')}</option>
-                {drivers.map((driver) => (
+                {Array.isArray(drivers) && drivers.map((driver) => (
                   <option key={driver.id} value={driver.id}>
                     {driver.user?.first_name || ''} {driver.user?.last_name || ''}
                   </option>

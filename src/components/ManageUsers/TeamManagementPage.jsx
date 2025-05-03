@@ -136,9 +136,9 @@ const TeamManagementPage = () => {
         ApiService.getData('/unit/')
       ]);
 
-      setTeams(teamsData);
-      setDispatchers(dispatchersData);
-      setUnits(unitsData);
+      setTeams(Array.isArray(teamsData) ? teamsData : []);
+      setDispatchers(Array.isArray(dispatchersData) ? dispatchersData : []);
+      setUnits(Array.isArray(unitsData) ? unitsData : []);
     } catch (error) {
       console.error('Error fetching data:', error);
       setError(error.message);

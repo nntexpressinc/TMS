@@ -14,6 +14,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import CircularProgress from '@mui/material/CircularProgress';
 
 const DriverPage = () => {
   const [drivers, setDrivers] = useState([]);
@@ -22,6 +24,9 @@ const DriverPage = () => {
   const [searchCategory, setSearchCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(false);
   const tableRef = useRef(null);
   const navigate = useNavigate();
   const { isSidebarOpen } = useSidebar();
@@ -50,17 +55,62 @@ const DriverPage = () => {
       const storedAccessToken = localStorage.getItem("accessToken");
       if (storedAccessToken) {
         try {
-          const data = await ApiService.getData(`/driver/`, storedAccessToken);
-          setDrivers(data);
-          setFilteredDrivers(data);
+          setLoading(true);
+          
+          // Timeout function for 5 second delay
+          const timeout = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+          
+          // Direct fetch function that uses the proper API URL
+          const fetchData = async () => {
+            try {
+              // Use the direct URL instead of relying on the API service to construct it
+              const fullUrl = `https://api1.biznes-armiya.uz/api/driver/?page=${page + 1}`;
+              console.log(`Fetching from URL: ${fullUrl}`);
+              
+              // Direct fetch request with authorization
+              const response = await fetch(fullUrl, {
+                headers: {
+                  'Authorization': `Bearer ${storedAccessToken}`,
+                  'Accept': '*/*'
+                }
+              });
+              
+              if (!response.ok) {
+                throw new Error(`API request failed with status ${response.status}`);
+              }
+              
+              const data = await response.json();
+              console.log('API response:', data);
+              return data;
+            } catch (error) {
+              console.error("Error fetching data:", error);
+              throw error;
+            }
+          };
+          
+          // Run both the timeout and fetch in parallel
+          const [_, response] = await Promise.all([
+            timeout(5000), // 5 second wait
+            fetchData()    // Fetch data
+          ]);
+          
+          if (response && response.results) {
+            setDrivers(response.results);
+            setFilteredDrivers(response.results);
+            setTotalCount(response.count);
+          } else {
+            console.error("Did not receive expected data format from API:", response);
+          }
         } catch (error) {
-          console.error("Error fetching drivers data:", error);
+          console.error("Error fetching driver data:", error);
+        } finally {
+          setLoading(false);
         }
       }
     };
 
     fetchDriversData();
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -127,6 +177,11 @@ const DriverPage = () => {
     navigator.clipboard.writeText(id);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleRefresh = () => {
+    // Sahifani qayta yuklash
+    setPage(page); // Joriy sahifani qayta yuklash uchun
   };
 
   const columns = [
@@ -392,6 +447,20 @@ const DriverPage = () => {
           >
             <FilterListIcon />
           </IconButton>
+          
+          {/* Yangilash tugmasi */}
+          <IconButton 
+            onClick={handleRefresh}
+            sx={{ 
+              backgroundColor: '#F9FAFB',
+              borderRadius: '8px',
+              height: '32px',
+              width: '32px',
+              minWidth: '32px'
+            }}
+          >
+            {loading ? <CircularProgress size={20} /> : <RefreshIcon />}
+          </IconButton>
         </Box>
         <Button 
           variant="contained" 
@@ -443,20 +512,58 @@ const DriverPage = () => {
           <DataGrid
             rows={filteredDrivers}
             columns={columns}
-            pageSize={10}
-            rowsPerPageOptions={[10, 20, 50]}
+            rowCount={totalCount}
+            loading={loading}
+            page={page}
+            pageSize={25}
+            pagination
+            paginationMode="server"
+            onPageChange={(newPage) => {
+              console.log(`New page: ${newPage + 1}`);
+              setPage(newPage);
+            }}
+            rowsPerPageOptions={[25]}
+            disableSelectionOnClick
+            initialState={{
+              pagination: {
+                pageSize: 25,
+              },
+            }}
             components={{
-              Toolbar: GridToolbar
+              Toolbar: GridToolbar,
+              NoRowsOverlay: () => (
+                <Box sx={{ 
+                  display: 'flex', 
+                  height: '100%', 
+                  alignItems: 'center', 
+                  justifyContent: 'center'
+                }}>
+                  <CircularProgress />
+                </Box>
+              )
             }}
             componentsProps={{
               toolbar: {
                 showQuickFilter: true,
                 quickFilterProps: { debounceMs: 500 },
               },
+              pagination: {
+                labelRowsPerPage: '',
+                labelDisplayedRows: ({ from, to, count }) => `${from}-${to} of ${count !== -1 ? count : `${to}`}`,
+              },
             }}
             sx={{
               backgroundColor: 'white',
               borderRadius: '12px',
+              '& .MuiTablePagination-selectLabel': {
+                display: 'none',
+              },
+              '& .MuiTablePagination-select': {
+                display: 'none',
+              },
+              '& .MuiTablePagination-selectIcon': {
+                display: 'none',
+              },
               '& .MuiDataGrid-row': {
                 maxHeight: '45px !important',
                 minHeight: '45px !important',
@@ -499,6 +606,9 @@ const DriverPage = () => {
                 '&:last-child': {
                   borderRight: 'none'
                 }
+              },
+              '& .MuiDataGrid-virtualScroller': {
+                overflow: 'auto'
               }
             }}
           />
