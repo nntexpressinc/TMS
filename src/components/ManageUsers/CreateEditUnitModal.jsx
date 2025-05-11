@@ -84,7 +84,7 @@ const CreateEditUnitModal = ({ isOpen, onClose, onSubmit, editingUnit }) => {
                   value={selectedTeam}
                   onChange={e => setSelectedTeam(e.target.value)}
                 >
-                  <option value="">{t('No Team')}</option>
+                  <option value="">{t('All Team')}</option>
                   {teams.map(team => (
                     <option key={team.id} value={team.id}>
                       {team.name}

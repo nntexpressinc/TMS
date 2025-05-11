@@ -32,7 +32,7 @@ const ConfirmModal = ({ isOpen, onClose, item, itemType, newTeam, onConfirm }) =
             <strong>{getItemName()}</strong>
           </p>
           <p>
-            {t('New team')}: <strong>{newTeam ? newTeam.name : t('No Team')}</strong>
+            {t('New team')}: <strong>{newTeam ? newTeam.name : t('All Team')}</strong>
           </p>
         </div>
         <div className="modal-footer">
@@ -69,7 +69,7 @@ const TeamItem = ({ team, isActive, dispatcherCount, unitCount, onSelect, onEdit
       onClick={onSelect}
     >
       <div className="role-info">
-        <h3>{team?.name || 'No Team'}</h3>
+        <h3>{team?.name || 'All Team'}</h3>
         <div className="item-counts">
           <span className="user-count">
             <FaUsers className="count-icon" /> {dispatcherCount || 0} dispatchers
@@ -301,7 +301,7 @@ const TeamManagementPage = () => {
 
   const getDispatchersByTeam = (teamId) => {
     if (teamId === null) {
-      // No team (unassigned dispatchers)
+      // All Team (unassigned dispatchers)
       return dispatchers.filter(d => {
         return !teams.some(team => team.dispatchers?.includes(d.id));
       });
@@ -315,7 +315,7 @@ const TeamManagementPage = () => {
 
   const getUnitsByTeam = (teamId) => {
     if (teamId === null) {
-      // No team (unassigned units)
+      // All Team (unassigned units)
       return units.filter(u => {
         return !teams.some(team => team.unit_id?.includes(u.id));
       });
@@ -378,7 +378,7 @@ const TeamManagementPage = () => {
 
           <div className="roles-list">
             <TeamItem 
-              team={{ name: 'No Team' }}
+              team={{ name: 'All Team' }}
               isActive={selectedTeam === null}
               dispatcherCount={getDispatchersByTeam(null).length}
               unitCount={getUnitsByTeam(null).length}
@@ -506,7 +506,7 @@ const TeamManagementPage = () => {
                           value={selectedTeam?.id || ''}
                           onChange={(e) => handleUpdateDispatcherTeam(dispatcher.id, e.target.value)}
                         >
-                          <option value="">No Team</option>
+                          <option value="">All Team</option>
                           {teams.map(team => (
                             <option key={team.id} value={team.id}>
                               {team.name}
@@ -577,7 +577,7 @@ const TeamManagementPage = () => {
                           value={selectedTeam?.id || ''}
                           onChange={(e) => handleUpdateUnitTeam(unit.id, e.target.value)}
                         >
-                          <option value="">No Team</option>
+                          <option value="">All Team</option>
                           {teams.map(team => (
                             <option key={team.id} value={team.id}>
                               {team.name}
