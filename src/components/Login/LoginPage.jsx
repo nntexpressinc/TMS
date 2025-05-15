@@ -84,7 +84,7 @@ const LoginPage = () => {
       // 1. Login so'rovi
       const data = { email, password };
       const response = await ApiService.login(data);
-      console.log("Login Response:", response);
+      // console.log("Login Response:", response);
 
       // Tokenlarni saqlash
       localStorage.setItem("accessToken", response.access);
@@ -101,7 +101,7 @@ const LoginPage = () => {
           device_info: deviceInfo,
           page_status: pageVisibility,
         };
-        console.log("Yuborilayotgan additionalData:", additionalData);
+        // console.log("Yuborilayotgan additionalData:", additionalData);
         try {
           const additionalResponse = await ApiService.postData("/auth/location/", additionalData, response.access);
           console.log("Additional Data Response:", additionalResponse);
