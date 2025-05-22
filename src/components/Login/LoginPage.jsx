@@ -90,6 +90,20 @@ const LoginPage = () => {
       localStorage.setItem("accessToken", response.access);
       localStorage.setItem("refreshToken", response.refresh);
       localStorage.setItem("userid", response.user_id);
+      
+      // Foydalanuvchi ma'lumotlarini ham saqlash (agar response da user ma'lumotlari bo'lsa)
+      if (response.user) {
+        localStorage.setItem("user", JSON.stringify(response.user));
+      } else {
+        // Agar response.user yo'q bo'lsa, foydalanuvchi ma'lumotlarini alohida so'rovda olish
+        try {
+          const userData = await ApiService.getData(`/auth/users/${response.user_id}/`);
+          localStorage.setItem("user", JSON.stringify(userData));
+        } catch (userError) {
+          console.error("Error fetching user data:", userError);
+        }
+      }
+      
       login();
 
       // 2. Geolokatsiya, qurilma va sahifa holatini API'ga yuborish

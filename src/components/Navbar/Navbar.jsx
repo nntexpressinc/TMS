@@ -18,17 +18,63 @@ const Navbar = () => {
     const fetchUserData = async () => {
       const storedUserId = localStorage.getItem("userid");
       const storedAccessToken = localStorage.getItem("accessToken");
+      const storedUserData = localStorage.getItem("user");
+
+      // Avval localStorage dagi user ma'lumotlarini tekshiramiz
+      if (storedUserData) {
+        try {
+          const parsedUserData = JSON.parse(storedUserData);
+          setUser(parsedUserData);
+
+          // ROL NOMINI OLIB KELISH
+          if (parsedUserData.role) {
+            // Rol ma'lumotlarini API dan olish kerak bo'lsa, olishimiz mumkin
+            // yoki uni ham localStorage ga saqlash mumkin
+            try {
+              const roleData = await ApiService.getData(`/auth/role/${parsedUserData.role}/`);
+              setRoleName(roleData.name);
+              // Rol nomini ham localStorage ga saqlaymiz
+              localStorage.setItem("roleName", roleData.name);
+            } catch (roleError) {
+              // Avval localStorage da saqlangan rol nomini tekshiramiz
+              const storedRoleName = localStorage.getItem("roleName");
+              if (storedRoleName) {
+                setRoleName(storedRoleName);
+              } else {
+                setRoleName('');
+              }
+            }
+          }
+        } catch (parseError) {
+          // Agar parse qilishda xato bo'lsa, API ga so'rov yuboramiz
+          console.error("Error parsing stored user data:", parseError);
+          fetchFromAPI();
+        }
+      } else if (storedUserId && storedAccessToken) {
+        // Agar localStorage da user ma'lumotlari bo'lmasa, API dan olamiz
+        fetchFromAPI();
+      }
+    };
+
+    // API dan ma'lumotlarni olish uchun alohida funksiya
+    const fetchFromAPI = async () => {
+      const storedUserId = localStorage.getItem("userid");
+      const storedAccessToken = localStorage.getItem("accessToken");
 
       if (storedUserId && storedAccessToken) {
         try {
           const data = await ApiService.getData(`/auth/users/${storedUserId}/`);
           setUser(data);
+          // Olingan ma'lumotlarni localStorage ga saqlaymiz
+          localStorage.setItem("user", JSON.stringify(data));
 
           // ROL NOMINI OLIB KELISH
           if (data.role) {
             try {
               const roleData = await ApiService.getData(`/auth/role/${data.role}/`);
               setRoleName(roleData.name);
+              // Rol nomini ham localStorage ga saqlaymiz
+              localStorage.setItem("roleName", roleData.name);
             } catch (roleError) {
               setRoleName('');
             }
@@ -38,6 +84,8 @@ const Navbar = () => {
           if (error.response?.status === 401) {
             localStorage.removeItem("accessToken");
             localStorage.removeItem("userid");
+            localStorage.removeItem("user");
+            localStorage.removeItem("roleName");
             navigate('/login');
           }
         }
