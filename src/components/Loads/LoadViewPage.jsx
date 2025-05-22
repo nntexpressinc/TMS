@@ -1293,16 +1293,16 @@ const LoadViewPage = () => {
         const data = await ApiService.getData(`/load/${id}/`);
         setLoad(data);
         
-        // Also fetch all stops from the API
-        fetchAllStops();
+        // Endi alohida fetchAllStops ga murojat qilinmaydi, chunki load ichida stop keladi
+        // Biz setLoad(data) qilganda, load.stop ham yangilanadi
         
         // Fetch chat messages
         fetchChatMessages();
-        } catch (error) {
-          console.error("Error fetching load data:", error);
+      } catch (error) {
+        console.error("Error fetching load data:", error);
         setError("Could not load data. Please try again.");
-        } finally {
-          setIsLoading(false);
+      } finally {
+        setIsLoading(false);
         setIsLoadDataLoading(false);
       }
     };
@@ -2239,13 +2239,30 @@ const LoadViewPage = () => {
 
       console.log("Saving stop with data:", formattedData);
 
+      let response;
       if (editingStop) {
         // Update existing stop
-        await ApiService.putData(`/stops/${editingStop}/`, formattedData);
+        response = await ApiService.putData(`/stops/${editingStop}/`, formattedData);
         showSnackbar("Stop updated successfully", "success");
       } else if (isAddingStop) {
         // Create new stop
-        await ApiService.postData(`/stops/`, formattedData);
+        response = await ApiService.postData(`/stops/`, formattedData);
+        
+        // Agar yangi stop yaratilgan bo'lsa, loadni "stop" arrayiga shu stopning ID sini qo'shish kerak
+        if (response && response.id) {
+          // Avval hozirgi loadni olamiz
+          const currentLoad = await ApiService.getData(`/load/${id}/`);
+          const currentStopIds = currentLoad.stop ? currentLoad.stop.map(s => s.id) : [];
+          
+          // Yangi stop ID sini qo'shamiz
+          const updatedStopIds = [...currentStopIds, response.id];
+          
+          // Loadni yangilaymiz
+          await ApiService.patchData(`/load/${id}/`, {
+            stop: updatedStopIds
+          });
+        }
+        
         showSnackbar("Stop added successfully", "success");
       }
       
@@ -2265,44 +2282,17 @@ const LoadViewPage = () => {
   // Fetch all stops and filter for current load
   const fetchAllStops = async () => {
     try {
-      const stops = await ApiService.getData('/stops/');
+      // Loadni qayta yuklash bilan, "stop" field ichidagi ma'lumotlarni olamiz
+      const loadData = await ApiService.getData(`/load/${id}/`);
       
-      // Filter stops for current load
-      const loadStops = stops.filter(stop => stop.load === parseInt(id));
-      
-      // Sort stops by type: Pickup first, Delivery last, others in between
-      const sortedStops = [...loadStops].sort((a, b) => {
-        if (a.stop_name === "PICKUP") return -1; // PICKUP always first
-        if (b.stop_name === "PICKUP") return 1;
-        if (a.stop_name === "DELIVERY") return 1; // DELIVERY always last
-        if (b.stop_name === "DELIVERY") return -1;
-        
-        // For numbered stops (Stop-2, Stop-3, etc.), sort by number
-        const aMatch = a.stop_name.match(/Stop-(\d+)/);
-        const bMatch = b.stop_name.match(/Stop-(\d+)/);
-        
-        if (aMatch && bMatch) {
-          return parseInt(aMatch[1]) - parseInt(bMatch[1]);
-        }
-        
-        // Default case - use alphabetical sorting for other stop types
-        return a.stop_name.localeCompare(b.stop_name);
-      });
-      
-      // Update load object with sorted stops
-      setLoad(prevLoad => ({
-        ...prevLoad,
-        stop: sortedStops
-      }));
-      
-      setAllStops(stops);
+      // Loadni "stop" fieldi bilan yangilaymiz
+      setLoad(loadData);
       
       // Ensure editing states are reset after fetching stops
-      // This prevents issues with the Add Stop button being disabled
       setEditingStop(null);
       setIsAddingStop(false);
       
-      console.log("Fetched and sorted stops:", sortedStops);
+      console.log("Fetched stops from load:", loadData.stop);
     } catch (error) {
       console.error("Error fetching stops:", error);
       showSnackbar("Failed to load stops", "error");
@@ -2873,7 +2863,19 @@ const LoadViewPage = () => {
   // Fix the handleDeleteStop function to properly reset editing state
   const handleDeleteStop = async (stopId) => {
     try {
+      // Avval stopni o'chiramiz
       await ApiService.deleteData(`/stops/${stopId}/`);
+      
+      // Loadni olib, stop arrayidan o'chirilgan stopni olib tashlaymiz
+      const currentLoad = await ApiService.getData(`/load/${id}/`);
+      const updatedStopIds = currentLoad.stop ? 
+        currentLoad.stop.filter(s => s.id !== stopId).map(s => s.id) : 
+        [];
+      
+      // Loadni yangilangan stop array bilan yangilaymiz
+      await ApiService.patchData(`/load/${id}/`, {
+        stop: updatedStopIds
+      });
       
       // Reset editing state
       setEditingStop(null);
