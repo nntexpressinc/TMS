@@ -2454,26 +2454,61 @@ const LoadViewPage = () => {
       });
     } else if (section === 'equipment') {
       // Ensure trailer data is correctly included in form data
-      setEditFormData({
+      const formData = {
         truck: load.truck?.id || '',
         trailer: load.trailer?.id || '',
         equipment_type: load.equipment_type || '',
         unit_id: load.unit_id || null, // Add unit_id field here too
         team_id: load.team_id || null // Add team_id field here too
-      });
-      console.log("Edit equipment formData:", {
-        truck: load.truck?.id || '',
-        trailer: load.trailer?.id || '',
-        equipment_type: load.equipment_type || '',
-        unit_id: load.unit_id || null,
-        team_id: load.team_id || null
+      };
+      
+      setEditFormData(formData);
+      console.log("Edit equipment formData:", formData);
+      
+      // Unitdan ma'lumot olish uchun
+      if (load.unit_id) {
+        const selectedUnit = units.find(unit => unit.id === load.unit_id);
+        if (selectedUnit) {
+          // Load oynasi ochilganda, unit ma'lumotlaridan trailer ma'lumotlarini olish
+          if (selectedUnit.trailer && selectedUnit.trailer.length > 0) {
+            const trailerId = selectedUnit.trailer[0];
+            // Trailer ma'lumotlarini olish
+            const fetchTrailerInfo = async () => {
+              try {
+                const trailerInfo = await ApiService.getData(`/trailer/${trailerId}/`);
+                console.log("Fetched trailer info from unit:", trailerInfo);
+              } catch (error) {
+                console.error('Error fetching trailer info:', error);
+              }
+            };
+            fetchTrailerInfo();
+          }
+        }
+      }
+    } else if (section === 'mile') {
+      // Initialize form data for mile section
+      const mile = parseInt(load.mile) || 0;
+      const emptyMile = parseInt(load.empty_mile) || 0;
+      const totalMiles = parseInt(load.total_miles) || (mile + emptyMile);
+      const totalPay = parseFloat(load.total_pay) || 0;
+      
+      // Calculate per_mile if it doesn't exist
+      let perMile = load.per_mile || '';
+      if (!perMile && totalMiles > 0 && totalPay > 0) {
+        perMile = (totalPay / totalMiles).toFixed(2);
+      }
+      
+      setEditFormData({
+        mile: mile || '',
+        empty_mile: emptyMile || '',
+        total_miles: totalMiles || '',
+        per_mile: perMile || ''
       });
     } else if (section === 'payment') {
       setEditFormData({
         load_pay: load.load_pay || '',
         total_pay: load.total_pay || '',
-        per_mile: load.per_mile || '',
-        total_miles: load.total_miles || '',
+        // Remove per_mile and total_miles, they're now in mile section
         // Add other pay fields
         other_pay_amount: '',
         other_pay_type: '',
@@ -2556,17 +2591,52 @@ const LoadViewPage = () => {
           const selectedUnit = units.find(unit => unit.id === editFormData.unit_id);
           if (selectedUnit) {
             dataToUpdate.team_id = selectedUnit.team_id;
+            
+            // Unitdan truck, trailer, va driver ma'lumotlarini olish
+            if (selectedUnit.truck && selectedUnit.truck.length > 0) {
+              dataToUpdate.truck = selectedUnit.truck[0];
+            }
+            if (selectedUnit.trailer && selectedUnit.trailer.length > 0) {
+              dataToUpdate.trailer = selectedUnit.trailer[0];
+            }
+            if (selectedUnit.driver && selectedUnit.driver.length > 0) {
+              dataToUpdate.driver = selectedUnit.driver[0];
+            }
           }
         }
         
         console.log("Equipment update data:", dataToUpdate);
+      } else if (editingSection === 'mile') {
+        // Handle mile section updates
+        const mile = editFormData.mile ? parseInt(editFormData.mile) : null;
+        const emptyMile = editFormData.empty_mile ? parseInt(editFormData.empty_mile) : null;
+        const totalMiles = editFormData.total_miles ? parseInt(editFormData.total_miles) : null;
+        const perMile = editFormData.per_mile ? parseFloat(editFormData.per_mile) : null;
+        
+        dataToUpdate = {
+          mile: mile,
+          empty_mile: emptyMile,
+          total_miles: totalMiles,
+          per_mile: perMile
+        };
+        
+        console.log("Mile update data:", dataToUpdate);
       } else if (editingSection === 'payment') {
         dataToUpdate = {
           load_pay: editFormData.load_pay ? parseFloat(editFormData.load_pay) : null,
-          total_pay: editFormData.total_pay ? parseFloat(editFormData.total_pay) : null,
-          per_mile: editFormData.per_mile ? parseFloat(editFormData.per_mile) : null,
-          total_miles: editFormData.total_miles ? parseFloat(editFormData.total_miles) : null
+          total_pay: editFormData.total_pay ? parseFloat(editFormData.total_pay) : null
+          // Removed per_mile and total_miles as they're now in mile section
         };
+        
+        // If total_pay is updated, and we have total_miles, update per_mile
+        if (editFormData.total_pay && load.total_miles) {
+          const totalPay = parseFloat(editFormData.total_pay);
+          const totalMiles = parseInt(load.total_miles);
+          
+          if (totalMiles > 0) {
+            dataToUpdate.per_mile = (totalPay / totalMiles).toFixed(2);
+          }
+        }
       } else if (editingSection === 'notes') {
         dataToUpdate = {
           note: editFormData.note
@@ -4552,6 +4622,34 @@ const LoadViewPage = () => {
                       </IconButton>
                     </Box>
                     
+                    {/* Agar unit tanlangan bo'lsa, unitdan truck ma'lumotlarini ko'rsatish */}
+                    {editFormData.unit_id && (
+                      (() => {
+                        const selectedUnit = units.find(unit => unit.id === editFormData.unit_id);
+                        if (selectedUnit && selectedUnit.truck && selectedUnit.truck.length > 0) {
+                          const truckId = selectedUnit.truck[0];
+                          const truckInfo = trucks.find(truck => truck.id === truckId);
+                          
+                          if (truckInfo) {
+                            return (
+                              <Box sx={{ mt: 1, p: 1, bgcolor: '#f0f7ff', borderRadius: 1, border: '1px solid #e1f0ff' }}>
+                                <Typography variant="caption" color="primary" sx={{ display: 'block', mb: 0.5 }}>
+                                  Truck from Unit {selectedUnit.unit_number}:
+                                </Typography>
+                                <Typography variant="body2">
+                                  {`${truckInfo.make || ''} ${truckInfo.model || ''} (${truckInfo.unit_number || 'No unit'})`}
+                                </Typography>
+                                <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                                  Plate: {truckInfo.plate_number || 'Not available'} | VIN: {truckInfo.vin || 'Not available'}
+                                </Typography>
+                              </Box>
+                            );
+                          }
+                        }
+                        return null;
+                      })()
+                    )}
+                    
                     <Typography variant="subtitle2" sx={{ fontWeight: 500, mt: 1 }}>Trailer</Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <FormControl fullWidth size="small">
@@ -4581,6 +4679,34 @@ const LoadViewPage = () => {
                         <AddIcon />
                       </IconButton>
                     </Box>
+                    
+                    {/* Agar unit tanlangan bo'lsa, unitdan trailer ma'lumotlarini ko'rsatish */}
+                    {editFormData.unit_id && (
+                      (() => {
+                        const selectedUnit = units.find(unit => unit.id === editFormData.unit_id);
+                        if (selectedUnit && selectedUnit.trailer && selectedUnit.trailer.length > 0) {
+                          const trailerId = selectedUnit.trailer[0];
+                          const trailerInfo = trailers.find(trailer => trailer.id === trailerId);
+                          
+                          if (trailerInfo) {
+                            return (
+                                                             <Box sx={{ mt: 1, p: 1, bgcolor: '#f0f7ff', borderRadius: 1, border: '1px solid #e1f0ff' }}>
+                                <Typography variant="caption" color="primary" sx={{ display: 'block', mb: 0.5 }}>
+                                  Trailer from Unit {selectedUnit.unit_number}:
+                                </Typography>
+                                <Typography variant="body2">
+                                  {`${trailerInfo.trailer_type || trailerInfo.type || 'Unknown'} (${trailerInfo.unit_number || 'No unit'})`}
+                                </Typography>
+                                <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                                  VIN: {trailerInfo.vin || 'Not available'}
+                                </Typography>
+                              </Box>
+                            );
+                          }
+                        }
+                        return null;
+                      })()
+                    )}
                     
                     <Typography variant="subtitle2" sx={{ fontWeight: 500, mt: 1 }}>Equipment Type</Typography>
                     <FormControl fullWidth size="small">
@@ -4634,11 +4760,56 @@ const LoadViewPage = () => {
                           <DetailValue>{load.truck.unit_number || "Not available"}</DetailValue>
                         </DetailItem>
                         
+                     
+                        
                         <DetailItem>
-                          <DetailLabel>Plate Number</DetailLabel>
-                          <DetailValue>{load.truck.plate_number || "Not available"}</DetailValue>
+                          <DetailLabel>VIN Number</DetailLabel>
+                          <DetailValue>{load.truck.vin || "Not available"}</DetailValue>
                         </DetailItem>
                       </>
+                    ) : load.unit_id ? (
+                      // Agar unit tanlangan bo'lsa, unitdan truck ma'lumotlarini ko'rsatish
+                      (() => {
+                        const selectedUnit = units.find(unit => unit.id === load.unit_id);
+                        if (selectedUnit && selectedUnit.truck && selectedUnit.truck.length > 0) {
+                          const truckId = selectedUnit.truck[0];
+                          const truckInfo = trucks.find(truck => truck.id === truckId);
+                          
+                          if (truckInfo) {
+                            return (
+                              <>
+                                <DetailItem>
+                                  <DetailLabel>Make/Model</DetailLabel>
+                                  <DetailValue>{`${truckInfo.make || ''} ${truckInfo.model || ''}`}</DetailValue>
+                                </DetailItem>
+                                
+                                <DetailItem>
+                                  <DetailLabel>Unit Number</DetailLabel>
+                                  <DetailValue>{truckInfo.unit_number || "Not available"}</DetailValue>
+                                </DetailItem>
+                                
+                                <DetailItem>
+                                  <DetailLabel>Plate Number</DetailLabel>
+                                  <DetailValue>{truckInfo.plate_number || "Not available"}</DetailValue>
+                                </DetailItem>
+                                
+                                <DetailItem>
+                                  <DetailLabel>VIN Number</DetailLabel>
+                                  <DetailValue>{truckInfo.vin || "Not available"}</DetailValue>
+                                </DetailItem>
+                                <Typography variant="caption" color="primary">
+                                  (Truck from Unit {selectedUnit.unit_number})
+                                </Typography>
+                              </>
+                            );
+                          }
+                        }
+                        return (
+                          <Box sx={{ p: 1, color: 'text.secondary' }}>
+                            <Typography variant="body2">Unit has no truck assigned</Typography>
+                          </Box>
+                        );
+                      })()
                     ) : (
                       <Box sx={{ p: 1, color: 'text.secondary', mb: 2 }}>
                         <Typography variant="body2">No truck assigned</Typography>
@@ -4666,14 +4837,242 @@ const LoadViewPage = () => {
                         
                         <DetailItem noBorder>
                           <DetailLabel>VIN Number</DetailLabel>
-                          <DetailValue>{load.trailer.vin_number || "Not available"}</DetailValue>
+                          <DetailValue>{load.trailer.vin || load.trailer.vin_number || "Not available"}</DetailValue>
                         </DetailItem>
                       </>
+                    ) : load.unit_id ? (
+                      // Agar unit tanlangan bo'lsa, unitdan trailer ma'lumotlarini ko'rsatish
+                      (() => {
+                        const selectedUnit = units.find(unit => unit.id === load.unit_id);
+                        if (selectedUnit && selectedUnit.trailer && selectedUnit.trailer.length > 0) {
+                          const trailerId = selectedUnit.trailer[0];
+                          const trailerInfo = trailers.find(trailer => trailer.id === trailerId);
+                          
+                          if (trailerInfo) {
+                            return (
+                              <>
+                                <DetailItem>
+                                  <DetailLabel>Type</DetailLabel>
+                                  <DetailValue>{trailerInfo.trailer_type || trailerInfo.type || "Not available"}</DetailValue>
+                                </DetailItem>
+                                
+                                <DetailItem>
+                                  <DetailLabel>Unit Number</DetailLabel>
+                                  <DetailValue>{trailerInfo.unit_number || "Not available"}</DetailValue>
+                                </DetailItem>
+                                
+                                <DetailItem noBorder>
+                                  <DetailLabel>VIN Number</DetailLabel>
+                                  <DetailValue>{trailerInfo.vin || trailerInfo.vin_number || "Not available"}</DetailValue>
+                                </DetailItem>
+                                <Typography variant="caption" color="primary">
+                                  (Trailer from Unit {selectedUnit.unit_number})
+                                </Typography>
+                              </>
+                            );
+                          }
+                        }
+                        return (
+                          <Box sx={{ p: 1, color: 'text.secondary' }}>
+                            <Typography variant="body2">Unit has no trailer assigned</Typography>
+                          </Box>
+                        );
+                      })()
                     ) : (
                       <Box sx={{ p: 1, color: 'text.secondary' }}>
                         <Typography variant="body2">No trailer assigned</Typography>
                       </Box>
                     )}
+                  </>
+                )}
+              </InfoCard>
+              
+              {/* Mile Information */}
+              <InfoCard>
+                <InfoCardHeader>
+                  <InfoCardTitle>
+                    <DirectionsIcon />
+                    Mile Information
+                  </InfoCardTitle>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={editingSection === 'mile' ? <Close /> : <EditIcon />}
+                    onClick={editingSection === 'mile' ? handleCancelEdit : () => handleEditSection('mile')}
+                  >
+                    {editingSection === 'mile' ? 'CANCEL' : 'EDIT'}
+                  </Button>
+                </InfoCardHeader>
+                
+                {editingSection === 'mile' ? (
+                  // Edit form for mile
+                  <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Loaded Miles"
+                          name="mile"
+                          value={editFormData.mile || ''}
+                          onChange={(e) => {
+                            handleFormChange(e);
+                            
+                            // Auto calculate total miles when mile changes
+                            const loadedMile = parseInt(e.target.value) || 0;
+                            const emptyMile = parseInt(editFormData.empty_mile) || 0;
+                            const totalMiles = loadedMile + emptyMile;
+                            
+                            setEditFormData(prev => ({
+                              ...prev,
+                              total_miles: totalMiles
+                            }));
+                            
+                            // Also calculate per_mile if total_pay exists
+                            if (editFormData.total_pay) {
+                              const totalPay = parseFloat(editFormData.total_pay) || 0;
+                              if (totalMiles > 0) {
+                                const perMile = (totalPay / totalMiles).toFixed(2);
+                                setEditFormData(prev => ({
+                                  ...prev,
+                                  per_mile: perMile
+                                }));
+                              }
+                            }
+                          }}
+                          type="number"
+                          InputProps={{
+                            endAdornment: <InputAdornment position="end">miles</InputAdornment>,
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Empty (Deadhead) Miles"
+                          name="empty_mile"
+                          value={editFormData.empty_mile || ''}
+                          onChange={(e) => {
+                            handleFormChange(e);
+                            
+                            // Auto calculate total miles when empty_mile changes
+                            const emptyMile = parseInt(e.target.value) || 0;
+                            const loadedMile = parseInt(editFormData.mile) || 0;
+                            const totalMiles = loadedMile + emptyMile;
+                            
+                            setEditFormData(prev => ({
+                              ...prev,
+                              total_miles: totalMiles
+                            }));
+                            
+                            // Also calculate per_mile if total_pay exists
+                            if (editFormData.total_pay) {
+                              const totalPay = parseFloat(editFormData.total_pay) || 0;
+                              if (totalMiles > 0) {
+                                const perMile = (totalPay / totalMiles).toFixed(2);
+                                setEditFormData(prev => ({
+                                  ...prev,
+                                  per_mile: perMile
+                                }));
+                              }
+                            }
+                          }}
+                          type="number"
+                          InputProps={{
+                            endAdornment: <InputAdornment position="end">miles</InputAdornment>,
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
+                    
+                    <Box sx={{ 
+                      p: 2, 
+                      bgcolor: '#f0f7ff', 
+                      borderRadius: 1, 
+                      border: '1px solid #e1f0ff',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1
+                    }}>
+                      <Typography variant="subtitle2" color="primary">
+                        Calculated Values (Auto)
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Total Miles"
+                            value={editFormData.total_miles || '0'}
+                            disabled
+                            InputProps={{
+                              endAdornment: <InputAdornment position="end">miles</InputAdornment>,
+                              readOnly: true,
+                            }}
+                          />
+                          <Typography variant="caption" color="text.secondary">
+                            Loaded + Empty miles
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Per Mile Rate"
+                            value={editFormData.per_mile || '0.00'}
+                            disabled
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                              readOnly: true,
+                            }}
+                          />
+                          <Typography variant="caption" color="text.secondary">
+                            Total Pay ÷ Total Miles
+                          </Typography>
+                        </Grid>
+                      </Grid>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                      <Button 
+                        variant="contained" 
+                        onClick={handleSaveChanges}
+                        disabled={isSaving}
+                        startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
+                      >
+                        Save
+                      </Button>
+                    </Box>
+                  </Box>
+                ) : (
+                  // Display mode for mile
+                  <>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={6}>
+                        <DetailItem>
+                          <DetailLabel>Loaded Miles</DetailLabel>
+                          <DetailValue>{load.mile ? `${load.mile} miles` : "Not assigned"}</DetailValue>
+                        </DetailItem>
+                        
+                        <DetailItem>
+                          <DetailLabel>Empty Miles</DetailLabel>
+                          <DetailValue>{load.empty_mile ? `${load.empty_mile} miles` : "Not assigned"}</DetailValue>
+                        </DetailItem>
+                      </Grid>
+                      
+                      <Grid item xs={12} md={6}>
+                        <DetailItem>
+                          <DetailLabel>Total Miles</DetailLabel>
+                          <DetailValue>{load.total_miles ? `${load.total_miles} miles` : "Not available"}</DetailValue>
+                        </DetailItem>
+                        
+                        <DetailItem>
+                          <DetailLabel>Per Mile Rate</DetailLabel>
+                          <DetailValue>{load.per_mile ? `$${load.per_mile}` : "Not assigned"}</DetailValue>
+                        </DetailItem>
+                      </Grid>
+                    </Grid>
                   </>
                 )}
               </InfoCard>
@@ -4716,32 +5115,25 @@ const LoadViewPage = () => {
                       label="Total Pay"
                       name="total_pay"
                       value={editFormData.total_pay}
-                      onChange={handleFormChange}
+                      onChange={(e) => {
+                        handleFormChange(e);
+                        
+                        // Auto calculate per_mile when total_pay changes
+                        const totalPay = parseFloat(e.target.value) || 0;
+                        const totalMiles = parseInt(editFormData.total_miles) || 0;
+                        
+                        if (totalMiles > 0) {
+                          const perMile = (totalPay / totalMiles).toFixed(2);
+                          setEditFormData(prev => ({
+                            ...prev,
+                            per_mile: perMile
+                          }));
+                        }
+                      }}
                       type="number"
                       InputProps={{
                         startAdornment: <InputAdornment position="start">$</InputAdornment>,
                       }}
-                    />
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Per Mile"
-                      name="per_mile"
-                      value={editFormData.per_mile}
-                      onChange={handleFormChange}
-                      type="number"
-                      InputProps={{
-                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                      }}
-                    />
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Total Miles"
-                      name="total_miles"
-                      value={editFormData.total_miles}
-                      onChange={handleFormChange}
-                      type="number"
                     />
                     
                     <Divider sx={{ my: 1 }} />
@@ -4795,7 +5187,7 @@ const LoadViewPage = () => {
                           >
                             Add
                           </Button>
-      </Box>
+                        </Box>
                       </Grid>
                       <Grid item xs={12}>
                         <TextField
@@ -4836,7 +5228,7 @@ const LoadViewPage = () => {
                                 <Typography variant="caption" color="text.secondary">
                                   {pay.note || 'No note'}
                                 </Typography>
-    </Box>
+                              </Box>
                               <IconButton size="small" color="error" onClick={() => handleDeleteOtherPay(pay.id)}>
                                 <Delete fontSize="small" />
                               </IconButton>
@@ -4868,16 +5260,6 @@ const LoadViewPage = () => {
                     <DetailItem>
                       <DetailLabel>Total Pay</DetailLabel>
                       <DetailValue>{load.total_pay ? `$${load.total_pay}` : "Not assigned"}</DetailValue>
-                    </DetailItem>
-                    
-                    <DetailItem>
-                      <DetailLabel>Per Mile</DetailLabel>
-                      <DetailValue>{load.per_mile ? `$${load.per_mile}` : "Not assigned"}</DetailValue>
-                    </DetailItem>
-                    
-                    <DetailItem>
-                      <DetailLabel>Total Miles</DetailLabel>
-                      <DetailValue>{load.total_miles || "Not available"}</DetailValue>
                     </DetailItem>
                     
                     {otherPays.length > 0 && (
