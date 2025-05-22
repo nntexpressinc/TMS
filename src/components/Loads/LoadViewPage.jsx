@@ -2279,7 +2279,6 @@ const LoadViewPage = () => {
     }
   };
 
-  // Fetch all stops and filter for current load
   const fetchAllStops = async () => {
     try {
       // Loadni qayta yuklash bilan, "stop" field ichidagi ma'lumotlarni olamiz
