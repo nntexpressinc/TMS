@@ -328,14 +328,20 @@ const TruckCreatePage = () => {
                     <Autocomplete
                       options={drivers}
                       getOptionLabel={(option) => 
-                        `${option.telegram_username} - ${option.company_name}`
+                        `${option.user?.first_name} ${option.user?.last_name}`
                       }
                       onChange={handleDriverChange}
                       renderInput={(params) => (
                         <TextField
                           {...params}
                           label="Driver"
+                          required
                         />
+                      )}
+                      renderOption={(props, option) => (
+                        <li {...props}>
+                          {option.user?.first_name} {option.user?.last_name}
+                        </li>
                       )}
                     />
                   </Grid>

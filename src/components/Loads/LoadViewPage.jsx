@@ -4900,6 +4900,7 @@ const LoadViewPage = () => {
                     startIcon={editingSection === 'mile' ? <Close /> : <EditIcon />}
                     onClick={editingSection === 'mile' ? handleCancelEdit : () => handleEditSection('mile')}
                   >
+                    
                     {editingSection === 'mile' ? 'CANCEL' : 'EDIT'}
                   </Button>
                 </InfoCardHeader>
@@ -4917,7 +4918,7 @@ const LoadViewPage = () => {
                           value={editFormData.mile || ''}
                           onChange={(e) => {
                             handleFormChange(e);
-                            
+                          
                             // Auto calculate total miles when mile changes
                             const loadedMile = parseInt(e.target.value) || 0;
                             const emptyMile = parseInt(editFormData.empty_mile) || 0;
@@ -4964,6 +4965,7 @@ const LoadViewPage = () => {
                             setEditFormData(prev => ({
                               ...prev,
                               total_miles: totalMiles
+                              
                             }));
                             
                             // Also calculate per_mile if total_pay exists
