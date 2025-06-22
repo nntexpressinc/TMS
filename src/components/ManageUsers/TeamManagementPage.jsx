@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FaUserCog, FaPlus, FaUsers, FaEllipsisV, FaTruck } from 'react-icons/fa';
+import { FaUserCog, FaPlus, FaUsers, FaEllipsisV, FaTruck, FaSearch } from 'react-icons/fa';
 import { ApiService } from '../../api/auth';
 import './ManageUsers.scss';
 import CreateTeamModal from './CreateTeamModal';
@@ -32,7 +32,7 @@ const ConfirmModal = ({ isOpen, onClose, item, itemType, newTeam, onConfirm }) =
             <strong>{getItemName()}</strong>
           </p>
           <p>
-            {t('New team')}: <strong>{newTeam ? newTeam.name : t('All Team')}</strong>
+            {t('New team')}: <strong>{newTeam ? newTeam.name : t('Unassigned')}</strong>
           </p>
         </div>
         <div className="modal-footer">
@@ -63,47 +63,47 @@ const TeamItem = ({ team, isActive, dispatcherCount, unitCount, onSelect, onEdit
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const isAllTeam = !team?.id;
+
   return (
     <div 
       className={`role-item ${isActive ? 'active' : ''}`}
       onClick={onSelect}
     >
       <div className="role-info">
-        <h3>{team?.name || 'All Team'}</h3>
+        <h3>{team?.name || 'Unassigned'}</h3>
         <div className="item-counts">
-          <span className="user-count">
-            <FaUsers className="count-icon" /> {dispatcherCount || 0} dispatchers
+          <span className="user-count" title="Dispatchers">
+            <FaUsers className="count-icon" /> {dispatcherCount || 0} 
+            <span className="unit-count" style={{ visibility: 'hidden' }} title="Units">1111</span>
+            <FaTruck className="count-icon" /> {unitCount || 0}
           </span>
-          <span className="unit-count">
-            <FaTruck className="count-icon" /> {unitCount || 0} units
-          </span>
+         
         </div>
       </div>
-      <div className="role-actions" ref={dropdownRef}>
-        <button 
-          className="menu-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowDropdown(!showDropdown);
-          }}
-        >
-          <FaEllipsisV />
-        </button>
-        {showDropdown && (
-          <div className="dropdown-menu">
-            <button onClick={(e) => {
+      {!isAllTeam && (
+        <div className="role-actions" ref={dropdownRef}>
+          <button 
+            className="menu-btn"
+            onClick={(e) => {
               e.stopPropagation();
-              onEdit();
-              setShowDropdown(false);
-            }}>Edit</button>
-            <button onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-              setShowDropdown(false);
-            }}>Delete</button>
-          </div>
-        )}
-      </div>
+              setShowDropdown(!showDropdown);
+            }}
+          >
+            <FaEllipsisV />
+          </button>
+          {showDropdown && (
+            <div className="dropdown-menu">
+               <button onClick={(e) => { e.stopPropagation(); onEdit(); setShowDropdown(false); }}>
+                <span className="icon">✏️</span> Edit
+              </button>
+              <button className="delete" onClick={(e) => { e.stopPropagation(); onDelete(); setShowDropdown(false); }}>
+                <span className="icon">🗑️</span> Delete
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -118,7 +118,9 @@ const TeamManagementPage = () => {
   const [error, setError] = useState(null);
   const [editingTeam, setEditingTeam] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
-  const [activeTab, setActiveTab] = useState('dispatchers'); // 'dispatchers' or 'units'
+  const [activeTab, setActiveTab] = useState('dispatchers');
+  const [teamSearch, setTeamSearch] = useState('');
+  const [resourceSearch, setResourceSearch] = useState('');
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     item: null,
@@ -151,6 +153,56 @@ const TeamManagementPage = () => {
     fetchData();
   }, []);
 
+  const getDispatchersByTeam = useCallback((teamId) => {
+    if (teamId === null) {
+      return dispatchers.filter(d => !teams.some(team => team.dispatchers?.includes(d.id)));
+    }
+    const team = teams.find(t => t.id === teamId);
+    return team ? dispatchers.filter(d => team.dispatchers?.includes(d.id)) : [];
+  }, [dispatchers, teams]);
+
+  const getUnitsByTeam = useCallback((teamId) => {
+    if (teamId === null) {
+      return units.filter(u => !teams.some(team => team.unit_id?.includes(u.id)));
+    }
+    const team = teams.find(t => t.id === teamId);
+    return team ? units.filter(u => team.unit_id?.includes(u.id)) : [];
+  }, [units, teams]);
+
+  const filterResources = useCallback((resources, query, type) => {
+    if (!query) return resources;
+    const lowercasedQuery = query.toLowerCase();
+    
+    return resources.filter(item => {
+      if (type === 'dispatchers') {
+        const user = item.user;
+        return (user?.first_name?.toLowerCase().includes(lowercasedQuery) ||
+                user?.last_name?.toLowerCase().includes(lowercasedQuery) ||
+                user?.email?.toLowerCase().includes(lowercasedQuery));
+      }
+      if (type === 'units') {
+        return item.unit_number?.toLowerCase().includes(lowercasedQuery);
+      }
+      return false;
+    });
+  }, []);
+
+  const filteredTeams = useMemo(() => {
+    if (!teamSearch) return teams;
+    const lowercasedQuery = teamSearch.toLowerCase();
+    return teams.filter(team => team.name.toLowerCase().includes(lowercasedQuery));
+  }, [teamSearch, teams]);
+
+  const displayedDispatchers = useMemo(() => 
+    filterResources(getDispatchersByTeam(selectedTeam?.id ?? null), resourceSearch, 'dispatchers'),
+    [getDispatchersByTeam, selectedTeam, resourceSearch, filterResources]
+  );
+  
+  const displayedUnits = useMemo(() =>
+    filterResources(getUnitsByTeam(selectedTeam?.id ?? null), resourceSearch, 'units'),
+    [getUnitsByTeam, selectedTeam, resourceSearch, filterResources]
+  );
+
   const handleCreateTeam = async (teamData) => {
     try {
       setError(null);
@@ -170,7 +222,7 @@ const TeamManagementPage = () => {
     }
   };
 
-  const handleEditTeam = async (team) => {
+  const handleEditTeam = (team) => {
     setEditingTeam(team);
     setIsCreateTeamModalOpen(true);
   };
@@ -188,102 +240,41 @@ const TeamManagementPage = () => {
     }
   };
 
-  const handleUpdateDispatcherTeam = async (dispatcherId, newTeamId) => {
-    const dispatcher = dispatchers.find(d => d.id === dispatcherId);
-    const newTeam = teams.find(t => t.id === parseInt(newTeamId));
-    
-    setConfirmModal({
-      isOpen: true,
-      item: dispatcher,
-      itemType: 'dispatcher',
-      newTeam,
-      onConfirm: async () => {
-        try {
-          setError(null);
-          
-          // Old team update: remove dispatcher from old team
-          if (selectedTeam) {
-            const updatedDispatchers = selectedTeam.dispatchers.filter(id => id !== dispatcherId);
-            await ApiService.putData(`/team/${selectedTeam.id}/`, {
-              ...selectedTeam,
-              dispatchers: updatedDispatchers
-            });
-          }
-          
-          // New team update: add dispatcher to new team
-          if (newTeam) {
-            const updatedDispatchers = [...(newTeam.dispatchers || [])];
-            if (!updatedDispatchers.includes(dispatcherId)) {
-              updatedDispatchers.push(dispatcherId);
-            }
-            await ApiService.putData(`/team/${newTeam.id}/`, {
-              ...newTeam,
-              dispatchers: updatedDispatchers
-            });
-          }
-          
-          setConfirmModal({ isOpen: false, item: null, itemType: null, newTeam: null, onConfirm: null });
-          await fetchData();
-          
-        } catch (error) {
-          console.error('Error updating dispatcher team:', error);
-          const errorMessage = error.response?.data
-            ? Object.entries(error.response.data)
-                .map(([key, value]) => `${key}: ${value.join(', ')}`)
-                .join('\n')
-            : error.message;
-          setError(`Failed to update dispatcher team: ${errorMessage}`);
-          setConfirmModal({ isOpen: false, item: null, itemType: null, newTeam: null, onConfirm: null });
-        }
-      }
-    });
-  };
+  const handleUpdateTeamMembership = async (item, itemType, newTeamId) => {
+    const newTeam = newTeamId ? teams.find(t => t.id === parseInt(newTeamId)) : null;
+    const sourceTeam = teams.find(t => t[itemType === 'dispatcher' ? 'dispatchers' : 'unit_id']?.includes(item.id));
 
-  const handleUpdateUnitTeam = async (unitId, newTeamId) => {
-    const unit = units.find(u => u.id === unitId);
-    const newTeam = teams.find(t => t.id === parseInt(newTeamId));
-    
+    if (sourceTeam?.id === newTeam?.id) return;
+
     setConfirmModal({
       isOpen: true,
-      item: unit,
-      itemType: 'unit',
+      item,
+      itemType,
       newTeam,
       onConfirm: async () => {
         try {
           setError(null);
           
-          // Old team update: remove unit from old team
-          if (selectedTeam) {
-            const updatedUnits = selectedTeam.unit_id.filter(id => id !== unitId);
-            await ApiService.putData(`/team/${selectedTeam.id}/`, {
-              ...selectedTeam,
-              unit_id: updatedUnits
-            });
+          const idField = itemType === 'dispatcher' ? 'dispatchers' : 'unit_id';
+
+          if (sourceTeam) {
+            const updatedIds = sourceTeam[idField].filter(id => id !== item.id);
+            await ApiService.putData(`/team/${sourceTeam.id}/`, { ...sourceTeam, [idField]: updatedIds });
           }
           
-          // New team update: add unit to new team
           if (newTeam) {
-            const updatedUnits = [...(newTeam.unit_id || [])];
-            if (!updatedUnits.includes(unitId)) {
-              updatedUnits.push(unitId);
+            const updatedIds = [...(newTeam[idField] || [])];
+            if (!updatedIds.includes(item.id)) {
+              updatedIds.push(item.id);
             }
-            await ApiService.putData(`/team/${newTeam.id}/`, {
-              ...newTeam,
-              unit_id: updatedUnits
-            });
+            await ApiService.putData(`/team/${newTeam.id}/`, { ...newTeam, [idField]: updatedIds });
           }
           
-          setConfirmModal({ isOpen: false, item: null, itemType: null, newTeam: null, onConfirm: null });
           await fetchData();
-          
         } catch (error) {
-          console.error('Error updating unit team:', error);
-          const errorMessage = error.response?.data
-            ? Object.entries(error.response.data)
-                .map(([key, value]) => `${key}: ${value.join(', ')}`)
-                .join('\n')
-            : error.message;
-          setError(`Failed to update unit team: ${errorMessage}`);
+          console.error(`Error updating ${itemType} team:`, error);
+          setError(`Failed to update ${itemType} team: ${error.message}`);
+        } finally {
           setConfirmModal({ isOpen: false, item: null, itemType: null, newTeam: null, onConfirm: null });
         }
       }
@@ -299,48 +290,16 @@ const TeamManagementPage = () => {
     return <div className="loading">Loading...</div>;
   }
 
-  const getDispatchersByTeam = (teamId) => {
-    if (teamId === null) {
-      // All Team (unassigned dispatchers)
-      return dispatchers.filter(d => {
-        return !teams.some(team => team.dispatchers?.includes(d.id));
-      });
-    }
-    
-    const team = teams.find(t => t.id === teamId);
-    if (!team || !team.dispatchers) return [];
-    
-    return dispatchers.filter(d => team.dispatchers.includes(d.id));
-  };
-
-  const getUnitsByTeam = (teamId) => {
-    if (teamId === null) {
-      // All Team (unassigned units)
-      return units.filter(u => {
-        return !teams.some(team => team.unit_id?.includes(u.id));
-      });
-    }
-    
-    const team = teams.find(t => t.id === teamId);
-    if (!team || !team.unit_id) return [];
-    
-    return units.filter(u => team.unit_id.includes(u.id));
-  };
-
-  // Update this function to use the correct backend URL for profile photos
   const getProfilePhotoUrl = (photoPath) => {
     if (!photoPath) return defaultAvatar;
     
-    // If the path is already a full URL, return it as is
     if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) {
       return photoPath;
     }
     
-    // Use the BASE_URL from auth.js
     return `https://api1.biznes-armiya.uz${photoPath}`;
   };
 
-  // Get unit names for display
   const getUnitNames = (unitIds) => {
     if (!unitIds || !unitIds.length) return 'No units';
     
@@ -353,8 +312,25 @@ const TeamManagementPage = () => {
   return (
     <div className="manage-users-container">
       <div className="page-header">
-        <FaUserCog className="header-icon" />
-        <h1>{t('Team Management')}</h1>
+        <div className="header-content">
+          <div className="header-left">
+            <FaUserCog className="header-icon" />
+            <div className="header-text">
+              <h1>{t('Team Management')}</h1>
+              <p>Manage teams and their members</p>
+            </div>
+          </div>
+          <div className="search-box">
+            <input
+              type="text"
+              value={resourceSearch}
+              onChange={(e) => setResourceSearch(e.target.value)}
+              placeholder="Search dispatchers or units..."
+              className="search-input"
+            />
+            <FaSearch className="search-icon" />
+          </div>
+        </div>
       </div>
 
       {error && (
@@ -366,19 +342,31 @@ const TeamManagementPage = () => {
       <div className="content-wrapper">
         <div className="roles-sidebar">
           <div className="sidebar-header">
-            <h2>{t('Teams')}</h2>
-            <button 
-              className="create-btn"
-              onClick={() => setIsCreateTeamModalOpen(true)}
-            >
-              <FaPlus />
-              {t('Create Team')}
-            </button>
+            <div className="header-top">
+              <h2>{t('Teams')}</h2>
+              <button 
+                className="create-btn"
+                onClick={() => setIsCreateTeamModalOpen(true)}
+              >
+                <FaPlus />
+                {t('Create Team')}
+              </button>
+            </div>
+            <div className="unit-search-box">
+              <input
+                  type="text"
+                  placeholder="Search teams..."
+                  className="search-input"
+                  value={teamSearch}
+                  onChange={(e) => setTeamSearch(e.target.value)}
+              />
+              <FaSearch className="search-icon" />
+            </div>
           </div>
 
           <div className="roles-list">
             <TeamItem 
-              team={{ name: 'All Team' }}
+              team={{ name: 'Unassigned' }}
               isActive={selectedTeam === null}
               dispatcherCount={getDispatchersByTeam(null).length}
               unitCount={getUnitsByTeam(null).length}
@@ -387,7 +375,7 @@ const TeamManagementPage = () => {
               onDelete={() => {}}
             />
 
-            {teams.map(team => (
+            {filteredTeams.map(team => (
               <TeamItem 
                 key={team.id}
                 team={team}
@@ -420,7 +408,7 @@ const TeamManagementPage = () => {
             >
               <FaUsers className="tab-icon" />
               <span>Dispatchers</span>
-              <span className="count-badge">{getDispatchersByTeam(selectedTeam?.id || null).length}</span>
+              <span className="count-badge">{displayedDispatchers.length}</span>
             </button>
             <button 
               className={`tab-button ${activeTab === 'units' ? 'active' : ''}`}
@@ -428,7 +416,7 @@ const TeamManagementPage = () => {
             >
               <FaTruck className="tab-icon" />
               <span>Units</span>
-              <span className="count-badge">{getUnitsByTeam(selectedTeam?.id || null).length}</span>
+              <span className="count-badge">{displayedUnits.length}</span>
             </button>
           </div>
 
@@ -445,7 +433,7 @@ const TeamManagementPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {getDispatchersByTeam(selectedTeam?.id || null).map(dispatcher => (
+                  {displayedDispatchers.map(dispatcher => (
                     <tr key={dispatcher.id} className="user-row">
                       <td className="user-info-cell">
                         <div className="user-info">
@@ -503,10 +491,10 @@ const TeamManagementPage = () => {
                       </td>
                       <td className="team-select">
                         <select 
-                          value={selectedTeam?.id || ''}
-                          onChange={(e) => handleUpdateDispatcherTeam(dispatcher.id, e.target.value)}
+                          value={teams.find(t => t.dispatchers?.includes(dispatcher.id))?.id || ''}
+                          onChange={(e) => handleUpdateTeamMembership(dispatcher, 'dispatcher', e.target.value)}
                         >
-                          <option value="">All Team</option>
+                          <option value="">Unassigned</option>
                           {teams.map(team => (
                             <option key={team.id} value={team.id}>
                               {team.name}
@@ -516,7 +504,7 @@ const TeamManagementPage = () => {
                       </td>
                     </tr>
                   ))}
-                  {getDispatchersByTeam(selectedTeam?.id || null).length === 0 && (
+                  {displayedDispatchers.length === 0 && (
                     <tr>
                       <td colSpan="5" className="empty-message">
                         No dispatchers found in this team
@@ -540,7 +528,7 @@ const TeamManagementPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {getUnitsByTeam(selectedTeam?.id || null).map(unit => (
+                  {displayedUnits.map(unit => (
                     <tr key={unit.id} className="user-row">
                       <td className="user-info-cell">
                         <div className="user-info">
@@ -574,10 +562,10 @@ const TeamManagementPage = () => {
                       </td>
                       <td className="team-select">
                         <select 
-                          value={selectedTeam?.id || ''}
-                          onChange={(e) => handleUpdateUnitTeam(unit.id, e.target.value)}
+                          value={teams.find(t => t.unit_id?.includes(unit.id))?.id || ''}
+                          onChange={(e) => handleUpdateTeamMembership(unit, 'unit', e.target.value)}
                         >
-                          <option value="">All Team</option>
+                          <option value="">Unassigned</option>
                           {teams.map(team => (
                             <option key={team.id} value={team.id}>
                               {team.name}
@@ -587,7 +575,7 @@ const TeamManagementPage = () => {
                       </td>
                     </tr>
                   ))}
-                  {getUnitsByTeam(selectedTeam?.id || null).length === 0 && (
+                  {displayedUnits.length === 0 && (
                     <tr>
                       <td colSpan="4" className="empty-message">
                         No units found in this team

@@ -22,7 +22,7 @@ import {
   Avatar
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { ApiService } from '../../api/auth';
+import { ApiService, ENDPOINTS } from '../../api/auth';
 import { toast } from 'react-hot-toast';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -117,7 +117,15 @@ const DriverViewPage = () => {
   const [roles, setRoles] = useState([]);
 
   const payColumns = [
-    { field: 'id', headerName: 'ID', width: 70 },
+    { 
+      field: 'index', 
+      headerName: 'No.', 
+      width: 70,
+      valueGetter: (params) => {
+        const rowIndex = filteredPayData.findIndex(row => row.id === params.row.id);
+        return rowIndex + 1;
+      }
+    },
     { 
       field: 'pay_type', 
       headerName: 'Payment Type', 
@@ -134,7 +142,8 @@ const DriverViewPage = () => {
     { 
       field: 'currency', 
       headerName: 'Currency', 
-      width: 100
+      width: 100,
+      valueGetter: (params) => 'USD'
     },
     { 
       field: 'standart', 
@@ -173,7 +182,7 @@ const DriverViewPage = () => {
       renderCell: (params) => (
         <Box>
           <Tooltip title="Edit">
-            <IconButton onClick={() => navigate(`/driver/${id}/pay/${params.row.id}/edit`)}>
+            <IconButton onClick={() => handleEditPay(params.row.id)}>
               <EditIcon />
             </IconButton>
           </Tooltip>
@@ -194,11 +203,33 @@ const DriverViewPage = () => {
   ];
 
   const expenseColumns = [
-    { field: 'id', headerName: 'ID', width: 70 },
+    { 
+      field: 'index', 
+      headerName: 'No.', 
+      width: 70,
+      valueGetter: (params) => {
+        const rowIndex = filteredExpenseData.findIndex(row => row.id === params.row.id);
+        return rowIndex + 1;
+      }
+    },
     { field: 'description', headerName: 'Description', width: 200 },
     { field: 'amount', headerName: 'Amount', width: 100 },
+    { field: 'transaction_type', headerName: 'Type', width: 80 },
     { field: 'expense_date', headerName: 'Date', width: 120 },
-    { field: 'created_at', headerName: 'Created At', width: 180 },
+    { 
+      field: 'created_at', 
+      headerName: 'Created At', 
+      width: 180,
+      valueGetter: (params) => {
+        if (!params.row.created_at) return '-';
+        const date = new Date(params.row.created_at);
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+      }
+    },
     {
       field: 'actions',
       headerName: 'Actions',
@@ -206,7 +237,7 @@ const DriverViewPage = () => {
       renderCell: (params) => (
         <Box>
           <Tooltip title="Edit">
-            <IconButton onClick={() => navigate(`/driver/${id}/expense/${params.row.id}/edit`)}>
+            <IconButton onClick={() => handleEditExpense(params.row.id)}>
               <EditIcon />
             </IconButton>
           </Tooltip>
@@ -230,9 +261,9 @@ const DriverViewPage = () => {
     const fetchData = async () => {
       try {
         const [driver, pay, expense, rolesData] = await Promise.all([
-          ApiService.getData(`/driver/${id}/`),
-          ApiService.getData(`/driver/pay/?driver=${id}`),
-          ApiService.getData(`/driver/expense/?driver=${id}`),
+          ApiService.getData(ENDPOINTS.DRIVER_DETAIL(id)),
+          ApiService.getData(`${ENDPOINTS.DRIVER_PAY}?driver=${id}`),
+          ApiService.getData(`${ENDPOINTS.DRIVER_EXPENSE}?driver=${id}`),
           ApiService.getData(`/auth/role/`)
         ]);
         
@@ -240,7 +271,7 @@ const DriverViewPage = () => {
         setRoles(rolesData);
 
         if (driver.user && typeof driver.user === 'number') {
-          const user = await ApiService.getData(`/auth/user/${driver.user}/`);
+          const user = await ApiService.getData(ENDPOINTS.USER_DETAIL(driver.user));
           setUserData(user);
         }
 
@@ -256,7 +287,7 @@ const DriverViewPage = () => {
           setTrailerData(trailer);
         }
         if (driver.assigned_dispatcher) {
-          const dispatcher = await ApiService.getData(`/dispatcher/${driver.assigned_dispatcher}/`);
+          const dispatcher = await ApiService.getData(ENDPOINTS.DISPATCHER_DETAIL(driver.assigned_dispatcher));
           setDispatcherData(dispatcher);
         }
 
@@ -275,19 +306,37 @@ const DriverViewPage = () => {
     setTabValue(newValue);
   };
 
+  const handleEditPay = (payId) => {
+    navigate(`/driver/${id}/pay/${payId}/edit`);
+  };
+
+  const handleEditExpense = (expenseId) => {
+    navigate(`/driver/${id}/expense/${expenseId}/edit`);
+  };
+
+  const handleCreatePay = () => {
+    navigate(`/driver/${id}/pay/create`);
+  };
+
+  const handleCreateExpense = () => {
+    navigate(`/driver/${id}/expense/create`);
+  };
+
   const handleDelete = async () => {
     if (!selectedItem) return;
 
     try {
       if (itemType === 'pay') {
-        await ApiService.deleteData(`/driver/pay/${selectedItem.id}/`);
+        await ApiService.deleteData(ENDPOINTS.DRIVER_PAY_DETAIL(selectedItem.id));
         setPayData(payData.filter(pay => pay.id !== selectedItem.id));
+        toast.success('Payment deleted successfully');
       } else {
-        await ApiService.deleteData(`/driver/expense/${selectedItem.id}/`);
+        await ApiService.deleteData(ENDPOINTS.DRIVER_EXPENSE_DETAIL(selectedItem.id));
         setExpenseData(expenseData.filter(expense => expense.id !== selectedItem.id));
+        toast.success('Expense deleted successfully');
       }
-      toast.success(`${itemType === 'pay' ? 'Payment' : 'Expense'} deleted successfully`);
     } catch (err) {
+      console.error('Delete error:', err);
       toast.error(`Failed to delete ${itemType === 'pay' ? 'payment' : 'expense'}`);
     } finally {
       setDeleteDialogOpen(false);
@@ -341,8 +390,7 @@ const DriverViewPage = () => {
 
   const driverId = parseInt(id, 10);
   const filteredPayData = payData.filter(pay => pay.driver === driverId);
-  const positiveExpenses = expenseData.filter(expense => expense.transaction_type === '+' && expense.driver === driverId);
-  const negativeExpenses = expenseData.filter(expense => expense.transaction_type === '-' && expense.driver === driverId);
+  const filteredExpenseData = expenseData.filter(expense => expense.driver === driverId);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -463,48 +511,76 @@ const DriverViewPage = () => {
         )}
         {tabValue === 2 && (
           <Box sx={{ p: 3 }}>
-            <Paper elevation={3} sx={{ p: 4, borderRadius: 3, boxShadow: 4, border: '1px solid #e0e0e0' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h5" sx={{ fontWeight: 600 }}>Payments</Typography>
-                <Button size="small" variant="outlined" onClick={() => exportToExcel(payData, 'payments.xlsx')}>Excel</Button>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h5" sx={{ fontWeight: 600 }}>Payments</Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleCreatePay}
+                  size="small"
+                >
+                  Create Payment
+                </Button>
+                <Button 
+                  size="small" 
+                  variant="outlined" 
+                  onClick={() => exportToExcel(filteredPayData, 'payments.xlsx')}
+                >
+                  Excel
+                </Button>
               </Box>
-              <DataGrid
-                rows={payData}
-                columns={payColumns}
-                pageSize={5}
-                rowsPerPageOptions={[5, 10, 20]}
-                autoHeight
-                sx={{
-                  borderRadius: 2,
-                  boxShadow: 2,
-                  border: '1px solid #e0e0e0',
-                  background: '#fafbfc',
-                }}
-              />
-            </Paper>
+            </Box>
+            <DataGrid
+              rows={filteredPayData}
+              columns={payColumns}
+              pageSize={5}
+              rowsPerPageOptions={[5, 10, 20]}
+              autoHeight
+              sx={{
+                borderRadius: 2,
+                boxShadow: 2,
+                border: '1px solid #e0e0e0',
+                background: '#fafbfc',
+              }}
+            />
           </Box>
         )}
         {tabValue === 3 && (
           <Box sx={{ p: 3 }}>
-            <Paper elevation={3} sx={{ p: 4, borderRadius: 3, boxShadow: 4, border: '1px solid #e0e0e0' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h5" sx={{ fontWeight: 600 }}>Expenses</Typography>
-                <Button size="small" variant="outlined" onClick={() => exportToExcel(expenseData, 'expenses.xlsx')}>Excel</Button>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h5" sx={{ fontWeight: 600 }}>Expenses</Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleCreateExpense}
+                  size="small"
+                >
+                  Create Expense
+                </Button>
+                <Button 
+                  size="small" 
+                  variant="outlined" 
+                  onClick={() => exportToExcel(filteredExpenseData, 'expenses.xlsx')}
+                >
+                  Excel
+                </Button>
               </Box>
-              <DataGrid
-                rows={expenseData}
-                columns={expenseColumns}
-                pageSize={5}
-                rowsPerPageOptions={[5, 10, 20]}
-                autoHeight
-                sx={{
-                  borderRadius: 2,
-                  boxShadow: 2,
-                  border: '1px solid #e0e0e0',
-                  background: '#fafbfc',
-                }}
-              />
-            </Paper>
+            </Box>
+            <DataGrid
+              rows={filteredExpenseData}
+              columns={expenseColumns}
+              pageSize={5}
+              rowsPerPageOptions={[5, 10, 20]}
+              autoHeight
+              sx={{
+                borderRadius: 2,
+                boxShadow: 2,
+                border: '1px solid #e0e0e0',
+                background: '#fafbfc',
+              }}
+            />
           </Box>
         )}
       </Paper>
