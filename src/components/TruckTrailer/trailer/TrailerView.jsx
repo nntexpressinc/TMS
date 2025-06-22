@@ -66,7 +66,7 @@ const TrailerView = () => {
       ['Unit Number', trailer.unit_number || '-'],
       ['Make', trailer.make || '-'],
       ['Model', trailer.model || '-'],
-      ['Year', trailer.year || '-'],
+      ['Year', trailer.year || '-'],  
       ['VIN', trailer.vin || '-'],
       ['Type', trailer.type || '-'],
       ['Plate Number', trailer.plate_number || '-'],
@@ -105,7 +105,7 @@ const TrailerView = () => {
     {
       title: 'Basic Information',
       fields: [
-        { label: 'Unit Number', value: trailer.unit_number },
+        { label: 'Unit Number', value: trailer.unit_number || '-' },
         { label: 'Make', value: trailer.make },
         { label: 'Model', value: trailer.model },
         { label: 'Year', value: trailer.year },

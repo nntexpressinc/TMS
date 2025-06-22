@@ -115,7 +115,7 @@ const TrailerCreatePage = () => {
         registration_expiry_date: trailerData.registration_expiry_date || null,
         last_annual_inspection_date: trailerData.last_annual_inspection_date || null,
         year: parseInt(trailerData.year) || new Date().getFullYear(),
-        unit_number: parseInt(trailerData.unit_number) || 0,
+        unit_number: trailerData.unit_number,
         integration_id: parseInt(trailerData.integration_id) || null,
       };
 
