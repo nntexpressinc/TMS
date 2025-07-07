@@ -297,12 +297,7 @@ const TeamManagementPage = () => {
       return photoPath;
     }
     
-<<<<<<< HEAD
-    // Use the BASE_URL from auth.js
-    return `https://ezpzfleetnodir.biznes-armiya.uz${photoPath}`;
-=======
     return `https://api1.biznes-armiya.uz${photoPath}`;
->>>>>>> f72b7dd02fa9b991a508f66bfa04035f2c42fe9f
   };
 
   const getUnitNames = (unitIds) => {
