@@ -4,6 +4,9 @@ import { FaTimes } from 'react-icons/fa';
 import './CreateRoleModal.scss';
 
 const permissionGroups = {
+  main: [
+    'dashboard', 'loads', 'vehicles', 'truck', 'trailer', 'customer_broker', 'driver', 'employee', 'dispatcher', 'users_actives', 'accounting', 'manage_users', 'manage_units', 'manage_teams', 'manage'
+  ],
   load: ['load_create', 'load_view', 'load_update', 'load_delete'],
   driver: ['driver_create', 'driver_view', 'driver_update', 'driver_delete'],
   truck: ['truck_create', 'truck_view', 'truck_update', 'truck_delete'],
@@ -155,7 +158,11 @@ const CreateRoleModal = ({ isOpen, onClose, onCreateRole, editingRole }) => {
               {Object.entries(permissionGroups).map(([group, permissions]) => (
                 <div key={group} className="permission-group">
                   <div className="group-header">
-                    <h4>{t(group.charAt(0).toUpperCase() + group.slice(1))}</h4>
+                    <h4>{
+                      group === 'main'
+                        ? t('Sidebar')
+                        : t(group.charAt(0).toUpperCase() + group.slice(1))
+                    }</h4>
                     <button
                       type="button"
                       onClick={() => handleGroupToggle(group)}
@@ -174,7 +181,7 @@ const CreateRoleModal = ({ isOpen, onClose, onCreateRole, editingRole }) => {
                           checked={selectedPermissions[permission] || false}
                           onChange={() => handlePermissionChange(permission)}
                         />
-                        {t(permission.split('_').map(word => 
+                        {t(permission.split('_').map(word =>
                           word.charAt(0).toUpperCase() + word.slice(1)
                         ).join(' '))}
                       </label>

@@ -15,6 +15,39 @@ const Navbar = () => {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
+    // Read encoded role and permissions from localStorage
+    const roleNameEnc = localStorage.getItem("roleNameEnc");
+    const permissionsEnc = localStorage.getItem("permissionsEnc");
+    let decodedRole = "";
+    let decodedPermissions = {};
+    if (roleNameEnc) {
+      try {
+        decodedRole = decodeURIComponent(escape(atob(roleNameEnc)));
+        setRoleName(decodedRole);
+      } catch (e) {
+        setRoleName("");
+      }
+    }
+    if (permissionsEnc) {
+      try {
+        decodedPermissions = JSON.parse(decodeURIComponent(escape(atob(permissionsEnc))));
+        // You can use decodedPermissions if needed
+      } catch (e) {
+        // ignore
+      }
+    }
+    // User info
+    const storedUserData = localStorage.getItem("user");
+    if (storedUserData) {
+      try {
+        setUser(JSON.parse(storedUserData));
+      } catch (e) {
+        setUser(null);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     const fetchUserData = async () => {
       const storedUserId = localStorage.getItem("userid");
       const storedAccessToken = localStorage.getItem("accessToken");
@@ -33,8 +66,12 @@ const Navbar = () => {
             try {
               const roleData = await ApiService.getData(`/auth/role/${parsedUserData.role}/`);
               setRoleName(roleData.name);
-              // Rol nomini ham localStorage ga saqlaymiz
               localStorage.setItem("roleName", roleData.name);
+              // Yangi: permission_id orqali permissionlarni ham olish
+              if (parsedUserData.permission_id) {
+                const permissionData = await ApiService.getData(`/auth/permission/${parsedUserData.permission_id}/`);
+                localStorage.setItem("permissions", JSON.stringify(permissionData));
+              }
             } catch (roleError) {
               // Avval localStorage da saqlangan rol nomini tekshiramiz
               const storedRoleName = localStorage.getItem("roleName");
@@ -73,8 +110,12 @@ const Navbar = () => {
             try {
               const roleData = await ApiService.getData(`/auth/role/${data.role}/`);
               setRoleName(roleData.name);
-              // Rol nomini ham localStorage ga saqlaymiz
               localStorage.setItem("roleName", roleData.name);
+              // Yangi: permission_id orqali permissionlarni ham olish
+              if (data.permission_id) {
+                const permissionData = await ApiService.getData(`/auth/permission/${data.permission_id}/`);
+                localStorage.setItem("permissions", JSON.stringify(permissionData));
+              }
             } catch (roleError) {
               setRoleName('');
             }
@@ -107,7 +148,7 @@ const Navbar = () => {
   // Format profile photo URL to use production API
   const getFormattedProfilePhotoUrl = (url) => {
     if (!url) return "";
-    return url.replace('https://0.0.0.0:8000/', 'https://api1.biznes-armiya.uz/');
+    return url.replace('https://0.0.0.0:8000/', 'https://ezpzfleetnodir.biznes-armiya.uz/');
   };
 
   // Foydalanuvchi to'liq ismi yoki emaili

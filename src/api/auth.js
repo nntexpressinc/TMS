@@ -1,7 +1,7 @@
 // src/api/auth.js
 import axios from 'axios';
 
-const BASE_URL = 'https://api1.biznes-armiya.uz/api';
+const BASE_URL = 'https://ezpzfleetnodir.biznes-armiya.uz/api';
 
 // API endpoints
 const ENDPOINTS = {

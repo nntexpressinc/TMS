@@ -44,6 +44,7 @@ import DispatcherViewPage from "./components/Dispatcher/DispatcherViewPage";
 import DispatcherEditPage from "./components/Dispatcher/DispatcherEditPage";
 import EmployeeViewPage from "./components/Employee/EmployeeViewPage";
 import EmployeeEditPage from "./components/Employee/EmployeeEditPage";
+import PermissionDenied from "./components/PermissionDenied";
 
 const App = () => {
   const { isAuthenticated: isAuth } = useAuth();
@@ -64,33 +65,41 @@ const App = () => {
             <Route
               path="dashboard"
               element={
-                <PrivateRoute>
-                  <DashboardPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="dashboard">
+                  <PrivateRoute>
+                    <DashboardPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="profile"
               element={
-                <PrivateRoute>
-                  <ProfilePage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="profile">
+                  <PrivateRoute>
+                    <ProfilePage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="loads"
               element={
-                <PrivateRoute>
-                  <LoadsPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="loads">
+                  <PrivateRoute>
+                    <LoadsPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="loads/create"
               element={
-                <PrivateRoute>
-                  <CreateLoad />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="loads_create">
+                  <PrivateRoute>
+                    <CreateLoad />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route path="/loads/edit/:id" element={<LoadPage />} />
@@ -98,280 +107,348 @@ const App = () => {
             <Route
               path="customer_broker"
               element={
-                <PrivateRoute>
-                  <CustomerBrokerPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="customer_broker">
+                  <PrivateRoute>
+                    <CustomerBrokerPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="customer_broker/create"
               element={
-                <PrivateRoute>
-                  <CustomerBrokerCreatePage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="customer_broker_create">
+                  <PrivateRoute>
+                    <CustomerBrokerCreatePage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="customer_broker/:id"
               element={
-                <PrivateRoute>
-                  <CustomerBrokerViewPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="customer_broker_view">
+                  <PrivateRoute>
+                    <CustomerBrokerViewPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="customer_broker/:id/edit"
               element={
-                <PrivateRoute>
-                  <CustomerBrokerEditPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="customer_broker_edit">
+                  <PrivateRoute>
+                    <CustomerBrokerEditPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="driver"
               element={
-                <PrivateRoute>
-                  <DriverPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="driver">
+                  <PrivateRoute>
+                    <DriverPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="driver/create"
               element={
-                <PrivateRoute>
-                  <DriverCreatePage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="driver_create">
+                  <PrivateRoute>
+                    <DriverCreatePage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="driver/:id"
               element={
-                <PrivateRoute>
-                  <DriverViewPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="driver_view">
+                  <PrivateRoute>
+                    <DriverViewPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="driver/:id/edit"
               element={
-                <PrivateRoute>
-                  <DriverEditPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="driver_edit">
+                  <PrivateRoute>
+                    <DriverEditPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="driver/:id/pay/create"
               element={
-                <PrivateRoute>
-                  <DriverPayCreatePage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="driver_pay_create">
+                  <PrivateRoute>
+                    <DriverPayCreatePage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="driver/:id/pay/:payId/edit"
               element={
-                <PrivateRoute>
-                  <DriverPayEditPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="driver_pay_edit">
+                  <PrivateRoute>
+                    <DriverPayEditPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="driver/:id/expense/create"
               element={
-                <PrivateRoute>
-                  <DriverExpenseCreatePage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="driver_expense_create">
+                  <PrivateRoute>
+                    <DriverExpenseCreatePage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="driver/:id/expense/:expenseId/edit"
               element={
-                <PrivateRoute>
-                  <DriverExpenseEditPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="driver_expense_edit">
+                  <PrivateRoute>
+                    <DriverExpenseEditPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="dispatcher"
               element={
-                <PrivateRoute>
-                  <DispatcherPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="dispatcher">
+                  <PrivateRoute>
+                    <DispatcherPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="dispatcher/create"
               element={
-                <PrivateRoute>
-                  <DispatcherCreatePage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="dispatcher_create">
+                  <PrivateRoute>
+                    <DispatcherCreatePage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="dispatcher/:id"
               element={
-                <PrivateRoute>
-                  <DispatcherViewPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="dispatcher_view">
+                  <PrivateRoute>
+                    <DispatcherViewPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="dispatcher/edit/:id"
               element={
-                <PrivateRoute>
-                  <DispatcherEditPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="dispatcher_edit">
+                  <PrivateRoute>
+                    <DispatcherEditPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="users-actives"
               element={
-                <PrivateRoute>
-                  <UsersActivesPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="users_actives">
+                  <PrivateRoute>
+                    <UsersActivesPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="employee"
               element={
-                <PrivateRoute>
-                  <EmployeePage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="employee">
+                  <PrivateRoute>
+                    <EmployeePage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="employee/create"
               element={
-                <PrivateRoute>
-                  <EmployeeCreatePage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="employee_create">
+                  <PrivateRoute>
+                    <EmployeeCreatePage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="employee/:id"
               element={
-                <PrivateRoute>
-                  <EmployeeViewPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="employee_view">
+                  <PrivateRoute>
+                    <EmployeeViewPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="employee/edit/:id"
               element={
-                <PrivateRoute>
-                  <EmployeeEditPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="employee_edit">
+                  <PrivateRoute>
+                    <EmployeeEditPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="truck_trailer"
               element={
-                <PrivateRoute>
-                  <TruckTrailerPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="truck_trailer">
+                  <PrivateRoute>
+                    <TruckTrailerPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="truck"
               element={
-                <PrivateRoute>
-                  <TruckTrailerPage type="truck" />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="truck">
+                  <PrivateRoute>
+                    <TruckTrailerPage type="truck" />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="trailer"
               element={
-                <PrivateRoute>
-                  <TruckTrailerPage type="trailer" />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="trailer">
+                  <PrivateRoute>
+                    <TruckTrailerPage type="trailer" />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="truck/create"
               element={
-                <PrivateRoute>
-                  <TruckCreatePage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="truck_create">
+                  <PrivateRoute>
+                    <TruckCreatePage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="truck/:id"
               element={
-                <PrivateRoute>
-                  <TruckView />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="truck_view">
+                  <PrivateRoute>
+                    <TruckView />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="truck/:id/edit"
               element={
-                <PrivateRoute>
-                  <TruckEdit />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="truck_edit">
+                  <PrivateRoute>
+                    <TruckEdit />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="trailer/create"
               element={
-                <PrivateRoute>
-                  <TrailerCreatePage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="trailer_create">
+                  <PrivateRoute>
+                    <TrailerCreatePage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="trailer/:id"
               element={
-                <PrivateRoute>
-                  <TrailerView />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="trailer_view">
+                  <PrivateRoute>
+                    <TrailerView />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="trailer/:id/edit"
               element={
-                <PrivateRoute>
-                  <TrailerEdit />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="trailer_edit">
+                  <PrivateRoute>
+                    <TrailerEdit />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="accounting"
               element={
-                <PrivateRoute>
-                  <AccountingPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="accounting">
+                  <PrivateRoute>
+                    <AccountingPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="manage-users"
               element={
-                <PrivateRoute>
-                  <ManageUsersPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="manage_users">
+                  <PrivateRoute>
+                    <ManageUsersPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="manage-units"
               element={
-                <PrivateRoute>
-                  <UnitManagementPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="manage_units">
+                  <PrivateRoute>
+                    <UnitManagementPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
             <Route
               path="manage-teams"
               element={
-                <PrivateRoute>
-                  <TeamManagementPage />
-                </PrivateRoute>
+                <PermissionGuard permissionKey="manage_teams">
+                  <PrivateRoute>
+                    <TeamManagementPage />
+                  </PrivateRoute>
+                </PermissionGuard>
               }
             />
           </Route>
           <Route
             path="*"
             element={
-              isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/auth/login" />
+              isAuthenticated ? <Navigate to={getFirstAllowedRoute()} /> : <Navigate to="/auth/login" />
             }
           />
         </Routes>
@@ -380,5 +457,56 @@ const App = () => {
 
   );
 };
+
+// PermissionGuard component
+function PermissionGuard({ permissionKey, children }) {
+  const permissionsEnc = localStorage.getItem("permissionsEnc");
+  let permissions = {};
+  if (permissionsEnc) {
+    try {
+      permissions = JSON.parse(decodeURIComponent(escape(atob(permissionsEnc))));
+    } catch (e) {
+      permissions = {};
+    }
+  }
+  if (permissionKey && permissions[permissionKey] === false) {
+    return <PermissionDenied />;
+  }
+  return children;
+}
+
+// Helper to find first allowed route
+function getFirstAllowedRoute() {
+  const permissionsEnc = localStorage.getItem("permissionsEnc");
+  let permissions = {};
+  if (permissionsEnc) {
+    try {
+      permissions = JSON.parse(decodeURIComponent(escape(atob(permissionsEnc))));
+    } catch (e) {
+      permissions = {};
+    }
+  }
+  // List of sidebar routes and their permission keys (must match Sidebar.jsx)
+  const sidebarRoutes = [
+    { path: "/loads", key: "loads" },
+    { path: "/truck", key: "vehicles" },
+    { path: "/trailer", key: "vehicles" },
+    { path: "/customer_broker", key: "customer_broker" },
+    { path: "/driver", key: "driver" },
+    { path: "/employee", key: "employee" },
+    { path: "/dispatcher", key: "dispatcher" },
+    { path: "/users-actives", key: "users_actives" },
+    { path: "/accounting", key: "accounting" },
+    { path: "/manage-users", key: "manage_users" },
+    { path: "/manage-units", key: "manage_units" },
+    { path: "/manage-teams", key: "manage_teams" },
+  ];
+  for (const route of sidebarRoutes) {
+    if (permissions[route.key] === true) {
+      return route.path;
+    }
+  }
+  return "/permission-denied";
+}
 
 export default App;

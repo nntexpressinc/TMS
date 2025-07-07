@@ -147,23 +147,10 @@ const ManageUsersPage = () => {
     try {
       setError(null);
       
-      const processedRoleData = {
-        ...roleData,
-        load_view: roleData.load_view || roleData.load_create || roleData.load_update || roleData.load_delete,
-        driver_view: roleData.driver_view || roleData.driver_create || roleData.driver_update || roleData.driver_delete,
-        truck_view: roleData.truck_view || roleData.truck_create || roleData.truck_update || roleData.truck_delete,
-        trailer_view: roleData.trailer_view || roleData.trailer_create || roleData.trailer_update || roleData.trailer_delete,
-        user_view: roleData.user_view || roleData.user_create || roleData.user_update || roleData.user_delete,
-        accounting_view: roleData.accounting_view || roleData.accounting_create || roleData.accounting_update || roleData.accounting_delete,
-        dispatcher_view: roleData.dispatcher_view || roleData.dispatcher_create || roleData.dispatcher_update || roleData.dispatcher_delete,
-        stop_view: roleData.stop_view || roleData.stop_create || roleData.stop_update || roleData.stop_delete,
-        otherpay_view: roleData.otherpay_view || roleData.otherpay_create || roleData.otherpay_update || roleData.otherpay_delete,
-        employee_view: roleData.employee_view || roleData.employee_create || roleData.employee_update || roleData.employee_delete,
-        commodity_view: roleData.commodity_view || roleData.commodity_create || roleData.commodity_update || roleData.commodity_delete,
-        customerbroker_view: roleData.customerbroker_view || roleData.customerbroker_create || roleData.customerbroker_update || roleData.customerbroker_delete,
-        chat_view: roleData.chat_view || roleData.chat_create || roleData.chat_update || roleData.chat_delete,
-        userlocation_view: roleData.userlocation_view || roleData.userlocation_create || roleData.userlocation_update || roleData.userlocation_delete
-      };
+      // Faqat tanlangan permissionlarni yuborish uchun
+      const processedRoleData = { ...roleData };
+      // Avvalgi barcha view permissionlarni avtomatik true qilishni olib tashlaymiz
+      // Endi faqat tanlanganlar yuboriladi
       
       if (editingRole) {
         await ApiService.putData(`/auth/permission/${editingRole.permission_id}/`, {
@@ -297,7 +284,7 @@ const ManageUsersPage = () => {
     }
     
     // Use the BASE_URL from auth.js
-    return `https://api1.biznes-armiya.uz${photoPath}`;
+    return `https://ezpzfleetnodir.biznes-armiya.uz${photoPath}`;
   };
 
   return (

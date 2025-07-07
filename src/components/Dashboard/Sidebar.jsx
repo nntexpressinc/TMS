@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { lightLogo } from "../../images";
 import "./sidebar.scss";
@@ -15,6 +15,22 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const navigate = useNavigate();
   const [isVehicleOpen, setIsVehicleOpen] = useState(false);
   const [isManageOpen, setIsManageOpen] = useState(false);
+  const [permissions, setPermissions] = useState({});
+
+  useEffect(() => {
+    // Read encoded permissions from localStorage
+    const permissionsEnc = localStorage.getItem("permissionsEnc");
+    if (permissionsEnc) {
+      try {
+        const decoded = JSON.parse(decodeURIComponent(escape(atob(permissionsEnc))));
+        setPermissions(decoded);
+      } catch (e) {
+        setPermissions({});
+      }
+    } else {
+      setPermissions({});
+    }
+  }, []);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -63,12 +79,14 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       title: t("Dashboard"),
       icon: <MdSpaceDashboard />,
       link: "/dashboard",
+      permission: "dashboard"
     },
     {
       id: 2,
       title: t("Loads"),
       icon: <FaTruckLoading />,
       link: "/loads",
+      permission: "loads"
     },
     {
       id: 3,
@@ -77,43 +95,50 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       isDropdown: true,
       items: vehicleItems,
       isOpen: isVehicleOpen,
-      toggleDropdown: () => setIsVehicleOpen(!isVehicleOpen)
+      toggleDropdown: () => setIsVehicleOpen(!isVehicleOpen),
+      permission: "vehicles"
     },
     {
       id: 4,
       title: t("Customer Broker"),
       icon: <FaUserTie />,
       link: "/customer_broker",
+      permission: "customer_broker"
     },
     {
       id: 5,
       title: t("Driver"),
       icon: <FaRedRiver />,
       link: "/driver",
+      permission: "driver"
     },
     {
       id: 6,
       title: t("Employee"),
       icon: <FaUsers />,
       link: "/employee",
+      permission: "employee"
     },
     {
       id: 7,
       title: t("Dispatcher"),
       icon: <FaUserCog />,
       link: "/dispatcher",
+      permission: "dispatcher"
     },
     {
       id: 8,
       title: t("Users Actives"),
       icon: <FaUsers />,
       link: "/users-actives",
+      permission: "users_actives"
     },
     {
       id: 9,
       title: t("Accounting"),
       icon: <MdAccountBalance />,
       link: "/accounting",
+      permission: "accounting"
     },
     // {kodni 
     //   id: 10,
@@ -128,7 +153,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       isDropdown: true,
       items: manageItems,
       isOpen: isManageOpen,
-      toggleDropdown: () => setIsManageOpen(!isManageOpen)
+      toggleDropdown: () => setIsManageOpen(!isManageOpen),
+      permission: "manage"
     },
   ];
 
@@ -140,7 +166,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       </div>
       <main className="sidebar-content">
         <section className={`sidebar-menu ${isOpen ? "" : "collapsed"}`}>
-          {sidebarData.map((item) => {
+          {sidebarData.filter(item => permissions[item.permission] === true).map((item) => {
             if (item.isDropdown) {
               return (
                 <div key={item.id} className="sidebar-dropdown">
@@ -175,7 +201,6 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 </div>
               );
             }
-
             return (
               <NavLink
                 key={item.id}

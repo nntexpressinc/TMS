@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
 const getProfilePhoto = (url) => {
   if (!url) return 'https://ui-avatars.com/api/?name=User&background=random';
   if (url.startsWith('http')) return url;
-  return `https://api1.biznes-armiya.uz${url}`;
+  return `https://ezpzfleetnodir.biznes-armiya.uz${url}`;
 };
 
 const DispatcherPDF = ({ dispatcher, user }) => {

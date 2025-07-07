@@ -1585,13 +1585,13 @@ const LoadViewPage = () => {
   // Format profile photo URL to use production API
   const getFormattedProfilePhotoUrl = (url) => {
     if (!url) return "";
-    return url.replace('https://0.0.0.0:8000/', 'https://api1.biznes-armiya.uz/');
+    return url.replace('https://0.0.0.0:8000/', 'https://ezpzfleetnodir.biznes-armiya.uz/');
   };
   
   // Format file URL to use production API
   const getFormattedFileUrl = (url) => {
     if (!url) return "";
-    return url.replace('https://0.0.0.0:8000/', 'https://api1.biznes-armiya.uz/');
+    return url.replace('https://0.0.0.0:8000/', 'https://ezpzfleetnodir.biznes-armiya.uz/');
   };
 
   // Format detailed timestamp with seconds
@@ -2368,7 +2368,7 @@ const LoadViewPage = () => {
   // Function to format file URL correctly
   const getFormattedDocumentUrl = (url) => {
     if (!url) return "";
-    return url.replace('https://0.0.0.0:8000/', 'https://api1.biznes-armiya.uz/');
+    return url.replace('https://0.0.0.0:8000/', 'https://ezpzfleetnodir.biznes-armiya.uz/');
   };
   
   // Handle view file

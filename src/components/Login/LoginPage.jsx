@@ -86,22 +86,41 @@ const LoginPage = () => {
       const response = await ApiService.login(data);
       // console.log("Login Response:", response);
 
-      // Tokenlarni saqlash
+      // Save tokens
       localStorage.setItem("accessToken", response.access);
       localStorage.setItem("refreshToken", response.refresh);
       localStorage.setItem("userid", response.user_id);
-      
-      // Foydalanuvchi ma'lumotlarini ham saqlash (agar response da user ma'lumotlari bo'lsa)
+      // Save user info (if present in response)
       if (response.user) {
         localStorage.setItem("user", JSON.stringify(response.user));
       } else {
-        // Agar response.user yo'q bo'lsa, foydalanuvchi ma'lumotlarini alohida so'rovda olish
         try {
           const userData = await ApiService.getData(`/auth/users/${response.user_id}/`);
           localStorage.setItem("user", JSON.stringify(userData));
         } catch (userError) {
           console.error("Error fetching user data:", userError);
         }
+      }
+      // Fetch and encode role and permissions
+      try {
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (user && user.role) {
+          // Get role info (to get permission_id)
+          const roleData = await ApiService.getData(`/auth/role/${user.role}/`);
+          const roleNameEnc = btoa(unescape(encodeURIComponent(roleData.name)));
+          localStorage.setItem("roleNameEnc", roleNameEnc);
+          // Remove plain text
+          localStorage.removeItem("roleName");
+          // Get permissions using permission_id from role
+          if (roleData.permission_id) {
+            const permissionData = await ApiService.getData(`/auth/permission/${roleData.permission_id}/`);
+            const permissionsEnc = btoa(unescape(encodeURIComponent(JSON.stringify(permissionData))));
+            localStorage.setItem("permissionsEnc", permissionsEnc);
+            localStorage.removeItem("permissions");
+          }
+        }
+      } catch (err) {
+        console.error("Error encoding role/permissions:", err);
       }
       
       login();
@@ -128,8 +147,41 @@ const LoginPage = () => {
         toast.error("Incomplete data!");
       }
 
+      // Find first allowed route after login
+      function getFirstAllowedRoute() {
+        const permissionsEnc = localStorage.getItem("permissionsEnc");
+        let permissions = {};
+        if (permissionsEnc) {
+          try {
+            permissions = JSON.parse(decodeURIComponent(escape(atob(permissionsEnc))));
+          } catch (e) {
+            permissions = {};
+          }
+        }
+        const sidebarRoutes = [
+          { path: "/loads", key: "loads" },
+          { path: "/truck", key: "vehicles" },
+          { path: "/trailer", key: "vehicles" },
+          { path: "/customer_broker", key: "customer_broker" },
+          { path: "/driver", key: "driver" },
+          { path: "/employee", key: "employee" },
+          { path: "/dispatcher", key: "dispatcher" },
+          { path: "/users-actives", key: "users_actives" },
+          { path: "/accounting", key: "accounting" },
+          { path: "/manage-users", key: "manage_users" },
+          { path: "/manage-units", key: "manage_units" },
+          { path: "/manage-teams", key: "manage_teams" },
+        ];
+        for (const route of sidebarRoutes) {
+          if (permissions[route.key] === true) {
+            return route.path;
+          }
+        }
+        return "/permission-denied";
+      }
+
       toast.success("Login successful!");
-      navigate("/dashboard", { replace: true });
+      navigate(getFirstAllowedRoute(), { replace: true });
     } catch (error) {
       console.error("Login Failed:", error);
       const errorMessage = error.response?.data?.detail || "Login failed. Please check your credentials.";
