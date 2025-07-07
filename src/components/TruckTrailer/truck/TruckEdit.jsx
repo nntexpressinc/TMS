@@ -302,7 +302,8 @@ const TruckEdit = () => {
                             options={field.options}
                             getOptionLabel={field.getOptionLabel}
                             onChange={handleUnitChange}
-                            value={units.find(unit => unit.id === formData[field.name]) || null}
+                            value={units.find(unit => unit.id === formData.unit) || 
+                                   units.find(unit => unit.unit_number === formData.unit_number) || null}
                             renderOption={field.renderOption}
                             renderInput={(params) => (
                               <TextField
@@ -321,7 +322,7 @@ const TruckEdit = () => {
                             <Select
                               name={field.name}
                               value={formData[field.name] || ''}
-                              onChange={field.type === 'select' ? handleUnitChange : handleChange}
+                              onChange={handleChange}
                               required={field.required}
                               label={field.label}
                             >

@@ -116,7 +116,7 @@ const TrailerEdit = () => {
       const formattedData = {
         ...formData,
         year: parseInt(formData.year) || null,
-        unit_number: parseInt(formData.unit_number) || null,
+        unit_number: formData.unit_number,
         registration_expiry_date: formData.registration_expiry_date || null,
         last_annual_inspection_date: formData.last_annual_inspection_date || null,
       };
@@ -271,7 +271,8 @@ const TrailerEdit = () => {
                             options={field.options}
                             getOptionLabel={field.getOptionLabel}
                             onChange={handleUnitChange}
-                            value={units.find(unit => unit.id === formData[field.name]) || null}
+                            value={units.find(unit => unit.id === formData.unit) || 
+                                   units.find(unit => unit.unit_number === formData.unit_number) || null}
                             renderOption={field.renderOption}
                             renderInput={(params) => (
                               <TextField

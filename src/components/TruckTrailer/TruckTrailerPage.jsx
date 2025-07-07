@@ -223,13 +223,6 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
     return `...${vin.slice(-6)}`;
   };
 
-  // Unit number formatini saqlab qoladigan funksiya
-  const formatUnitNumber = (unitNumber) => {
-    if (!unitNumber && unitNumber !== 0) return '-';
-    // Stringga o'tkazib, boshidagi nollarni saqlash
-    return unitNumber.toString();
-  };
-
   const ViewDialog = () => (
     <Dialog 
       open={viewDialogOpen} 
@@ -282,7 +275,7 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
                 </Typography>
                 <Typography variant="body1">
                   {key.includes('date') ? formatDate(value) : 
-                   key === 'unit_number' ? formatUnitNumber(value) : 
+                   key === 'unit_number' ? (value || '-') : 
                    value || '-'}
                 </Typography>
               </Box>
@@ -397,7 +390,7 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
       field: 'unit_number', 
       headerName: 'Unit Number', 
       width: 150,
-      valueFormatter: (params) => formatUnitNumber(params?.value)
+      valueFormatter: (params) => params?.value || '-'
     },
     { field: 'make', headerName: 'Make', width: 120 },
     { field: 'model', headerName: 'Model', width: 120 },
@@ -551,8 +544,8 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
     { 
       field: 'unit_number', 
       headerName: 'Unit Number', 
-      width: 120,
-      valueFormatter: (params) => formatUnitNumber(params?.value)
+      width: 150,
+      valueFormatter: (params) => params?.value || '-'
     },
     { field: 'make', headerName: 'Make', width: 120 },
     { field: 'model', headerName: 'Model', width: 120 },

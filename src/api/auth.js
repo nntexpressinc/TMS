@@ -28,6 +28,10 @@ const ENDPOINTS = {
   DRIVER_DETAIL: (id) => `/driver/${id}/`,
   DRIVER_DOCUMENTS: (id) => `/driver/${id}/documents/`,
   DRIVER_LOADS: (id) => `/driver/${id}/loads/`,
+  DRIVER_PAY: '/driver/pay/',
+  DRIVER_PAY_DETAIL: (id) => `/driver/pay/${id}/`,
+  DRIVER_EXPENSE: '/driver/expense/',
+  DRIVER_EXPENSE_DETAIL: (id) => `/driver/expense/${id}/`,
   
   // Dispatcher management
   DISPATCHERS: '/dispatcher/',
