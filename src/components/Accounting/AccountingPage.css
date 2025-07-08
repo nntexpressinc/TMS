@@ -241,6 +241,7 @@
   color: #2b6cb0;
 }
 
+
 @media (max-width: 768px) {
   .accounting-page {
     padding: 10px;
@@ -266,3 +267,157 @@
     width: 100%;
   }
 } 
+
+.table-section {
+  padding: 20px;
+  background-color: #f9f9f9;
+}
+
+.table-container {
+  overflow-x: auto;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.pay-list-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 10px; /* Har qator orasida 10px bo‘shliq */
+  font-size: 14px;
+}
+
+.pay-list-table thead tr {
+  background-color: #f1f1f1;
+}
+
+.pay-list-table th, 
+.pay-list-table td {
+  padding: 12px 16px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.pay-list-row {
+  background-color: #fff;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.pay-list-row td {
+  background-color: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+.text-center {
+  text-align: center;
+  padding: 20px;
+}
+
+.file-link {
+  color: #007bff;
+  text-decoration: underline;
+}
+
+.no-file {
+  color: #999;
+}
+
+/* Modern gradient button styles */
+.btn-gradient-primary {
+  background: #4087f1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(66,153,225,0.08);
+  font-weight: 600;
+  font-size: 16px;
+  padding: 12px 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.btn-gradient-primary:hover {
+  background: linear-gradient(90deg, #1d4ed8 0%, #0ea5e9 100%);
+  box-shadow: 0 4px 16px rgba(66,153,225,0.16);
+}
+.btn-gradient-secondary {
+  background: #4087f1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(160,174,192,0.08);
+  font-weight: 600;
+  font-size: 16px;
+  padding: 12px 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.btn-gradient-secondary:hover {
+  background: linear-gradient(90deg, #718096 0%, #3182ce 100%);
+  box-shadow: 0 4px 16px rgba(160,174,192,0.16);
+}
+.btn-icon {
+  font-size: 18px;
+  margin-right: 6px;
+  display: flex;
+  align-items: center;
+}
+/* Modern multi-select styles */
+.modern-multi-select .select__control {
+  border-radius: 8px;
+  border: 1.5px solid #4299e1;
+  min-height: 44px;
+  box-shadow: 0 1px 4px rgba(66,153,225,0.06);
+  font-size: 15px;
+}
+.modern-multi-select .select__control--is-focused {
+  border-color: #38b2ac;
+  box-shadow: 0 0 0 2px #b2f5ea;
+}
+.modern-multi-select .select__multi-value {
+  background: #cfe2f3;
+  color: #234e52;
+  border-radius: 6px;
+}
+.modern-multi-select .select__option--is-focused {
+  background: #e3f0fb;
+  color: #22223b;
+}
+.modern-multi-select .select__option--is-selected {
+  background: #4299e1;
+  color: #fff;
+}
+
+/* Section header flex for title and button */
+.section-header-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+.section-header-flex .section-title {
+  margin-bottom: 0;
+}
+
+/* Search row flex for search input */
+.search-row-flex {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+}
+
+.search-row-flex .form-group {
+  margin-bottom: 0;
+}
+
+/* Remove margin between button and search */
+.section-header-flex + .search-section {
+  margin-top: 0;
+}

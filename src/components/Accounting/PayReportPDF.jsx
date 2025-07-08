@@ -1,13 +1,15 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+
+const API_URL = 'https://ezpzfleetnodir.biznes-armiya.uz';
 
 // Create styles
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
     fontSize: 10,
-    paddingTop: 140, // Space for header
-    paddingBottom: 60, // Space for footer
+    paddingTop: 140,
+    paddingBottom: 60,
     paddingHorizontal: 30,
   },
   header: {
@@ -15,7 +17,7 @@ const styles = StyleSheet.create({
     top: 30,
     left: 30,
     right: 30,
-    height: 100, // Fixed height for header
+    height: 100,
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderBottom: 1,
@@ -34,15 +36,24 @@ const styles = StyleSheet.create({
     bottom: 30,
     left: 30,
     right: 30,
-    height: 20, // Fixed height for footer
+    height: 20,
     textAlign: 'center',
   },
   content: {
     flex: 1,
-    paddingBottom: 20, // Extra padding to prevent overlap with footer
+    paddingBottom: 20,
   },
   companyInfo: {
     width: '50%',
+    flexDirection: 'row',
+  },
+  companyLogo: {
+    width: 50,
+    height: 50,
+    marginRight: 10,
+  },
+  companyDetails: {
+    flex: 1,
   },
   driverInfo: {
     width: '40%',
@@ -54,7 +65,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   section: {
-    marginBottom: 20, // Increased margin between sections
+    marginBottom: 20,
   },
   sectionTitle: {
     fontFamily: 'Helvetica-Bold',
@@ -70,8 +81,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   loadSection: {
-    marginBottom: 25, // Space between different loads
-    breakInside: 'avoid', // Prevents breaking inside a load section
+    marginBottom: 25,
+    breakInside: 'avoid',
   },
   tableRow: {
     flexDirection: 'row',
@@ -199,8 +210,8 @@ const styles = StyleSheet.create({
     borderColor: '#000',
     borderRightWidth: 0,
     borderBottomWidth: 0,
-    borderTopWidth: 0, // Remove top border to connect with main table
-    backgroundColor: '#fafafa', // Light background to distinguish from main load
+    borderTopWidth: 0,
+    backgroundColor: '#fafafa',
   },
 });
 
@@ -210,28 +221,38 @@ const formatDate = (dateString) => {
   return date.toISOString().split('T')[0];
 };
 
-const Header = ({ reportData }) => (
-  <View style={styles.header} fixed>
-    <View style={styles.companyInfo}>
-      <Text style={styles.headerTitle}>{reportData.user_admin?.company_name || 'NNT EXPRESS'}</Text>
-      <Text style={styles.headerText}>{reportData.user_admin?.address || 'Uzbekistan'}</Text>
-      <Text style={styles.headerText}>
-        {reportData.user_admin?.city || 'Plainfield'}, {reportData.user_admin?.state || 'IL'}, {reportData.user_admin?.country || 'Tashkent'} {reportData.user_admin?.postal_zip || '60544'}
-      </Text>
-      <Text style={styles.headerText}>Phone: {reportData.user_admin?.telephone || '+12938293'}</Text>
-      <Text style={styles.headerText}>Fax: {reportData.user_admin?.fax || '293283'}</Text>
+const Header = ({ reportData }) => {
+  const companyInfo = reportData.company_info || {};
+  const logoUrl = companyInfo.company_logo 
+    ? `${API_URL}${companyInfo.company_logo}`
+    : null;
+
+  return (
+    <View style={styles.header} fixed>
+      <View style={styles.companyInfo}>
+        {logoUrl && (
+          <Image style={styles.companyLogo} src={logoUrl} />
+        )}
+        <View style={styles.companyDetails}>
+          <Text style={styles.headerTitle}>{companyInfo.company_name || 'Company Name'}</Text>
+          <Text style={styles.headerText}>{companyInfo.city || 'City'}, {companyInfo.state || 'State'} {companyInfo.zip || 'Zip'}</Text>
+          <Text style={styles.headerText}>Phone: {companyInfo.phone || 'N/A'}</Text>
+          <Text style={styles.headerText}>Fax: {companyInfo.fax || 'N/A'}</Text>
+          
+        </View>
+      </View>
+      <View style={styles.driverInfo}>
+        <Text style={styles.headerTitle}>Driver: {reportData.driver?.first_name || 'N/A'} {reportData.driver?.last_name || ''}</Text>
+        <Text style={styles.headerText}>Address: {reportData.driver?.address1 || 'N/A'}</Text>
+        <Text style={styles.headerText}>Phone #: {reportData.driver?.contact_number || 'N/A'}</Text>
+        <Text style={styles.headerText}>Report Date: {formatDate(reportData.driver?.report_date)}</Text>
+        <Text style={styles.headerText}>Search From: {formatDate(reportData.driver?.search_from)}</Text>
+        <Text style={styles.headerText}>Search To: {formatDate(reportData.driver?.search_to)}</Text>
+        <Text style={styles.headerText}>Invoice: {reportData.driver?.invoice_number || 'N/A'}</Text>
+      </View>
     </View>
-    <View style={styles.driverInfo}>
-      <Text style={styles.headerTitle}>Driver: {reportData.driver?.first_name || 'N/A'} {reportData.driver?.last_name || ''}</Text>
-      <Text style={styles.headerText}>Address: {reportData.driver?.address1 || 'N/A'}</Text>
-      <Text style={styles.headerText}>Phone #: {reportData.driver?.contact_number || 'N/A'}</Text>
-      <Text style={styles.headerText}>Report Date: {formatDate(reportData.driver?.report_date)}</Text>
-      <Text style={styles.headerText}>Search From: {formatDate(reportData.driver?.search_from)}</Text>
-      <Text style={styles.headerText}>Search To: {formatDate(reportData.driver?.search_to)}</Text>
-      <Text style={styles.headerText}>Generation Date: {formatDate(reportData.driver?.generate_date)}</Text>
-    </View>
-  </View>
-);
+  );
+};
 
 const Footer = () => (
   <View style={styles.footer} fixed>
@@ -243,7 +264,6 @@ const Footer = () => (
 
 const LoadSection = ({ load, index }) => (
   <View style={styles.loadSection}>
-    {/* Main Load Row */}
     <View style={styles.table}>
       <View style={[styles.tableRow, styles.tableHeader]}>
         <Text style={[styles.tableCol, styles.loadNumber]}>Load #</Text>
@@ -262,8 +282,6 @@ const LoadSection = ({ load, index }) => (
         <Text style={[styles.tableCol, styles.totalPay]}>{load.Result}</Text>
       </View>
     </View>
-
-    {/* Other Payments Table - directly connected to main table */}
     {load['Other Payments']?.length > 0 && (
       <View style={styles.otherPaymentsTable}>
         <View style={[styles.tableRow, styles.tableHeader]}>
@@ -277,28 +295,17 @@ const LoadSection = ({ load, index }) => (
             <Text style={[styles.tableCol, { width: '25%' }]}>{payment.pay_type}</Text>
             <Text style={[styles.tableCol, { width: '35%' }]}>{payment.formula}</Text>
             <Text style={[styles.tableCol, { width: '20%' }]}>{payment.note || '-'}</Text>
-            <Text style={[
-              styles.tableCol,
-              styles.amount,
-              payment.result?.startsWith('-') ? styles.negativeAmount : styles.positiveAmount,
-              { width: '20%' }
-            ]}>
-              {payment.result}
-            </Text>
+            <Text style={[styles.tableCol, styles.amount, payment.result?.startsWith('-') ? styles.negativeAmount : styles.positiveAmount, { width: '20%' }]}>{payment.result}</Text>
           </View>
         ))}
       </View>
     )}
-
-    {/* Chargebag Deduction - also connected */}
     {load['Chargebag Deduction'] && (
       <View style={styles.otherPaymentsTable}>
         <View style={styles.tableRow}>
           <Text style={[styles.tableCol, { width: '25%' }]}>CHARGEBAG</Text>
           <Text style={[styles.tableCol, { width: '55%' }]}></Text>
-          <Text style={[styles.tableCol, styles.negativeAmount, { width: '20%' }]}>
-            -{load['Chargebag Deduction']}
-          </Text>
+          <Text style={[styles.tableCol, styles.negativeAmount, { width: '20%' }]}>-{load['Chargebag Deduction']}</Text>
         </View>
       </View>
     )}
@@ -325,12 +332,7 @@ const TotalsSection = ({ reportData }) => (
     </View>
     <View style={styles.grandTotal}>
       <Text style={styles.grandTotalLabel}>Grand Total:</Text>
-      <Text style={[
-        styles.grandTotalValue,
-        reportData.total_pay?.Result?.startsWith('-') ? styles.negativeAmount : styles.positiveAmount
-      ]}>
-        {reportData.total_pay?.Result || '$0.00'}
-      </Text>
+      <Text style={[styles.grandTotalValue, reportData.total_pay?.Result?.startsWith('-') ? styles.negativeAmount : styles.positiveAmount]}>{reportData.total_pay?.Result || '$0.00'}</Text>
     </View>
   </View>
 );
@@ -348,19 +350,16 @@ const PayReport = ({ reportData }) => {
         <Header reportData={reportData} />
         <View style={styles.content}>
           <Text style={styles.title}>Driver Pay Report</Text>
-
-          {/* Load Details */}
-          <View style={styles.section}>
+          {/* Loads Section */}
+          <View className="section">
             {reportData.loads?.map((load, index) => (
-              <View key={index} wrap={false}> {/* Prevents breaking inside a load section */}
+              <View key={index} wrap={false}>
                 <LoadSection load={load} index={index} />
               </View>
             ))}
           </View>
-
-          {/* Recurring Addition */}
           {reportData.expenses?.filter(e => e.Type === 'Income').length > 0 && (
-            <View wrap={false}> {/* Prevents breaking inside additions section */}
+            <View wrap={false}>
               <Text style={styles.sectionTitle}>Recurring Addition</Text>
               <View style={styles.additionsTable}>
                 <View style={styles.table}>
@@ -369,62 +368,41 @@ const PayReport = ({ reportData }) => {
                     .map((addition, index) => (
                       <View key={index} style={styles.tableRow}>
                         <Text style={[styles.tableCol, { width: '80%' }]}>{addition.Description}</Text>
-                        <Text style={[styles.tableCol, styles.amount, styles.positiveAmount, { width: '20%' }]}>
-                          +{addition.Result}
-                        </Text>
+                        <Text style={[styles.tableCol, styles.amount, styles.positiveAmount, { width: '20%' }]}>+{addition.Result}</Text>
                       </View>
                     ))}
                 </View>
               </View>
             </View>
           )}
-
-          {/* Recurring Deduction */}
-          <View wrap={false}> {/* Prevents breaking inside deductions section */}
+          <View wrap={false}>
             <Text style={styles.sectionTitle}>Recurring Deduction</Text>
             <View style={styles.deductionsTable}>
               <View style={styles.table}>
-                {/* Escrow Deduction */}
                 {reportData.escrow_deduction && (
                   <View style={styles.tableRow}>
-                    <Text style={[styles.tableCol, { width: '80%' }]}>
-                      Escrow Deduction
-                    </Text>
-                    <Text style={[styles.tableCol, styles.negativeAmount, { width: '20%' }]}>
-                      -{reportData.escrow_deduction.Result}
-                    </Text>
+                    <Text style={[styles.tableCol, { width: '80%' }]}>Escrow Deduction</Text>
+                    <Text style={[styles.tableCol, styles.negativeAmount, { width: '20%' }]}>-{reportData.escrow_deduction.Result}</Text>
                   </View>
                 )}
-                
-                {/* Chargebag Deductions */}
-                {reportData.chargebag_deductions?.map((deduction, index) => (
+                {reportData.chargeback_deductions?.map((deduction, index) => (
                   <View key={index} style={styles.tableRow}>
-                    <Text style={[styles.tableCol, { width: '80%' }]}>
-                      Chargebag Deduction ({deduction.note || ''})
-                    </Text>
-                    <Text style={[styles.tableCol, styles.negativeAmount, { width: '20%' }]}>
-                      -{deduction.amount}
-                    </Text>
+                    <Text style={[styles.tableCol, { width: '80%' }]}>Chargebag Deduction ({deduction.note || ''})</Text>
+                    <Text style={[styles.tableCol, styles.negativeAmount, { width: '20%' }]}>-{deduction.amount}</Text>
                   </View>
                 ))}
-                
-                {/* Other Expenses */}
                 {reportData.expenses
                   ?.filter(e => e.Type === 'Expense')
                   .map((expense, index) => (
                     <View key={index} style={styles.tableRow}>
                       <Text style={[styles.tableCol, { width: '80%' }]}>{expense.Description}</Text>
-                      <Text style={[styles.tableCol, styles.negativeAmount, { width: '20%' }]}>
-                        -{expense.Result}
-                      </Text>
+                      <Text style={[styles.tableCol, styles.negativeAmount, { width: '20%' }]}>-{expense.Result}</Text>
                     </View>
                   ))}
               </View>
             </View>
           </View>
-
-          {/* Totals Section */}
-          <View wrap={false}> {/* Prevents breaking inside totals section */}
+          <View wrap={false}>
             <TotalsSection reportData={reportData} />
           </View>
         </View>

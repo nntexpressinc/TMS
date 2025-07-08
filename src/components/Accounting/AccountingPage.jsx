@@ -1,12 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getDrivers, getDriverPayReport } from '../../api/accounting';
+import Select from 'react-select';
+import { getDrivers, getDriverPayList, getDriverPayReport, uploadPayReportPDF } from '../../api/accounting';
+import { getAllLoads } from '../../api/loads';
 import { pdf } from '@react-pdf/renderer';
 import PayReportPDF from './PayReportPDF';
+import CompanyDriverPDF from './CompanyDriverPDF';
 import './AccountingPage.css';
 import moment from 'moment';
 
-// Yordamchi funksiya
+const API_URL = 'https://ezpzfleetnodir.biznes-armiya.uz';
+
 const ensureArray = (data) => {
   if (!data) return [];
   if (Array.isArray(data)) return data;
@@ -17,28 +21,172 @@ const ensureArray = (data) => {
 const AccountingPage = () => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+  
   const [reportData, setReportData] = useState(null);
   const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
   const [selectedDriver, setSelectedDriver] = useState('');
   const [notes, setNotes] = useState('');
+  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [weeklyNumber, setWeeklyNumber] = useState('');
+  const [loadDriverPay, setLoadDriverPay] = useState([]); 
+  const [loadCompanyDriverPay, setLoadCompanyDriverPay] = useState([]);
   const [drivers, setDrivers] = useState([]);
+  const [loads, setLoads] = useState([]);
   const [error, setError] = useState('');
+  const [driverPayList, setDriverPayList] = useState([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchTimeout = useRef(null);
 
-  // Fetch drivers on mount
+  // Modal state for view/edit
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editData, setEditData] = useState(null);
+
   useEffect(() => {
+    let isMounted = true;
+
     const fetchDrivers = async () => {
       try {
         const data = await getDrivers();
-        setDrivers(ensureArray(data)); // Ma'lumotlarni massivga o'tkazish
+        if (isMounted) {
+          setDrivers(ensureArray(data));
+        }
       } catch (err) {
-        setError(t('Failed to fetch drivers'));
-        setDrivers([]); // Xatolik bo'lganda bo'sh massiv o'rnatish
+        if (isMounted) {
+          setError(t('Failed to fetch drivers'));
+          setDrivers([]);
+        }
       }
     };
-    fetchDrivers();
-  }, [t]);
 
-  // Validate form fields
+    const fetchLoads = async () => {
+      try {
+        const data = await getAllLoads();
+        if (isMounted) {
+          setLoads(ensureArray(data));
+        }
+      } catch (err) {
+        if (isMounted) {
+          setLoads([]);
+        }
+      }
+    };
+
+    fetchDrivers();
+    fetchLoads();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    fetchDriverPayList();
+  }, []);
+
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      fetchDriverPayList();
+    }, 500);
+    return () => clearTimeout(searchTimeout.current);
+  }, [searchQuery]);
+
+  // Open modal for view/edit
+  const handleViewEdit = (pay) => {
+    setEditData(pay);
+    setShowEditModal(true);
+    setError('');
+  };
+
+  // Close modal
+  const handleCloseModal = () => {
+    setShowEditModal(false);
+    setEditData(null);
+    setError('');
+  };
+
+  // Handle file upload for file/cd_file
+  const handleFileChange = (e, field) => {
+    if (!editData) return;
+    setEditData({ ...editData, [field]: e.target.files[0] });
+  };
+
+  // Download file helper
+  const handleDownloadFile = (url) => {
+    if (!url) return;
+    window.open(getFullPdfUrl(url), '_blank');
+  };
+
+  // Save edited data (PUT request with file/cd_file if changed)
+  const handleSaveEdit = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const formData = new FormData();
+      // Only send changed fields
+      formData.append('notes', editData.notes || '');
+      formData.append('invoice_number', editData.invoice_number || '');
+      formData.append('weekly_number', editData.weekly_number || '');
+      if (editData.file instanceof File) formData.append('file', editData.file);
+      if (editData.cd_file instanceof File) formData.append('cd_file', editData.cd_file);
+      // Add new fields if needed
+      if (editData.total_miles !== undefined) formData.append('total_miles', editData.total_miles);
+      if (editData.miles_rate !== undefined) formData.append('miles_rate', editData.miles_rate);
+      if (editData.company_driver_pay !== undefined) formData.append('company_driver_pay', editData.company_driver_pay);
+      // PUT request
+      const storedAccessToken = localStorage.getItem('accessToken');
+      await fetch(`${API_URL}/api/driver/pay/driver/${editData.id}/`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${storedAccessToken}`
+        },
+        body: formData
+      });
+      setShowEditModal(false);
+      setEditData(null);
+      fetchDriverPayList();
+    } catch (err) {
+      setError(t('Failed to save changes: ') + (err.message || ''));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDriverPayList = async () => {
+    try {
+      setLoading(true);
+      const params = {};
+      if (searchQuery.trim()) {
+        params.search = searchQuery.trim();
+      }
+      const data = await getDriverPayList(params);
+      setDriverPayList(ensureArray(data));
+    } catch (err) {
+      setError(t('Failed to fetch driver pay list'));
+      setDriverPayList([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Jadval uchun front-endda search filter
+  const filteredDriverPayList = useMemo(() => {
+    if (!searchQuery.trim()) return driverPayList;
+    const query = searchQuery.trim().toLowerCase();
+    return driverPayList.filter(pay => {
+      const invoice = (pay.invoice_number || '').toLowerCase();
+      const weekly = (pay.weekly_number || '').toLowerCase();
+      const driverName = ((pay.driver?.user?.first_name || '') + ' ' + (pay.driver?.user?.last_name || '')).toLowerCase();
+      return (
+        invoice.includes(query) ||
+        weekly.includes(query) ||
+        driverName.includes(query)
+      );
+    });
+  }, [searchQuery, driverPayList]);
+
   const validateFields = () => {
     if (!dateRange.startDate || !dateRange.endDate) {
       setError(t('Please select a valid date range'));
@@ -48,11 +196,18 @@ const AccountingPage = () => {
       setError(t('Please select a driver'));
       return false;
     }
+    if (!invoiceNumber) {
+      setError(t('Please enter an invoice number'));
+      return false;
+    }
+    if (!weeklyNumber) {
+      setError(t('Please enter a weekly number'));
+      return false;
+    }
     setError('');
     return true;
   };
 
-  // Generate report
   const generateReport = async (e) => {
     e.preventDefault();
     if (!validateFields()) return;
@@ -64,12 +219,25 @@ const AccountingPage = () => {
         pay_to: dateRange.endDate,
         driver: Number(selectedDriver),
         notes: notes || '',
+        invoice_number: invoiceNumber,
+        weekly_number: weeklyNumber,
+        load_driver_pay: Array.isArray(loadDriverPay) ? loadDriverPay : [],
+        load_company_driver_pay: Array.isArray(loadCompanyDriverPay) ? loadCompanyDriverPay : [],
       };
+      
+      console.log('Sending report request with data:', {
+        ...requestData,
+        load_driver_pay_length: requestData.load_driver_pay.length,
+        load_company_driver_pay_length: requestData.load_company_driver_pay.length,
+      });
 
       const response = await getDriverPayReport(requestData);
       console.log('Report data received:', response);
-      setReportData(response); // Set raw API response
+      setReportData(response);
       setError('');
+
+      await generateAndUploadPDF(response);
+
     } catch (err) {
       console.error('Error fetching report:', err);
       setError(t('Failed to generate report'));
@@ -78,7 +246,61 @@ const AccountingPage = () => {
     }
   };
 
-  // Download PDF
+  const generateAndUploadPDF = async (reportData) => {
+    try {
+      // 1. Generate and download Driver Pay PDF
+      const driverPayBlob = await pdf(<PayReportPDF reportData={reportData} />).toBlob();
+      const driverPayUrl = window.URL.createObjectURL(driverPayBlob);
+      const driverPayLink = document.createElement('a');
+      driverPayLink.href = driverPayUrl;
+      driverPayLink.download = `driver-pay-report-${moment().format('YYYY-MM-DD')}.pdf`;
+      document.body.appendChild(driverPayLink);
+      driverPayLink.click();
+      document.body.removeChild(driverPayLink);
+      window.URL.revokeObjectURL(driverPayUrl);
+      
+      // Upload driver pay PDF to server if pay_id exists
+      if (reportData.pay_id) {
+        await uploadPayReportPDF(reportData.pay_id, driverPayBlob);
+        console.log('Driver Pay PDF successfully uploaded to server');
+      }
+
+      // 2. Generate and download Company Driver PDF if data exists
+      if (reportData.company_driver_data) {
+        const companyDriverBlob = await pdf(
+          <CompanyDriverPDF 
+            data={reportData.company_driver_data}
+            driver={reportData.driver}
+            search_from={reportData.driver?.search_from}
+            search_to={reportData.driver?.search_to}
+          />
+        ).toBlob();
+        const companyDriverUrl = window.URL.createObjectURL(companyDriverBlob);
+        const companyDriverLink = document.createElement('a');
+        companyDriverLink.href = companyDriverUrl;
+        companyDriverLink.download = `company-driver-report-${moment().format('YYYY-MM-DD')}.pdf`;
+        document.body.appendChild(companyDriverLink);
+        companyDriverLink.click();
+        document.body.removeChild(companyDriverLink);
+        window.URL.revokeObjectURL(companyDriverUrl);
+        console.log('Company Driver PDF generated and downloaded');
+      }
+
+      // Reset form and update list
+      fetchDriverPayList();
+      setShowCreateForm(false);
+      setReportData(null);
+      setInvoiceNumber('');
+      setWeeklyNumber('');
+      setNotes('');
+      setSelectedDriver('');
+      setDateRange({ startDate: '', endDate: '' });
+    } catch (err) {
+      console.error('PDF generation/upload error:', err);
+      setError(t('Failed to generate/upload PDF: ') + err.message);
+    }
+  };
+
   const downloadPDF = async () => {
     try {
       if (!reportData) {
@@ -99,217 +321,137 @@ const AccountingPage = () => {
     }
   };
 
+  const getFullPdfUrl = (fileUrl) => {
+    if (!fileUrl) return null;
+    if (fileUrl.startsWith('http')) return fileUrl;
+    return `${API_URL}${fileUrl}`;
+  };
+
+  // Helper to format amount
+  const formatAmount = (amount) => {
+    if (amount === null || amount === undefined) return '$0.00';
+    let num = amount;
+    if (typeof num === 'string') {
+      num = num.replace('$', '');
+      num = parseFloat(num);
+    }
+    if (isNaN(num)) return '$0.00';
+    return '$' + num.toFixed(2);
+  };
+
+  // Handle load selection for driver pay
+  const handleLoadDriverPayChange = (selectedOptions) => {
+    const selectedIds = selectedOptions ? selectedOptions.map(option => option.value) : [];
+    console.log('Selected driver pay loads:', selectedIds);
+    setLoadDriverPay(selectedIds);
+  };
+
+  // Handle load selection for company driver pay
+  const handleLoadCompanyDriverPayChange = (selectedOptions) => {
+    const selectedIds = selectedOptions ? selectedOptions.map(option => option.value) : [];
+    console.log('Selected company driver pay loads:', selectedIds);
+    setLoadCompanyDriverPay(selectedIds);
+  };
+
   return (
     <div className="accounting-page">
-      {/* Search Section */}
-      <div className="search-section">
-        <h2 className="section-title">{t('Driver Pay Report')}</h2>
-        <form onSubmit={generateReport} className="search-form">
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="startDate">{t('Start Date')}</label>
-              <input
-                type="date"
-                id="startDate"
-                value={dateRange.startDate}
-                onChange={(e) => setDateRange((prev) => ({ ...prev, startDate: e.target.value }))}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="endDate">{t('End Date')}</label>
-              <input
-                type="date"
-                id="endDate"
-                value={dateRange.endDate}
-                onChange={(e) => setDateRange((prev) => ({ ...prev, endDate: e.target.value }))}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="driver">{t('Driver')}</label>
-              <select
-                id="driver"
-                value={selectedDriver}
-                onChange={(e) => setSelectedDriver(e.target.value)}
-                required
-              >
-                <option value="">{t('Select driver')}</option>
-                {Array.isArray(drivers) && drivers.map((driver) => (
-                  <option key={driver.id} value={driver.id}>
-                    {driver.user?.first_name || ''} {driver.user?.last_name || ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label htmlFor="notes">{t('Notes')}</label>
-              <textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows="4"
-                placeholder={t('Enter notes here')}
-              />
-            </div>
-          </div>
-          {error && <div className="error-message">{error}</div>}
-          <div className="button-group">
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? t('Loading...') : t('Generate Report')}
+      {!showCreateForm ? (
+        <div className="list-section">
+          <div className="section-header-flex">
+            <h2 className="section-title">Driver Pay Reports</h2>
+            <button
+              className="btn btn-gradient-primary"
+              onClick={() => setShowCreateForm(true)}
+            >
+              <span className="btn-icon">➕</span> Create New Report
             </button>
-            {reportData && (
-              <button
-                type="button"
-                onClick={downloadPDF}
-                className="btn btn-secondary"
-                disabled={loading}
-              >
-                {t('Download PDF')}
-              </button>
-            )}
           </div>
-        </form>
-      </div>
 
-      {/* Report Section */}
-      {reportData && (
-        <div className="report-section">
-          <div className="report-header">
-            {/* Company Info */}
-            <div className="company-info">
-              <h3>{reportData.user_admin?.company_name || t('N/A')}</h3>
-              <p>{reportData.user_admin?.address || t('N/A')}</p>
-              <p>{reportData.user_admin?.country || t('N/A')}</p>
-              <p>{t('Phone')}: {reportData.user_admin?.telephone || t('N/A')}</p>
-              {reportData.user_admin?.fax && (
-                <p>{t('Fax')}: {reportData.user_admin.fax}</p>
-              )}
-              <p>{t('Email')}: {reportData.user_admin?.email || t('N/A')}</p>
-            </div>
-
-            {/* Driver Info */}
-            <div className="driver-info">
-              <h4>{t('Driver Information')}</h4>
-              <div className="info-grid">
-                <div className="info-item">
-                  <label>{t('Name')}:</label>
-                  <span>
-                    {reportData.driver?.first_name || ''} {reportData.driver?.last_name || ''}
-                  </span>
-                </div>
-                <div className="info-item">
-                  <label>{t('Contact')}:</label>
-                  <span>{reportData.driver?.contact_number || t('N/A')}</span>
-                </div>
-                <div className="info-item">
-                  <label>{t('Address')}:</label>
-                  <span>{reportData.driver?.address1 || t('N/A')}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Report Dates */}
-            <div className="report-dates">
-              <div className="info-grid">
-                <div className="info-item">
-                  <label>{t('Report Date')}:</label>
-                  <span>
-                    {reportData.driver?.report_date
-                      ? moment(reportData.driver.report_date).format('YYYY-MM-DD')
-                      : t('N/A')}
-                  </span>
-                </div>
-                <div className="info-item">
-                  <label>{t('Generation Date')}:</label>
-                  <span>
-                    {reportData.driver?.generate_date
-                      ? moment(reportData.driver.generate_date).format('YYYY-MM-DD')
-                      : t('N/A')}
-                  </span>
-                </div>
-                <div className="info-item">
-                  <label>{t('Search Period')}:</label>
-                  <span>
-                    {reportData.driver?.search_from || t('N/A')} -{' '}
-                    {reportData.driver?.search_to || t('N/A')}
-                  </span>
-                </div>
+          <div className="search-section" style={{ marginBottom: 18 }}>
+            <div className="search-row-flex" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="form-group" style={{ width: '100%' }}>
+                <label style={{ fontWeight: 500, color: '#2c3e50', marginBottom: 4 }}>Search</label>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by invoice number, weekly number, or driver name"
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 8,
+                    fontSize: 15,
+                    background: '#f9fafb',
+                    outline: 'none',
+                    marginTop: 2
+                  }}
+                />
               </div>
             </div>
           </div>
 
-          {/* Loads Section */}
-          <div className="loads-section">
-            <h4>{t('Load Details')}</h4>
-            <div className="table-container">
-              <table className="loads-table">
-                <thead>
+          <div className="table-section">
+            <div className="table-container" style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 12px 0 rgba(0,0,0,0.04)' }}>
+              <table className="pay-list-table" style={{ width: '100%', borderCollapse: 'collapse', background: '#fff' }}>
+                <thead style={{ background: '#f3f4f6' }}>
                   <tr>
-                    <th>{t('Load #')}</th>
-                    <th>{t('Pickup')}</th>
-                    <th>{t('Delivery')}</th>
-                    <th>{t('Rate')}</th>
-                    <th>{t('Load Total Pay')}</th>
-                    <th>{t('Chargebag')}</th>
-                    <th>{t('Notes')}</th>
+                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>Invoice #</th>
+                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>Weekly #</th>
+                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>Driver</th>
+                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>Pay Period</th>
+                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>Amount</th>
+                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>Created At</th>
+                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>File</th>
+                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {reportData.loads && reportData.loads.length > 0 ? (
-                    reportData.loads.map((load, index) => (
-                      <>
-                        <tr key={`load-${index}`}>
-                          <td>{load['Load #'] || t('N/A')}</td>
-                          <td>{load.Pickup || t('N/A')}</td>
-                          <td>{load.Delivery || t('N/A')}</td>
-                          <td>{load.Formula || t('N/A')}</td>
-                          <td className="total-pay">{load.Result || t('N/A')}</td>
-                          <td className="chargebag">
-                            {load['Chargebag Deduction'] && (
-                              <span className="negative-amount">
-                                - {load['Chargebag Deduction']}
-                              </span>
-                            )}
-                          </td>
-                          <td>{load.Notes || '-'}</td>
-                        </tr>
-                        {load['Other Payments'] && load['Other Payments'].length > 0 && (
-                          <tr className="other-payments">
-                            <td colSpan="7">
-                              <div className="other-payments-container">
-                                <table className="other-payments-table">
-                                  <thead>
-                                    <tr>
-                                      <th>{t('Payment Type')}</th>
-                                      <th>{t('Formula')}</th>
-                                      <th>{t('Amount')}</th>
-                                      <th>{t('Note')}</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {load['Other Payments'].map((payment, pIndex) => (
-                                      <tr key={`payment-${pIndex}`}>
-                                        <td>{payment.pay_type}</td>
-                                        <td>{payment.formula}</td>
-                                        <td className={`payment-amount ${payment.result?.startsWith('-') ? 'negative' : 'positive'}`}>
-                                          {payment.result}
-                                        </td>
-                                        <td>{payment.note || '-'}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="8" className="text-center" style={{ textAlign: 'center', padding: 24 }}>
+                        Loading...
+                      </td>
+                    </tr>
+                  ) : filteredDriverPayList.length > 0 ? (
+                    filteredDriverPayList.map((pay) => (
+                      <tr className="pay-list-row" key={pay.id} style={{ borderBottom: '1px solid #f1f1f1' }}>
+                        <td style={{ padding: '10px 8px' }}>{pay.invoice_number || 'N/A'}</td>
+                        <td style={{ padding: '10px 8px' }}>{pay.weekly_number || 'N/A'}</td>
+                        <td style={{ padding: '10px 8px' }}>{pay.driver?.user?.first_name || ''} {pay.driver?.user?.last_name || ''}</td>
+                        <td style={{ padding: '10px 8px' }}>{pay.pay_from && pay.pay_to ? `${moment(pay.pay_from).format('MM/DD/YYYY')} - ${moment(pay.pay_to).format('MM/DD/YYYY')}` : 'N/A'}</td>
+                        <td style={{ padding: '10px 8px' }}>{formatAmount(pay.amount)}</td>
+                        <td style={{ padding: '10px 8px' }}>{pay.created_at ? moment(pay.created_at).format('MM/DD/YYYY HH:mm') : 'N/A'}</td>
+                        <td style={{ padding: '10px 8px' }}>
+                          {pay.file ? (
+                            <a
+                              href={getFullPdfUrl(pay.file)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="file-link"
+                              style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}
+                            >
+                              View File
+                            </a>
+                          ) : (
+                            <span className="no-file" style={{ color: '#b91c1c' }}>No file</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px 8px' }}>
+                          <button
+                            className="btn btn-sm btn-primary"
+                            style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 16px', fontSize: 14, cursor: 'pointer', fontWeight: 500 }}
+                            onClick={() => handleViewEdit(pay)}
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>
-                        {t('No loads found for this period')}
+                      <td colSpan="8" className="text-center" style={{ textAlign: 'center', padding: 24 }}>
+                        No driver pay reports found
                       </td>
                     </tr>
                   )}
@@ -317,188 +459,212 @@ const AccountingPage = () => {
               </table>
             </div>
           </div>
-
-          {/* Expenses and Income Section */}
-          <div className="expenses-section">
-            {/* Additions Table */}
-            <h4>{t('Additions')}</h4>
-            <div className="table-container">
-              <table className="expenses-table">
-                <thead>
-                  <tr>
-                    <th>{t('Description')}</th>
-                    <th>{t('Amount')}</th>
-                    <th>{t('Type')}</th>
-                    <th>{t('Date')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.expenses && reportData.expenses.filter(item => item.Type === 'Income').length > 0 ? (
-                    reportData.expenses
-                      .filter(item => item.Type === 'Income')
-                      .map((expense, index) => (
-                        <tr key={index}>
-                          <td>{expense.Description || t('N/A')}</td>
-                          <td className="positive-amount">+ {expense.Result || t('N/A')}</td>
-                          <td>Addition</td>
-                          <td>{expense.Date || t('N/A')}</td>
-                        </tr>
-                      ))
-                  ) : (
-                    <tr>
-                      <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
-                        {t('No additions found for this period')}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Deductions Table */}
-            <h4 style={{ marginTop: '20px' }}>{t('Deductions')}</h4>
-            <div className="table-container">
-              <table className="expenses-table">
-                <thead>
-                  <tr>
-                    <th>{t('Description')}</th>
-                    <th>{t('Amount')}</th>
-                    <th>{t('Type')}</th>
-                    <th>{t('Date')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.expenses && reportData.expenses.filter(item => item.Type === 'Expense').length > 0 ? (
-                    reportData.expenses
-                      .filter(item => item.Type === 'Expense')
-                      .map((expense, index) => (
-                        <tr key={index}>
-                          <td>{expense.Description || t('N/A')}</td>
-                          <td className="negative-amount">- {expense.Result || t('N/A')}</td>
-                          <td>Deduction</td>
-                          <td>{expense.Date || t('N/A')}</td>
-                        </tr>
-                      ))
-                  ) : (
-                    <tr>
-                      <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
-                        {t('No deductions found for this period')}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+        </div>
+      ) : (
+        <div className="create-form-section">
+          <div className="section-header-flex">
+            <h2 className="section-title">Create Driver Pay Report</h2>
+            <button
+              className="btn btn-gradient-secondary"
+              onClick={() => {
+                setShowCreateForm(false);
+                setReportData(null);
+                setError('');
+              }}
+            >
+              <span className="btn-icon">←</span> Back to List
+            </button>
           </div>
 
-          {/* Summary Section */}
-          <div className="summary-section">
-            <div className="summary-grid">
-              <div className="summary-item">
-                <label>{t('Total Load Pays')}:</label>
-                <span className="positive-amount">+ {reportData.total_load_pays?.Result || '$0.00'}</span>
+          <div className="search-section">
+            <form onSubmit={generateReport} className="search-form">
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="startDate">{t('Start Date')}</label>
+                  <input
+                    type="date"
+                    id="startDate"
+                    value={dateRange.startDate}
+                    onChange={(e) => setDateRange((prev) => ({ ...prev, startDate: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="endDate">{t('End Date')}</label>
+                  <input
+                    type="date"
+                    id="endDate"
+                    value={dateRange.endDate}
+                    onChange={(e) => setDateRange((prev) => ({ ...prev, endDate: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="driver">{t('Driver')}</label>
+                  <select
+                    id="driver"
+                    value={selectedDriver}
+                    onChange={(e) => setSelectedDriver(e.target.value)}
+                    required
+                  >
+                    <option value="">{t('Select Driver')}</option>
+                    {drivers.map((driver) => (
+                      <option key={driver.id} value={driver.id}>
+                        {driver.user?.first_name} {driver.user?.last_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div className="summary-item">
-                <label>{t('Total Other Pays')}:</label>
-                <span className="positive-amount">+ {reportData.total_other_pays?.Result || '$0.00'}</span>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="invoiceNumber">{t('Invoice Number')}</label>
+                  <input
+                    type="text"
+                    id="invoiceNumber"
+                    value={invoiceNumber}
+                    onChange={(e) => setInvoiceNumber(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="weeklyNumber">{t('Weekly Number')}</label>
+                  <input
+                    type="text"
+                    id="weeklyNumber"
+                    value={weeklyNumber}
+                    onChange={(e) => setWeeklyNumber(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="notes">{t('Notes')}</label>
+                  <textarea
+                    id="notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="summary-item">
-                <label>{t('Total Deductions')}:</label>
-                <span className="negative-amount">- {reportData.total_expenses?.Result || '$0.00'}</span>
+              {/* Yangi load_driver_pay va load_company_driver_pay uchun multi-select */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="loadDriverPay">Load Driver Pay (select, optional)</label>
+                  <Select
+                    isMulti
+                    options={loads.map(load => ({
+                      value: load.id,
+                      label: `Load #${load.load_id || load.id} | Reference: ${load.reference_id || '-'}`
+                    }))}
+                    value={loadDriverPay.map(id => {
+                      const found = loads.find(load => load.id === id);
+                      return found ? {
+                        value: found.id,
+                        label: `Load #${found.load_id || found.id} | Reference: ${found.reference_id || '-'}`
+                      } : { value: id, label: `Load #${id}` };
+                    })}
+                    onChange={handleLoadDriverPayChange}
+                    className="modern-multi-select"
+                    classNamePrefix="select"
+                    placeholder="Select loads..."
+                  />
+                  <small>You can select multiple loads</small>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="loadCompanyDriverPay">Load Company Driver Pay (select, optional)</label>
+                  <Select
+                    isMulti
+                    options={loads.map(load => ({
+                      value: load.id,
+                      label: `Load #${load.load_id || load.id} | Reference: ${load.reference_id || '-'}`
+                    }))}
+                    value={loadCompanyDriverPay.map(id => {
+                      const found = loads.find(load => load.id === id);
+                      return found ? {
+                        value: found.id,
+                        label: `Load #${found.load_id || found.id} | Reference: ${found.reference_id || '-'}`
+                      } : { value: id, label: `Load #${id}` };
+                    })}
+                    onChange={handleLoadCompanyDriverPayChange}
+                    className="modern-multi-select"
+                    classNamePrefix="select"
+                    placeholder="Select loads..."
+                  />
+                  <small>You can select multiple loads</small>
+                </div>
               </div>
-              <div className="summary-item">
-                <label>{t('Total Additions')}:</label>
-                <span className="positive-amount">+ {reportData.total_income?.Result || '$0.00'}</span>
+              {error && <div className="error-message">{error}</div>}
+              <div className="form-actions">
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {t('Generate Report')}
+                </button>
               </div>
-              <div className="summary-item">
-                <label>{t('Escrow Deduction')}:</label>
-                <span className="negative-amount">- {reportData.escrow_deduction?.Result || '$0.00'}</span>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Edit/View Modal */}
+      {showEditModal && editData && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.18)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="modal-content" style={{ background: '#fff', padding: '28px 22px', borderRadius: 14, minWidth: 340, maxWidth: 420, width: '100%', position: 'relative', boxShadow: '0 4px 32px 0 rgba(0,0,0,0.10)' }}>
+            <h3 style={{ marginBottom: 18, fontWeight: 600, fontSize: 20, color: '#2c3e50', textAlign: 'center' }}>{t('View/Edit Driver Pay Report')}</h3>
+            <button onClick={handleCloseModal} style={{ position: 'absolute', top: 10, right: 14, fontSize: 22, border: 'none', background: 'none', cursor: 'pointer', color: '#aaa' }}>&times;</button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ color: '#4a5568', fontWeight: 500 }}>{t('Driver')}:</span>
+                <span style={{ color: '#2c3e50', fontWeight: 500 }}>{editData.driver?.user?.first_name} {editData.driver?.user?.last_name}</span>
               </div>
-              <div className="summary-item total">
-                <label>{t('Total Pay')}:</label>
-                <span className="final-amount">{reportData.total_pay?.Result || '$0.00'}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ color: '#4a5568', fontWeight: 500 }}>{t('Pay Period')}:</span>
+                <span style={{ color: '#2c3e50' }}>{editData.pay_from} - {editData.pay_to}</span>
+              </div>
+              <div style={{ marginBottom: 6 }}>
+                <label style={{ color: '#4a5568', fontWeight: 500, marginBottom: 2, display: 'block' }}>{t('Invoice Number')}</label>
+                <input type="text" value={editData.invoice_number || ''} onChange={e => setEditData({ ...editData, invoice_number: e.target.value })} style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 14 }} />
+              </div>
+              <div style={{ marginBottom: 6 }}>
+                <label style={{ color: '#4a5568', fontWeight: 500, marginBottom: 2, display: 'block' }}>{t('Weekly Number')}</label>
+                <input type="text" value={editData.weekly_number || ''} onChange={e => setEditData({ ...editData, weekly_number: e.target.value })} style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 14 }} />
+              </div>
+              <div style={{ marginBottom: 6 }}>
+                <label style={{ color: '#4a5568', fontWeight: 500, marginBottom: 2, display: 'block' }}>{t('Notes')}</label>
+                <textarea value={editData.notes || ''} onChange={e => setEditData({ ...editData, notes: e.target.value })} style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 14, minHeight: 48 }} />
+              </div>
+              {/* Company Driver Fields */}
+              {editData.company_driver_data && (
+                <div style={{ background: '#f7fafc', padding: 10, borderRadius: 8, margin: '8px 0' }}>
+                  <b style={{ color: '#2c3e50', fontWeight: 600 }}>{t('Company Driver Data')}</b>
+                  <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div><b style={{ color: '#4a5568', fontWeight: 500 }}>{t('Total Miles')}:</b> <span style={{ color: '#2c3e50' }}>{editData.company_driver_data.total_miles}</span></div>
+                    <div><b style={{ color: '#4a5568', fontWeight: 500 }}>{t('Miles Rate')}:</b> <span style={{ color: '#2c3e50' }}>{editData.company_driver_data.miles_rate}</span></div>
+                    <div><b style={{ color: '#4a5568', fontWeight: 500 }}>{t('Company Driver Pay')}:</b> <span style={{ color: '#2c3e50' }}>{editData.company_driver_data.company_driver_pay}</span></div>
+                  </div>
+                </div>
+              )}
+              {/* File upload/download */}
+              <div style={{ marginBottom: 6 }}>
+                <label style={{ color: '#4a5568', fontWeight: 500, marginBottom: 2, display: 'block' }}>{t('File')}</label>
+                {editData.file && typeof editData.file === 'string' && (
+                  <button type="button" onClick={() => handleDownloadFile(editData.file)} style={{ marginRight: 10, background: '#4d9ef0', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 10px', fontSize: 13, cursor: 'pointer' }}>{t('Download')}</button>
+                )}
+                <input type="file" onChange={e => handleFileChange(e, 'file')} style={{ marginTop: 4 }} />
+              </div>
+              {/* <div style={{ marginBottom: 6 }}>
+                <label style={{ color: '#4a5568', fontWeight: 500, marginBottom: 2, display: 'block' }}>{t('CD File')}</label>
+                {editData.cd_file && typeof editData.cd_file === 'string' && (
+                  <button type="button" onClick={() => handleDownloadFile(editData.cd_file)} style={{ marginRight: 10, background: '#4d9ef0', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 10px', fontSize: 13, cursor: 'pointer' }}>{t('Download')}</button>
+                )}
+                <input type="file" onChange={e => handleFileChange(e, 'cd_file')} style={{ marginTop: 4 }} />
+              </div> */}
+              {error && <div className="error-message">{error}</div>}
+              <div style={{ display: 'flex', gap: 10, marginTop: 10, justifyContent: 'flex-end' }}>
+                <button className="btn btn-primary" onClick={handleSaveEdit} disabled={loading}>{t('Save')}</button>
+                <button className="btn btn-secondary" onClick={handleCloseModal}>{t('Cancel')}</button>
               </div>
             </div>
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .other-payments-container {
-          padding: 8px 16px;
-          background-color: #f9fafb;
-          border-left: 4px solid #e5e7eb;
-          margin: 16px 0;
-        }
-        
-        .loads-table tr {
-          border-bottom: 1px solid #e2e8f0;
-        }
-
-        .loads-table tr:not(:last-child) {
-          margin-bottom: 16px;
-        }
-        
-        .other-payments-table {
-          width: 100%;
-          border-collapse: separate;
-          border-spacing: 0 8px;
-          margin: 8px 0;
-        }
-        
-        .other-payments-table th,
-        .other-payments-table td {
-          padding: 12px 8px;
-          text-align: left;
-          border-bottom: 1px solid #e2e8f0;
-        }
-        
-        .other-payments-table th {
-          background-color: #f7fafc;
-          font-weight: 600;
-          color: #4a5568;
-        }
-        
-        .payment-amount {
-          font-weight: 600;
-        }
-        
-        .payment-amount.positive {
-          color: #059669;
-        }
-        
-        .payment-amount.negative {
-          color: #dc2626;
-        }
-        
-        .negative-amount {
-          color: #dc2626;
-        }
-        
-        .positive-amount {
-          color: #059669;
-        }
-        
-        .final-amount {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #059669;
-        }
-
-        .loads-table {
-          border-collapse: separate;
-          border-spacing: 0 16px;
-        }
-
-        .loads-table tbody tr {
-          background: white;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .loads-table td {
-          padding: 16px 8px;
-        }
-      `}</style>
     </div>
   );
 };
