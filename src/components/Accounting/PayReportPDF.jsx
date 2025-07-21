@@ -1,7 +1,7 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 
-const API_URL = 'https://ezpzfleetnodir.biznes-armiya.uz';
+const API_URL = 'https://nnt.nntexpressinc.com';
 
 // Create styles
 const styles = StyleSheet.create({

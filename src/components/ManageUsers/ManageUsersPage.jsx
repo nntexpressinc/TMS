@@ -284,7 +284,7 @@ const ManageUsersPage = () => {
     }
     
     // Use the BASE_URL from auth.js
-    return `https://ezpzfleetnodir.biznes-armiya.uz${photoPath}`;
+    return `https://nnt.nntexpressinc.com${photoPath}`;
   };
 
   return (

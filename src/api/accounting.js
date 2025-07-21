@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://ezpzfleetnodir.biznes-armiya.uz/api';
+const API_URL = 'https://nnt.nntexpressinc.com/api';
 
 export const getDrivers = async () => {
   try {

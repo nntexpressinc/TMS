@@ -1,4 +1,4 @@
-export const BASE_URL = 'https://ezpzfleetnodir.biznes-armiya.uz/api';
+export const BASE_URL = 'https://nnt.nntexpressinc.com/api';
 
 export const API_ENDPOINTS = {
   DRIVER: {
