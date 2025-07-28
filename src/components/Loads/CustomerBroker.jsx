@@ -36,16 +36,16 @@ const CustomerBroker = ({ loadData, handleChange, showCustomerForm, handleToggle
 
   const handleAddCustomer = async () => {
     const formData = new FormData();
-    formData.append("company_name", loadData.new_customer_company_name || "");
-    formData.append("contact_number", loadData.new_customer_contact_number || "");
-    formData.append("email_address", loadData.new_customer_email_address || "");
-    formData.append("mc_number", loadData.new_customer_mc_number || "");
-    formData.append("address1", loadData.new_customer_address1 || "");
-    formData.append("address2", loadData.new_customer_address2 || "");
-    formData.append("country", loadData.new_customer_country || "");
-    formData.append("state", loadData.new_customer_state || "");
-    formData.append("city", loadData.new_customer_city || "");
-    formData.append("zip_code", loadData.new_customer_zip_code || "");
+    formData.append("company_name", loadData.new_customer_company_name?.trim() ? loadData.new_customer_company_name : null);
+    formData.append("contact_number", loadData.new_customer_contact_number?.trim() ? loadData.new_customer_contact_number : null);
+    formData.append("email_address", loadData.new_customer_email_address?.trim() ? loadData.new_customer_email_address : null);
+    formData.append("mc_number", loadData.new_customer_mc_number?.trim() ? loadData.new_customer_mc_number : null);
+    formData.append("address1", loadData.new_customer_address1?.trim() ? loadData.new_customer_address1 : null);
+    formData.append("address2", loadData.new_customer_address2?.trim() ? loadData.new_customer_address2 : null);
+    formData.append("country", loadData.new_customer_country?.trim() ? loadData.new_customer_country : null);
+    formData.append("state", loadData.new_customer_state?.trim() ? loadData.new_customer_state : null);
+    formData.append("city", loadData.new_customer_city?.trim() ? loadData.new_customer_city : null);
+    formData.append("zip_code", loadData.new_customer_zip_code?.trim() ? loadData.new_customer_zip_code : null);
 
     try {
       const response = await ApiService.postData(ENDPOINTS.CUSTOMER_BROKER, formData);

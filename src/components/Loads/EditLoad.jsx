@@ -29,7 +29,6 @@ const steps = [
 const requiredFields = {
   0: [
     "load_id",
-    "reference_id",
     "created_date",
     "updated_date",
     "load_pay",
@@ -37,14 +36,14 @@ const requiredFields = {
     "per_mile",
     "total_miles",
   ],
-  1: ["reference_id"],
-  2: ["reference_id"],
-  3: ["reference_id"],
-  4: ["reference_id"],
-  5: ["reference_id"],
-  6: ["reference_id"],
-  7: ["reference_id"],
-  8: ["reference_id"],
+  1: ["load_id"],
+  2: ["load_id"],
+  3: ["load_id"],
+  4: ["load_id"],
+  5: ["load_id"],
+  6: ["load_id"],
+  7: ["load_id"],
+  8: ["load_id"],
 };
 
 const EditLoad = () => {
@@ -227,8 +226,9 @@ const EditLoad = () => {
     }
   };
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
+  const handleSendMessage = async (messageText = newMessage, file = null) => {
+    if (!messageText.trim() && !file) return;
+
     const formData = new FormData();
     const userId = localStorage.getItem("userId");
 
@@ -236,24 +236,28 @@ const EditLoad = () => {
     formData.append("load_id", id || "");
     formData.append("group_message_id", "");
 
-    if (newMessage.trim()) {
+    if (messageText.trim()) {
       const newMessageObj = {
-        message: newMessage,
+        message: messageText,
         timestamp: new Date(),
       };
       setChatMessages([...chatMessages, newMessageObj]);
-      formData.append("message", newMessage);
+      formData.append("message", messageText);
+    }
 
-      try {
-        const response = await ApiService.postMediaData("/chat/", formData);
-        console.log(response);
-        if (response.status !== 200) {
-          throw new Error("Failed to send message");
-        }
-        setNewMessage("");
-      } catch (error) {
-        console.error("Error sending message:", error);
+    if (file) {
+      formData.append("file", file);
+    }
+
+    try {
+      const response = await ApiService.postMediaData("/chat/", formData);
+      console.log(response);
+      if (response.status !== 200) {
+        throw new Error("Failed to send message");
       }
+      setNewMessage("");
+    } catch (error) {
+      console.error("Error sending message:", error);
     }
 
     const fileFields = {

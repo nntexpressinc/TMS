@@ -172,8 +172,8 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
   };
 
   const handleCreateLoad = async () => {
-    if (!loadData.reference_id || !loadData.customer_broker || !loadData.load_id) {
-      setError("Load ID, Reference ID and Customer/Broker are required");
+    if (!loadData.load_id || !loadData.customer_broker) {
+      setError("Load ID and Customer/Broker are required");
       return;
     }
 
@@ -183,7 +183,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
     try {
       const response = await ApiService.postData("/load/", {
         load_id: loadData.load_id,
-        reference_id: loadData.reference_id,
+        reference_id: loadData.reference_id || "", // Allow empty reference_id
         customer_broker: loadData.customer_broker.id,
         unit_id: loadData.unit_id,
         truck: loadData.truck_id,
@@ -229,11 +229,11 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
     }
     
     try {
-      // Convert numeric strings to numbers
+      // Convert numeric strings to numbers, but allow null for zip_code
       const formattedData = {
         ...newBroker,
         contact_number: newBroker.contact_number ? parseInt(newBroker.contact_number) : null,
-        zip_code: newBroker.zip_code ? parseInt(newBroker.zip_code) : null
+        zip_code: newBroker.zip_code || null // Allow empty or null zip_code
       };
       
       const response = await ApiService.postData("/customer_broker/", formattedData);
@@ -302,9 +302,6 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
                 name="reference_id"
                 value={loadData.reference_id}
                 onChange={handleChange}
-                required
-                error={!loadData.reference_id}
-                helperText={!loadData.reference_id ? "Reference ID is required" : ""}
               />
             </Grid>
             <Grid item xs={12}>
@@ -395,7 +392,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
           <Button 
             variant="contained" 
             onClick={handleCreateLoad}
-            disabled={loading || !loadData.reference_id || !loadData.customer_broker || !loadData.load_id}
+            disabled={loading || !loadData.load_id || !loadData.customer_broker}
             startIcon={loading ? <CircularProgress size={20} /> : <AddIcon />}
           >
             Create Load

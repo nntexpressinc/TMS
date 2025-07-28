@@ -38,25 +38,39 @@ const Stops = ({ loadData, handleChange, disabled }) => {
     }));
   };
 
-  const handleAddStop = () => {
-    setStops([...stops, newStop]);
-    setNewStop({
-      id: stops.length + 1,
-      stop_name: 'PICKUP',
-      company_name: '',
-      contact_name: '',
-      reference_id: '',
-      appointmentdate: '',
-      time: '',
-      address1: '',
-      address2: '',
-      country: '',
-      state: '',
-      city: '',
-      zip_code: '',
-      note: '',
-      load: loadData?.id || 0
-    });
+  const handleAddStop = async () => {
+    try {
+      // Prepare data for API
+      const stopDataForAPI = {
+        ...newStop,
+        zip_code: newStop.zip_code || null, // Allow null zip_code
+        load: loadData?.id || 0
+      };
+
+      // Add to local state
+      setStops([...stops, stopDataForAPI]);
+      
+      // Reset form
+      setNewStop({
+        id: stops.length + 1,
+        stop_name: 'PICKUP',
+        company_name: '',
+        contact_name: '',
+        reference_id: '',
+        appointmentdate: '',
+        time: '',
+        address1: '',
+        address2: '',
+        country: '',
+        state: '',
+        city: '',
+        zip_code: '',
+        note: '',
+        load: loadData?.id || 0
+      });
+    } catch (error) {
+      console.error('Error adding stop:', error);
+    }
   };
 
   return (

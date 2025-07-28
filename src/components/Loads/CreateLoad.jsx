@@ -196,10 +196,6 @@ const BrokerModal = ({ open, onClose, onSave }) => {
     if (brokerData.contact_number && !/^\d+$/.test(brokerData.contact_number)) {
       newErrors.contact_number = "Contact number must contain only digits";
     }
-    
-    if (brokerData.zip_code && !/^\d+$/.test(brokerData.zip_code)) {
-      newErrors.zip_code = "ZIP code must contain only digits";
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -230,11 +226,11 @@ const BrokerModal = ({ open, onClose, onSave }) => {
     }
 
     try {
-      // Convert numeric strings to numbers
+      // Convert numeric strings to numbers, but allow null for zip_code
       const formattedData = {
         ...brokerData,
         contact_number: brokerData.contact_number ? parseInt(brokerData.contact_number) : null,
-        zip_code: brokerData.zip_code ? parseInt(brokerData.zip_code) : null
+        zip_code: brokerData.zip_code || null // Allow empty or null zip_code
       };
 
       const response = await ApiService.postData("/customer_broker/", formattedData);
@@ -364,8 +360,6 @@ const BrokerModal = ({ open, onClose, onSave }) => {
                 name="zip_code"
                 value={brokerData.zip_code}
                 onChange={handleChange}
-                error={!!errors.zip_code}
-                helperText={errors.zip_code}
                 inputProps={{ maxLength: 10 }}
               />
             </Grid>
@@ -420,6 +414,7 @@ const BrokerModal = ({ open, onClose, onSave }) => {
 const LoadPage = () => {
   const [isCreateModalOpen, setCreateModalOpen] = useState(true);
   const [initialLoadData, setInitialLoadData] = useState({
+    load_id: "",
     reference_id: "",
     customer_broker: null,
   });
@@ -500,7 +495,8 @@ const LoadPage = () => {
   const handleCreateInitialLoad = async () => {
     try {
       const response = await ApiService.postData("/load/", {
-        reference_id: initialLoadData.reference_id,
+        load_id: initialLoadData.load_id,
+        reference_id: initialLoadData.reference_id || "",
         customer_broker: initialLoadData.customer_broker?.id,
       });
       setLoadData(response);
@@ -806,7 +802,21 @@ const LoadPage = () => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Load Reference ID"
+                label="Load ID"
+                value={initialLoadData.load_id}
+                onChange={(e) => setInitialLoadData({
+                  ...initialLoadData,
+                  load_id: e.target.value
+                })}
+                required
+                error={!initialLoadData.load_id}
+                helperText={!initialLoadData.load_id ? "Load ID is required" : ""}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Reference ID"
                 value={initialLoadData.reference_id}
                 onChange={(e) => setInitialLoadData({
                   ...initialLoadData,
@@ -845,7 +855,7 @@ const LoadPage = () => {
           <Button 
             onClick={handleCreateInitialLoad}
             variant="contained"
-            disabled={!initialLoadData.reference_id || !initialLoadData.customer_broker}
+            disabled={!initialLoadData.load_id || !initialLoadData.customer_broker}
           >
             Create Load
           </Button>
