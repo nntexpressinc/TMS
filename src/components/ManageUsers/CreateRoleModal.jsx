@@ -5,7 +5,7 @@ import './CreateRoleModal.scss';
 
 const permissionGroups = {
   main: [
-    'dashboard', 'loads', 'vehicles', 'truck', 'trailer', 'customer_broker', 'driver', 'employee', 'dispatcher', 'users_actives', 'accounting', 'manage_users', 'manage_units', 'manage_teams', 'manage'
+    'dashboard', 'loads', 'vehicles', 'truck', 'trailer', 'customer_broker', 'driver', 'employee', 'dispatcher', 'users_actives', 'accounting', 'ifta', 'manage_users', 'manage_units', 'manage_teams', 'manage'
   ],
   load: ['load_create', 'load_view', 'load_update', 'load_delete'],
   driver: ['driver_create', 'driver_view', 'driver_update', 'driver_delete'],
@@ -20,7 +20,8 @@ const permissionGroups = {
   commodity: ['commodity_create', 'commodity_view', 'commodity_update', 'commodity_delete'],
   customerbroker: ['customerbroker_create', 'customerbroker_view', 'customerbroker_update', 'customerbroker_delete'],
   chat: ['chat_create', 'chat_view', 'chat_update', 'chat_delete'],
-  userlocation: ['userlocation_create', 'userlocation_view', 'userlocation_update', 'userlocation_delete']
+  userlocation: ['userlocation_create', 'userlocation_view', 'userlocation_update', 'userlocation_delete'],
+  ifta: ['ifta_create', 'ifta_view', 'ifta_update', 'ifta_delete']
 };
 
 const CreateRoleModal = ({ isOpen, onClose, onCreateRole, editingRole }) => {

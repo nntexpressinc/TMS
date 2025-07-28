@@ -140,14 +140,21 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       link: "/accounting",
       permission: "accounting"
     },
+    {
+      id: 10,
+      title: t("IFTA"),
+      icon: <MdAccountBalance />,
+      link: "/ifta",
+      permission: "ifta"
+    },
     // {kodni 
-    //   id: 10,
+    //   id: 11,
     //   title: t("Profile"),
     //   icon: <MdOutlineSupervisedUserCircle />,
     //   link: "/profile",
     // },
     {
-      id: 11,
+      id: 12,
       title: t("Manage"),
       icon: <FaUserCog />,
       isDropdown: true,

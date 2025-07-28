@@ -44,6 +44,7 @@ import DispatcherViewPage from "./components/Dispatcher/DispatcherViewPage";
 import DispatcherEditPage from "./components/Dispatcher/DispatcherEditPage";
 import EmployeeViewPage from "./components/Employee/EmployeeViewPage";
 import EmployeeEditPage from "./components/Employee/EmployeeEditPage";
+import IftaPage from "./components/IFTA/IftaPage";
 import PermissionDenied from "./components/PermissionDenied";
 
 const App = () => {
@@ -415,6 +416,16 @@ const App = () => {
               }
             />
             <Route
+              path="ifta"
+              element={
+                <PermissionGuard permissionKey="ifta">
+                  <PrivateRoute>
+                    <IftaPage />
+                  </PrivateRoute>
+                </PermissionGuard>
+              }
+            />
+            <Route
               path="manage-users"
               element={
                 <PermissionGuard permissionKey="manage_users">
@@ -440,6 +451,16 @@ const App = () => {
                 <PermissionGuard permissionKey="manage_teams">
                   <PrivateRoute>
                     <TeamManagementPage />
+                  </PrivateRoute>
+                </PermissionGuard>
+              }
+            />
+            <Route
+              path="ifta"
+              element={
+                <PermissionGuard permissionKey="ifta">
+                  <PrivateRoute>
+                    <IftaPage />
                   </PrivateRoute>
                 </PermissionGuard>
               }
@@ -500,6 +521,7 @@ function getFirstAllowedRoute() {
     { path: "/manage-users", key: "manage_users" },
     { path: "/manage-units", key: "manage_units" },
     { path: "/manage-teams", key: "manage_teams" },
+    { path: "/ifta", key: "ifta" },
   ];
   for (const route of sidebarRoutes) {
     if (permissions[route.key] === true) {

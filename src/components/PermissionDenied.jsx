@@ -22,6 +22,7 @@ function getFirstAllowedRoute() {
     { path: "/dispatcher", key: "dispatcher" },
     { path: "/users-actives", key: "users_actives" },
     { path: "/accounting", key: "accounting" },
+    { path: "/ifta", key: "ifta" },
     { path: "/manage-users", key: "manage_users" },
     { path: "/manage-units", key: "manage_units" },
     { path: "/manage-teams", key: "manage_teams" },
