@@ -851,11 +851,11 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
     }
     
     try {
-      // Convert numeric strings to numbers, but allow null for zip_code
+      // Convert numeric strings to numbers
       const formattedData = {
         ...newBroker,
         contact_number: newBroker.contact_number ? parseInt(newBroker.contact_number) : null,
-        zip_code: newBroker.zip_code && newBroker.zip_code.trim() ? parseInt(newBroker.zip_code) : null
+        zip_code: newBroker.zip_code ? parseInt(newBroker.zip_code) : null
       };
       
       const response = await ApiService.postData("/customer_broker/", formattedData);
@@ -1375,8 +1375,7 @@ const LoadViewPage = () => {
         formData.append('load_id', parseInt(id));
         formData.append('user', userId);
         
-        // Use postFormData method for proper FormData handling
-        await ApiService.postFormData(`/chat/`, formData);
+        await ApiService.postMediaData(`/chat/`, formData);
       } else {
         // Regular text message
         await ApiService.postData(`/chat/`, {
@@ -2196,10 +2195,8 @@ const LoadViewPage = () => {
       }
 
       // For numeric fields, ensure they are numbers or null
-      if (formattedData.zip_code && formattedData.zip_code.trim()) {
+      if (formattedData.zip_code) {
         formattedData.zip_code = parseInt(formattedData.zip_code) || null;
-      } else {
-        formattedData.zip_code = null; // Allow null zip_code
       }
       
       if (formattedData.reference_id && !isNaN(formattedData.reference_id)) {
