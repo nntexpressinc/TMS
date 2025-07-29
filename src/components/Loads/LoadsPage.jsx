@@ -172,8 +172,8 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
   };
 
   const handleCreateLoad = async () => {
-    if (!loadData.reference_id || !loadData.customer_broker || !loadData.load_id) {
-      setError("Load ID, Reference ID and Customer/Broker are required");
+    if (!loadData.customer_broker || !loadData.load_id) {
+      setError("Load ID and Customer/Broker are required");
       return;
     }
 
@@ -302,9 +302,6 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
                 name="reference_id"
                 value={loadData.reference_id}
                 onChange={handleChange}
-                required
-                error={!loadData.reference_id}
-                helperText={!loadData.reference_id ? "Reference ID is required" : ""}
               />
             </Grid>
             <Grid item xs={12}>
@@ -395,7 +392,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
           <Button 
             variant="contained" 
             onClick={handleCreateLoad}
-            disabled={loading || !loadData.reference_id || !loadData.customer_broker || !loadData.load_id}
+            disabled={loading || !loadData.customer_broker || !loadData.load_id}
             startIcon={loading ? <CircularProgress size={20} /> : <AddIcon />}
           >
             Create Load

@@ -764,7 +764,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
     country: "USA",
     state: "",
     city: "",
-    zip_code: "",
+    zip_code: 0,
     billing_type: "NONE"
   });
 
@@ -775,7 +775,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
         setBrokers(data);
       } catch (error) {
         console.error("Error fetching brokers:", error);
-        setError("Brokerlarni yuklashda xato yuz berdi. Iltimos, qayta urinib ko'ring.");
+        setError("Failed to load brokers. Please try again.");
       }
     };
 
@@ -800,8 +800,8 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
   };
 
   const handleCreateLoad = async () => {
-    if (!loadData.reference_id || !loadData.customer_broker || !loadData.load_id) {
-      setError("Reference ID, Load ID va Broker/Mijoz tanlanishi shart");
+    if (!loadData.customer_broker || !loadData.load_id) {
+      setError("Load ID and Customer/Broker are required");
       return;
     }
 
@@ -817,12 +817,12 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
         company_name: loadData.customer_broker.company_name
       });
       
-      console.log("Load yaratildi:", response);
+      console.log("Load created:", response);
       onCreateSuccess(response);
       onClose();
     } catch (error) {
-      console.error("Load yaratishda xato:", error);
-      setError("Load yaratib bo'lmadi. Iltimos, qayta urinib ko'ring.");
+      console.error("Error creating load:", error);
+      setError("Failed to create load. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -845,8 +845,8 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
   };
 
   const handleSaveBroker = async () => {
-    if (!newBroker.company_name || !newBroker.mc_number) {
-      setError("Kompaniya nomi va MC raqami kiritilishi shart");
+    if (!newBroker.company_name || newBroker.company_name.trim() === '') {
+      setError("Company name is required");
       return;
     }
     
@@ -855,7 +855,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
       const formattedData = {
         ...newBroker,
         contact_number: newBroker.contact_number ? parseInt(newBroker.contact_number) : null,
-        zip_code: newBroker.zip_code ? parseInt(newBroker.zip_code) : null
+        zip_code: newBroker.zip_code ? parseInt(newBroker.zip_code) : 0
       };
       
       const response = await ApiService.postData("/customer_broker/", formattedData);
@@ -875,12 +875,12 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
         country: "USA",
         state: "",
         city: "",
-        zip_code: "",
+        zip_code: 0,
         billing_type: "NONE"
       });
     } catch (error) {
-      console.error("Broker yaratishda xato:", error);
-      setError("Broker yaratib bo'lmadi. Iltimos, qayta urinib ko'ring.");
+      console.error("Error creating broker:", error);
+      setError("Failed to create broker. Please try again.");
     }
   };
 
@@ -924,9 +924,6 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
                 name="reference_id"
                 value={loadData.reference_id}
                 onChange={handleChange}
-                required
-                error={!loadData.reference_id}
-                helperText={!loadData.reference_id ? "Reference ID kiritilishi shart" : ""}
               />
             </Grid>
             <Grid item xs={12}>
@@ -969,14 +966,14 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
           </Grid>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={onClose}>Bekor qilish</Button>
+          <Button onClick={onClose}>Cancel</Button>
           <Button 
             variant="contained" 
             onClick={handleCreateLoad}
-            disabled={loading || !loadData.reference_id || !loadData.customer_broker || !loadData.load_id}
+            disabled={loading || !loadData.customer_broker || !loadData.load_id}
             startIcon={loading ? <CircularProgress size={20} /> : <AddIcon />}
           >
-            Load yaratish
+            Create Load
           </Button>
         </DialogActions>
       </Dialog>
@@ -991,7 +988,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
         <DialogTitle>
           <Box display="flex" alignItems="center" gap={1}>
             <BusinessIcon color="primary" />
-            <Typography variant="h6">Yangi Broker qo'shish</Typography>
+            <Typography variant="h6">Add New Broker</Typography>
           </Box>
         </DialogTitle>
         <DialogContent>
@@ -999,31 +996,28 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Kompaniya nomi"
+                label="Company Name"
                 name="company_name"
                 value={newBroker.company_name}
                 onChange={handleBrokerFormChange}
                 required
                 error={!newBroker.company_name}
-                helperText={!newBroker.company_name ? "Kompaniya nomi kiritilishi shart" : ""}
+                helperText={!newBroker.company_name ? "Company name is required" : ""}
               />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="MC raqami"
+                label="MC Number"
                 name="mc_number"
                 value={newBroker.mc_number}
                 onChange={handleBrokerFormChange}
-                required
-                error={!newBroker.mc_number}
-                helperText={!newBroker.mc_number ? "MC raqami kiritilishi shart" : ""}
               />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Telefon raqami"
+                label="Contact Number"
                 name="contact_number"
                 value={newBroker.contact_number}
                 onChange={handleBrokerFormChange}
@@ -1032,7 +1026,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Email manzili"
+                label="Email Address"
                 name="email_address"
                 type="email"
                 value={newBroker.email_address}
@@ -1042,7 +1036,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Manzil 1"
+                label="Address Line 1"
                 name="address1"
                 value={newBroker.address1}
                 onChange={handleBrokerFormChange}
@@ -1051,7 +1045,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Manzil 2"
+                label="Address Line 2"
                 name="address2"
                 value={newBroker.address2}
                 onChange={handleBrokerFormChange}
@@ -1060,7 +1054,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Shahar"
+                label="City"
                 name="city"
                 value={newBroker.city}
                 onChange={handleBrokerFormChange}
@@ -1068,12 +1062,12 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
             </Grid>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
-                <InputLabel>Shtat</InputLabel>
+                <InputLabel>State</InputLabel>
                 <Select
                   name="state"
                   value={newBroker.state}
                   onChange={handleBrokerFormChange}
-                  label="Shtat"
+                  label="State"
                 >
                   {['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
                     'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
@@ -1088,7 +1082,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="ZIP kodi"
+                label="ZIP code"
                 name="zip_code"
                 value={newBroker.zip_code}
                 onChange={handleBrokerFormChange}
@@ -1096,12 +1090,12 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
             </Grid>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
-                <InputLabel>To'lov turi</InputLabel>
+                <InputLabel>Billing Type</InputLabel>
                 <Select
                   name="billing_type"
                   value={newBroker.billing_type}
                   onChange={handleBrokerFormChange}
-                  label="To'lov turi"
+                  label="Billing Type"
                 >
                   <MenuItem value="NONE">None</MenuItem>
                   <MenuItem value="FACTORING_COMPANY">Factoring Company</MenuItem>
@@ -1113,13 +1107,13 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseBrokerModal}>Bekor qilish</Button>
+          <Button onClick={handleCloseBrokerModal}>Cancel</Button>
           <Button 
             variant="contained" 
             onClick={handleSaveBroker}
-            disabled={!newBroker.company_name || !newBroker.mc_number}
+            disabled={!newBroker.company_name}
           >
-            Brokerni saqlash
+            Save Broker
           </Button>
         </DialogActions>
       </Dialog>
@@ -1166,7 +1160,7 @@ const LoadViewPage = () => {
     country: "USA",
     state: "",
     city: "",
-    zip_code: "",
+    zip_code: 0,
     note: "",
     fcfs: "",
     plus_hour: ""
@@ -2141,7 +2135,7 @@ const LoadViewPage = () => {
       country: "USA",
       state: "",
       city: "",
-      zip_code: "",
+      zip_code: 0,
       note: "",
       fcfs: "",
       plus_hour: ""
@@ -2152,6 +2146,12 @@ const LoadViewPage = () => {
   const handleSaveStop = async () => {
     if (!permissions.stop_create && !permissions.stop_update) {
       showSnackbar('You do not have permission to save stops', 'error');
+      return;
+    }
+    
+    // Validate that company_name is required
+    if (!stopFormData.company_name || stopFormData.company_name.trim() === '') {
+      showSnackbar('Company Name is required', 'error');
       return;
     }
     
@@ -3240,6 +3240,7 @@ const LoadViewPage = () => {
                         name="company_name"
                         value={stopFormData.company_name}
                         onChange={handleStopFormChange}
+                        required
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -3463,6 +3464,7 @@ const LoadViewPage = () => {
                             name="company_name"
                             value={stopFormData.company_name}
                             onChange={handleStopFormChange}
+                            required
                           />
                         </Grid>
                         <Grid item xs={12} md={6}>
