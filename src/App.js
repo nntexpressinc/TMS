@@ -33,8 +33,6 @@ import DriverExpenseCreatePage from "./components/Driver/create/DriverExpenseCre
 import DriverEditPage from "./components/Driver/DriverEditPage";
 import DriverPayEditPage from './components/Driver/create/DriverPayEditPage';
 import DriverExpenseEditPage from './components/Driver/create/DriverExpenseEditPage';
-import DriverIftaCreatePage from './components/Driver/create/DriverIftaCreatePage';
-import DriverIftaEditPage from './components/Driver/create/DriverIftaEditPage';
 import LoadViewPage from './components/Loads/LoadViewPage'; // Import LoadViewPage
 import ManageUsersPage from "./components/ManageUsers/ManageUsersPage";
 import UnitManagementPage from "./components/ManageUsers/UnitManagementPage";
@@ -235,26 +233,7 @@ const App = () => {
                 </PermissionGuard>
               }
             />
-            <Route
-              path="driver/:id/ifta/create"
-              element={
-                <PermissionGuard permissionKey="driver_ifta_create">
-                  <PrivateRoute>
-                    <DriverIftaCreatePage />
-                  </PrivateRoute>
-                </PermissionGuard>
-              }
-            />
-            <Route
-              path="driver/:id/ifta/:iftaId/edit"
-              element={
-                <PermissionGuard permissionKey="driver_ifta_edit">
-                  <PrivateRoute>
-                    <DriverIftaEditPage />
-                  </PrivateRoute>
-                </PermissionGuard>
-              }
-            />
+
             <Route
               path="dispatcher"
               element={
