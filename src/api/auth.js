@@ -198,6 +198,10 @@ const ApiService = {
       if (!token) {
         throw new Error('Token not found. Please login again.');
       }
+      console.log('putMediaData - Endpoint:', endpoint);
+      console.log('putMediaData - Data type:', typeof data);
+      console.log('putMediaData - Data:', data);
+      
       const response = await axios.put(`${BASE_URL}${endpoint}`, data, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -206,6 +210,14 @@ const ApiService = {
       });
       return response.data;
     } catch (error) {
+      console.error('putMediaData Error Details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        endpoint: endpoint,
+        requestData: data
+      });
+      
       if (error.response?.status === 401) {
         localStorage.removeItem('accessToken');
         window.location.href = '/login';

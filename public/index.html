@@ -3,8 +3,32 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="icon" href="light-logo.png" />
     <title>TMS</title>
+    <script>
+      // Xavfsizlik sozlamalari
+      if (window.location.hostname !== 'localhost' && window.location.protocol !== 'https:') {
+        window.location.href = 'https://' + window.location.hostname + window.location.pathname;
+      }
+      
+      // Developer tools'ni oldini olish
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+          e.preventDefault();
+          return false;
+        }
+      });
+      
+      // Context menu'ni o'chirish
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

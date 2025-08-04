@@ -2,11 +2,17 @@ import axios from 'axios';
 
 const API_URL = 'https://nnt.nntexpressinc.com/api';
 
-export const getIftaRecords = async () => {
+export const getIftaRecords = async (driverId = null) => {
   try {
     const storedAccessToken = localStorage.getItem('accessToken');
     if (!storedAccessToken) throw new Error('No access token found');
-    const response = await axios.get(`${API_URL}/ifta/`, {
+    
+    let url = `${API_URL}/ifta/`;
+    if (driverId) {
+      url += `?driver=${driverId}`;
+    }
+    
+    const response = await axios.get(url, {
       headers: { Authorization: `Bearer ${storedAccessToken}` },
     });
     return response.data;
@@ -26,6 +32,23 @@ export const getIftaRecordById = async (id) => {
     return response.data;
   } catch (error) {
     console.error('Error fetching IFTA record:', error.message);
+    throw error;
+  }
+};
+
+export const createIftaRecord = async (data) => {
+  try {
+    const storedAccessToken = localStorage.getItem('accessToken');
+    if (!storedAccessToken) throw new Error('No access token found');
+    const response = await axios.post(`${API_URL}/ifta/`, data, {
+      headers: {
+        Authorization: `Bearer ${storedAccessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creating IFTA record:', error.message);
     throw error;
   }
 };

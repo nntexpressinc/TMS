@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import { initializeSecurity } from "./utils/security";
 import LoginPage from "./components/Login/LoginPage";
 import DashboardPage from "./components/Dashboard/DashboardPage";
 import ProfilePage from "./components/Profile/ProfilePage";
@@ -32,6 +33,8 @@ import DriverExpenseCreatePage from "./components/Driver/create/DriverExpenseCre
 import DriverEditPage from "./components/Driver/DriverEditPage";
 import DriverPayEditPage from './components/Driver/create/DriverPayEditPage';
 import DriverExpenseEditPage from './components/Driver/create/DriverExpenseEditPage';
+import DriverIftaCreatePage from './components/Driver/create/DriverIftaCreatePage';
+import DriverIftaEditPage from './components/Driver/create/DriverIftaEditPage';
 import LoadViewPage from './components/Loads/LoadViewPage'; // Import LoadViewPage
 import ManageUsersPage from "./components/ManageUsers/ManageUsersPage";
 import UnitManagementPage from "./components/ManageUsers/UnitManagementPage";
@@ -50,6 +53,13 @@ import PermissionDenied from "./components/PermissionDenied";
 const App = () => {
   const { isAuthenticated: isAuth } = useAuth();
   const isAuthenticated = isAuth || localStorage.getItem("accessToken");
+
+  // Xavfsizlik sozlamalarini ishga tushirish
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') {
+      initializeSecurity();
+    }
+  }, []);
 
   return (
     <SidebarProvider>
@@ -221,6 +231,26 @@ const App = () => {
                 <PermissionGuard permissionKey="driver_expense_edit">
                   <PrivateRoute>
                     <DriverExpenseEditPage />
+                  </PrivateRoute>
+                </PermissionGuard>
+              }
+            />
+            <Route
+              path="driver/:id/ifta/create"
+              element={
+                <PermissionGuard permissionKey="driver_ifta_create">
+                  <PrivateRoute>
+                    <DriverIftaCreatePage />
+                  </PrivateRoute>
+                </PermissionGuard>
+              }
+            />
+            <Route
+              path="driver/:id/ifta/:iftaId/edit"
+              element={
+                <PermissionGuard permissionKey="driver_ifta_edit">
+                  <PrivateRoute>
+                    <DriverIftaEditPage />
                   </PrivateRoute>
                 </PermissionGuard>
               }

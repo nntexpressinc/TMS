@@ -127,17 +127,50 @@ const DispatcherEditPage = () => {
     setLoading(true);
     try {
       const allowedFields = [
-        'email', 'company_name', 'first_name', 'last_name', 'telephone', 'city', 'address',
+        'email', 'company_name', 'first_name', 'last_name', 'telephone', 'callphone', 'city', 'address',
         'country', 'state', 'postal_zip', 'ext', 'fax', 'role', 'company'
       ];
       const cleanUserData = {};
       allowedFields.forEach(field => {
-        if (userData[field] !== undefined) cleanUserData[field] = userData[field];
+        if (userData[field] !== undefined && userData[field] !== null && userData[field] !== '') {
+          cleanUserData[field] = userData[field];
+        }
       });
+      
+      // Ensure required fields are present
+      const requiredFields = ['email', 'company_name', 'first_name', 'last_name', 'telephone', 'city', 'address', 'country', 'state', 'postal_zip'];
+      const missingFields = requiredFields.filter(field => !cleanUserData[field]);
+      
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+      
+      // ext maydonini alohida ko'rib chiqamiz
+      if (userData.ext && userData.ext.trim() !== '') {
+        const extValue = parseInt(userData.ext);
+        if (!isNaN(extValue)) {
+          cleanUserData.ext = extValue;
+        }
+      }
+      
+      // Ensure role is set to dispatcher if not present
+      if (!cleanUserData.role) {
+        cleanUserData.role = 'dispatcher';
+      }
+      
+      // Remove any undefined or null values
+      Object.keys(cleanUserData).forEach(key => {
+        if (cleanUserData[key] === undefined || cleanUserData[key] === null) {
+          delete cleanUserData[key];
+        }
+      });
+      
       let formData;
       if (profilePhotoFile) {
         formData = new FormData();
-        Object.entries(cleanUserData).forEach(([key, value]) => formData.append(key, value));
+        Object.entries(cleanUserData).forEach(([key, value]) => {
+          formData.append(key, value);
+        });
         formData.append('profile_photo', profilePhotoFile);
         await ApiService.putMediaData(`/auth/users/${userData.id}/`, formData);
       } else {
@@ -147,7 +180,7 @@ const DispatcherEditPage = () => {
       setLoading(false);
       toast.success('User information updated successfully!');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to update user information. Please check your data and try again.');
+      setError(err.response?.data?.detail || err.response?.data?.message || 'Failed to update user information. Please check your data and try again.');
       setLoading(false);
     }
   };
@@ -222,9 +255,12 @@ const DispatcherEditPage = () => {
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="User (Email)"
+                    label="Email"
+                    name="email"
                     value={userData.email}
-                    InputProps={{ readOnly: true }}
+                    onChange={handleUserChange}
+                    type="email"
+                    required
                     variant="outlined"
                   />
                 </Grid>
@@ -261,6 +297,16 @@ const DispatcherEditPage = () => {
                     label="Phone"
                     name="telephone"
                     value={userData.telephone || ''}
+                    onChange={handleUserChange}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Mobile Phone"
+                    name="callphone"
+                    value={userData.callphone || ''}
                     onChange={handleUserChange}
                   />
                 </Grid>

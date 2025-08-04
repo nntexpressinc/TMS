@@ -85,7 +85,7 @@ const getProfilePhoto = (url) => {
   return `https://nnt.nntexpressinc.com${url}`;
 };
 
-const DriverPDF = ({ driver, user, payments, expenses }) => {
+const DriverPDF = ({ driver, user, payments, expenses, iftaRecords = [] }) => {
   const userInfo = user || driver?.user || {};
   const userSection = [
     { label: 'Email', value: userInfo.email },
@@ -199,6 +199,39 @@ const DriverPDF = ({ driver, user, payments, expenses }) => {
             </View>
           )) : (
             <Text>No expenses found.</Text>
+          )}
+        </View>
+
+        {/* IFTA Records */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>IFTA Records</Text>
+          <View style={styles.tableHeader}>
+            <Text style={styles.tableCell}>Quarter</Text>
+            <Text style={styles.tableCell}>State</Text>
+            <Text style={styles.tableCell}>Total Miles</Text>
+            <Text style={styles.tableCell}>Taxable Gallons</Text>
+            <Text style={styles.tableCell}>Tax Paid Gallons</Text>
+            <Text style={styles.tableCell}>Net Taxable Gallons</Text>
+            <Text style={styles.tableCell}>Tax Amount</Text>
+            <Text style={styles.tableCell}>Invoice #</Text>
+            <Text style={styles.tableCell}>Weekly #</Text>
+            <Text style={styles.tableCell}>Created At</Text>
+          </View>
+          {iftaRecords && iftaRecords.length > 0 ? iftaRecords.map((ifta, idx) => (
+            <View key={idx} style={styles.tableRow}>
+              <Text style={styles.tableCell}>{ifta.quarter || '-'}</Text>
+              <Text style={styles.tableCell}>{ifta.state || '-'}</Text>
+              <Text style={styles.tableCell}>{ifta.total_miles || '-'}</Text>
+              <Text style={styles.tableCell}>{ifta.taxible_gallon || '-'}</Text>
+              <Text style={styles.tableCell}>{ifta.tax_paid_gallon || '-'}</Text>
+              <Text style={styles.tableCell}>{ifta.net_taxible_gallon || '-'}</Text>
+              <Text style={styles.tableCell}>{ifta.tax || '-'}</Text>
+              <Text style={styles.tableCell}>{ifta.invoice_number || '-'}</Text>
+              <Text style={styles.tableCell}>{ifta.weekly_number || '-'}</Text>
+              <Text style={styles.tableCell}>{formatDate(ifta.created_at)}</Text>
+            </View>
+          )) : (
+            <Text>No IFTA records found.</Text>
           )}
         </View>
 
