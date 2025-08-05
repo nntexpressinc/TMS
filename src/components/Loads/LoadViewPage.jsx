@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_BASE_URL } from "../../config";
+import CircleIcon from '@mui/icons-material/Circle';
+import { Menu, Tooltip } from '@mui/material';
 import {
   Box,
   Typography,
@@ -18,7 +20,7 @@ import {
   Snackbar,
   Avatar,
   Badge,
-  Tooltip,
+  
   Chip,
   Modal,
   Dialog,
@@ -47,6 +49,11 @@ import {
   LocalShipping,
   ArrowBack,
   Refresh as RefreshIcon,
+  RadioButtonUnchecked,
+  Assignment,
+  Done,
+  CheckCircle,
+  Cancel,
   Add as AddIcon,
   Business as BusinessIcon,
   Check,
@@ -80,6 +87,7 @@ import {
 } from "@mui/icons-material";
 import { MdFileUpload, MdFileDownload, MdLocalShipping, MdDirectionsCar, MdAssignmentTurnedIn, MdDoneAll, MdAltRoute, MdCheckCircle, MdHome } from 'react-icons/md';
 import { ApiService } from "../../api/auth";
+import chatSocketService from "../../api/chat";
 import { useSidebar } from "../SidebarContext";
 import darkLogo from '../../images/dark-logo.png';
 import { CiDeliveryTruck } from "react-icons/ci";
@@ -1181,6 +1189,17 @@ const LoadViewPage = () => {
   const chatContainerRef = useRef(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const [permissions, setPermissions] = useState({});
+  // Socket.IO chat state
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [isSocketConnecting, setIsSocketConnecting] = useState(false);
+  const [socketConnectionError, setSocketConnectionError] = useState(null);
+  const [typingUsers, setTypingUsers] = useState([]);
+  const [loadStatusAnchor, setLoadStatusAnchor] = useState(null);
+  const [invoiceStatusAnchor, setInvoiceStatusAnchor] = useState(null);
+  
+  // Define status options with short labels
+
+
   // First, add state for delete confirmation dialog
   const [deleteStopDialog, setDeleteStopDialog] = useState({
     open: false,
@@ -1202,6 +1221,119 @@ const LoadViewPage = () => {
       setPermissions({});
     }
   }, []);
+  
+  // Socket.IO connection setup
+  useEffect(() => {
+    const userId = parseInt(localStorage.getItem("userid"));
+    
+    if (userId && id) {
+      const initializeSocket = async () => {
+        try {
+          setIsSocketConnecting(true);
+          await chatSocketService.connect(userId, parseInt(id));
+          setIsSocketConnected(true);
+          setIsSocketConnecting(false);
+          setSocketConnectionError(null);
+          
+          // Join the chat room
+          chatSocketService.joinRoom(userId, parseInt(id));
+          
+          // Set up event listeners
+          chatSocketService.onMessageReceived((newMessage) => {
+            try {
+              setChatMessages(prev => {
+                // Check if this is our own message (replace temp message)
+                const currentUserId = parseInt(localStorage.getItem("userid"));
+                const isOwnMessage = newMessage.user === currentUserId;
+                
+                if (isOwnMessage) {
+                  // Replace temp message with real message
+                  const updated = prev.map(msg => 
+                    msg.is_temp && msg.user === currentUserId ? { ...newMessage, is_temp: false } : msg
+                  );
+                  return updated;
+                } else {
+                  // Add new message from other user
+                  const updated = [...prev, newMessage];
+                  // Sort by timestamp
+                  return updated.sort((a, b) => {
+                    const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+                    const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+                    return dateA - dateB;
+                  });
+                }
+              });
+              
+              // Fetch user data for the new message
+              if (newMessage.user) {
+                fetchUserData(newMessage.user);
+              }
+            } catch (error) {
+              console.error('Error handling new message:', error);
+            }
+          });
+          
+          chatSocketService.onMessageUpdated((updatedMessage) => {
+            try {
+              setChatMessages(prev => 
+                prev.map(msg => msg.id === updatedMessage.id ? updatedMessage : msg)
+              );
+            } catch (error) {
+              console.error('Error handling message update:', error);
+            }
+          });
+          
+          chatSocketService.onMessageDeleted((messageId) => {
+            try {
+              setChatMessages(prev => prev.filter(msg => msg.id !== messageId));
+            } catch (error) {
+              console.error('Error handling message deletion:', error);
+            }
+          });
+          
+          chatSocketService.onUserTyping((data) => {
+            try {
+              setTypingUsers(prev => {
+                const existing = prev.find(u => u.userId === data.userId);
+                if (!existing) {
+                  return [...prev, { userId: data.userId, timestamp: Date.now() }];
+                }
+                return prev;
+              });
+            } catch (error) {
+              console.error('Error handling typing event:', error);
+            }
+          });
+          
+          chatSocketService.onUserStoppedTyping((data) => {
+            try {
+              setTypingUsers(prev => prev.filter(u => u.userId !== data.userId));
+            } catch (error) {
+              console.error('Error handling stopped typing event:', error);
+            }
+          });
+          
+        } catch (error) {
+          console.log('WebSocket not available - using REST API fallback');
+          setIsSocketConnected(false);
+          setIsSocketConnecting(false);
+          setSocketConnectionError('WebSocket not available - using REST API fallback');
+          // Don't show error to user since we have REST API fallback
+        }
+      };
+      
+      initializeSocket();
+      
+        // Cleanup on unmount
+  return () => {
+    chatSocketService.disconnect();
+    chatSocketService.removeAllListeners();
+    if (typingTimeout) {
+      clearTimeout(typingTimeout);
+    }
+  };
+    }
+  }, [id]);
   
   useEffect(() => {
     const fetchLoadData = async () => {
@@ -1308,6 +1440,53 @@ const LoadViewPage = () => {
     fetchChatMessages();
   };
 
+  const handleReconnectSocket = async () => {
+    const userId = parseInt(localStorage.getItem("userid"));
+    if (userId && id) {
+      try {
+        setIsSocketConnecting(true);
+        await chatSocketService.connect(userId, parseInt(id));
+        setIsSocketConnected(true);
+        setIsSocketConnecting(false);
+        setSocketConnectionError(null);
+        showSnackbar("Real-time connection established", "success");
+      } catch (error) {
+        console.log("WebSocket not available - continuing with REST API");
+        setIsSocketConnected(false);
+        setIsSocketConnecting(false);
+        setSocketConnectionError('WebSocket not available - using REST API fallback');
+        showSnackbar("Real-time not available - using REST API", "info");
+      }
+    }
+  };
+
+  // Debounced typing handler
+  const [typingTimeout, setTypingTimeout] = useState(null);
+  
+  const handleTyping = (value) => {
+    setNewMessage(value);
+    
+    // Clear existing timeout
+    if (typingTimeout) {
+      clearTimeout(typingTimeout);
+    }
+    
+    // Emit typing event
+    const userId = parseInt(localStorage.getItem("userid"));
+    if (userId && isSocketConnected) {
+      chatSocketService.emitTyping(userId, parseInt(id));
+    }
+    
+    // Set timeout to emit stopped typing after 2 seconds
+    const timeout = setTimeout(() => {
+      if (userId && isSocketConnected) {
+        chatSocketService.emitStoppedTyping(userId, parseInt(id));
+      }
+    }, 2000);
+    
+    setTypingTimeout(timeout);
+  };
+
   // Scroll to bottom of chat when messages change
   useEffect(() => {
     if (chatEndRef.current) {
@@ -1338,53 +1517,139 @@ const LoadViewPage = () => {
           return;
         }
         
-        // Create message data for update
-        const updateData = {
-          message: messageText,
-          load_id: parseInt(id),
-          user: userId
-        };
-        
-        // Don't include file field if editing a message that has a file
-        // This avoids the "The submitted data was not a file" error
-        if (!editingMessage.file) {
-          updateData.file = null;
+        // Update message using Socket.IO or fallback to REST API
+        try {
+          if (isSocketConnected) {
+            await chatSocketService.updateMessage(editingMessage.id, {
+              message: messageText,
+              load_id: parseInt(id),
+              user: userId
+            });
+          } else {
+            // Fallback to REST API
+            const updateData = {
+              message: messageText,
+              load_id: parseInt(id),
+              user: userId
+            };
+            if (!editingMessage.file) {
+              updateData.file = null;
+            }
+            await ApiService.putData(`/chat/${editingMessage.id}/`, updateData);
+            fetchChatMessages();
+          }
+          
+          setEditingMessage(null);
+          setNewMessage("");
+          showSnackbar("Message updated", "success");
+        } catch (error) {
+          console.error("Error updating message:", error);
+          showSnackbar("Failed to update message", "error");
         }
-        
-        // Update existing message using PUT method
-        await ApiService.putData(`/chat/${editingMessage.id}/`, updateData);
-        
-        setEditingMessage(null);
-        setNewMessage("");
-        fetchChatMessages();
-        showSnackbar("Message updated", "success");
         return;
       }
       
       if (file) {
-        // If there's a file, use FormData for multipart request
-        const formData = new FormData();
-        formData.append('message', messageText || '');
-        formData.append('file', file);
-        formData.append('load_id', parseInt(id));
-        formData.append('user', userId);
-        
-        await ApiService.postMediaData(`/chat/`, formData);
+        // Send file message using Socket.IO or fallback to REST API
+        try {
+          // Create temporary message for immediate display (like Telegram)
+          const tempMessage = {
+            id: `temp_${Date.now()}`,
+            message: messageText || '',
+            file: file,
+            load_id: parseInt(id),
+            user: userId,
+            created_at: new Date().toISOString(),
+            is_temp: true
+          };
+          
+          // Add message immediately to chat
+          setChatMessages(prev => [...prev, tempMessage]);
+          
+          if (isSocketConnected) {
+            await chatSocketService.sendFileMessage(file, messageText, parseInt(id), userId);
+          } else {
+            // Fallback to REST API for file upload
+            const formData = new FormData();
+            formData.append('message', messageText || '');
+            formData.append('file', file);
+            formData.append('load_id', parseInt(id));
+            formData.append('user', userId);
+            const response = await ApiService.postMediaData(`/chat/`, formData);
+            
+            // Replace temp message with real message
+            setChatMessages(prev => 
+              prev.map(msg => 
+                msg.id === tempMessage.id ? { ...response, is_temp: false } : msg
+              )
+            );
+          }
+          setNewMessage("");
+          setSelectedFile(null);
+          showSnackbar("File message sent", "success");
+        } catch (error) {
+          console.error("Error sending file message:", error);
+          // Remove temp message on error
+          setChatMessages(prev => prev.filter(msg => !msg.is_temp));
+          if (error.response?.status === 500) {
+            showSnackbar("Server error - please try again later", "error");
+          } else if (error.response?.status === 401) {
+            showSnackbar("Authentication required - please login again", "error");
+          } else {
+            showSnackbar("Failed to send file message", "error");
+          }
+        }
       } else {
-        // Regular text message
-        await ApiService.postData(`/chat/`, {
-          message: messageText,
-          load_id: parseInt(id),
-          user: userId,
-          email: localStorage.getItem("email") || "user@example.com"
-        });
+        // Send text message using Socket.IO or fallback to REST API
+        try {
+          // Create temporary message for immediate display (like Telegram)
+          const tempMessage = {
+            id: `temp_${Date.now()}`,
+            message: messageText,
+            load_id: parseInt(id),
+            user: userId,
+            created_at: new Date().toISOString(),
+            is_temp: true
+          };
+          
+          // Add message immediately to chat
+          setChatMessages(prev => [...prev, tempMessage]);
+          
+          if (isSocketConnected) {
+            await chatSocketService.sendTextMessage(messageText, parseInt(id), userId);
+          } else {
+            // Fallback to REST API
+            const response = await ApiService.postData(`/chat/`, {
+              message: messageText,
+              load_id: parseInt(id),
+              user: userId,
+              email: localStorage.getItem("email") || "user@example.com"
+            });
+            
+            // Replace temp message with real message
+            setChatMessages(prev => 
+              prev.map(msg => 
+                msg.id === tempMessage.id ? { ...response, is_temp: false } : msg
+              )
+            );
+          }
+          setNewMessage("");
+          showSnackbar("Message sent", "success");
+        } catch (error) {
+          console.error("Error sending message:", error);
+          // Remove temp message on error
+          setChatMessages(prev => prev.filter(msg => !msg.is_temp));
+          if (error.response?.status === 500) {
+            showSnackbar("Server error - please try again later", "error");
+          } else if (error.response?.status === 401) {
+            showSnackbar("Authentication required - please login again", "error");
+          } else {
+            showSnackbar("Failed to send message", "error");
+          }
+        }
       }
       
-      setNewMessage("");
-      setSelectedFile(null);
-      fetchChatMessages();
-      showSnackbar("Message sent", "success");
-        } catch (error) {
+    } catch (error) {
       console.error("Error sending message:", error);
       showSnackbar("Failed to send message", "error");
     }
@@ -1676,7 +1941,13 @@ const LoadViewPage = () => {
                     )}
                     
                     {/* Message bubble */}
-                    <MessageBubble isCurrentUser={isCurrentUserMessage}>
+                    <MessageBubble 
+                      isCurrentUser={isCurrentUserMessage}
+                      sx={{
+                        opacity: message.is_temp ? 0.8 : 1,
+                        border: message.is_temp ? '1px dashed rgba(0,0,0,0.2)' : 'none'
+                      }}
+                    >
                       {/* Show message sender name for first message in chain */}
                       {!isPreviousSameUser && !isCurrentUserMessage && (
                         <Typography 
@@ -1711,9 +1982,30 @@ const LoadViewPage = () => {
                         alignItems: 'center', 
                         mt: 0.5
                       }}>
+                        {/* Temporary message indicator */}
+                        {message.is_temp && (
+                          <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            mr: 0.5,
+                            opacity: 0.7
+                          }}>
+                            <CircularProgress size={12} thickness={4} />
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                ml: 0.5, 
+                                fontSize: '0.7rem',
+                                color: 'text.secondary'
+                              }}
+                            >
+                              Sending...
+                            </Typography>
+                          </Box>
+                        )}
                         {isEdited && (
                           <Typography 
-                            variant="caption" 
+                            variant="caption"
                             sx={{ 
                               fontSize: '0.65rem',
                               fontStyle: 'italic',
@@ -4138,145 +4430,271 @@ const LoadViewPage = () => {
               width: '100%',
               gap: 2
             }}>
-              <Typography variant="h6">Chat</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 'fit-content' }}>
+                <Typography variant="h6">Chat</Typography>
+                {/* Socket.IO Connection Status */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Box
+                    sx={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      backgroundColor: isSocketConnected ? '#10B981' : isSocketConnecting ? '#F59E0B' : '#6B7280',
+                      animation: (isSocketConnected || isSocketConnecting) ? 'pulse 2s infinite' : 'none',
+                      '@keyframes pulse': {
+                        '0%': { opacity: 1 },
+                        '50%': { opacity: 0.5 },
+                        '100%': { opacity: 1 }
+                      }
+                    }}
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                    {isSocketConnected ? 'Real-time' : isSocketConnecting ? 'Connecting...' : 'HTTP API'}
+                  </Typography>
+                </Box>
+              </Box>
               
-              {!isLoadDataLoading && (
+              {/* Typing Indicators */}
+              {typingUsers.length > 0 && (
                 <Box sx={{ 
                   display: 'flex', 
-                  gap: 2,
-                  flex: 1,
-                  overflowX: 'auto',
-                  '&::-webkit-scrollbar': {
-                    height: '4px',
-                  },
-                  '&::-webkit-scrollbar-track': {
-                    background: '#f1f1f1',
-                  },
-                  '&::-webkit-scrollbar-thumb': {
-                    background: '#888',
-                    borderRadius: '2px',
-                  },
-                  '&::-webkit-scrollbar-thumb:hover': {
-                    background: '#555',
+                  alignItems: 'center', 
+                  gap: 0.5,
+                  px: 1,
+                  py: 0.25,
+                  bgcolor: 'rgba(25, 118, 210, 0.08)',
+                  borderRadius: 4,
+                  position: 'absolute',
+                  bottom: 'calc(100% + 8px)',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  zIndex: 2,
+                  backdropFilter: 'blur(4px)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  animation: 'fadeIn 0.3s ease-in-out',
+                  '@keyframes fadeIn': {
+                    '0%': {
+                      opacity: 0,
+                      transform: 'translate(-50%, 10px)'
+                    },
+                    '100%': {
+                      opacity: 1,
+                      transform: 'translate(-50%, 0)'
+                    }
                   }
                 }}>
-                  <StatusSelector>
-                    <Select
-                      value={load?.load_status || 'OPEN'}
-                      onChange={handleStatusChange}
-                      disabled={isUpdatingStatus}
-                      sx={{
-                        height: 36,
-                        width: { xs: 150, sm: 180 },
-                        '.MuiSelect-select': {
-                          display: 'flex',
-                          alignItems: 'center',
-                          paddingY: 0.5,
-                          whiteSpace: 'nowrap'
-                        }
-                      }}
-                      MenuProps={{
-                        PaperProps: {
-                          sx: { maxHeight: 400 }
-                        }
-                      }}
-                      renderValue={(selected) => {
-                        const option = loadStatusOptions.find(opt => opt.value === selected);
-                        return (
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <StatusIconContainer color={option?.color}>
-                              {option?.icon}
-                            </StatusIconContainer>
-                            <Typography variant="body2" fontWeight={500}>
-                              {option?.label || 'Status'}
-                            </Typography>
-                          </Box>
-                        );
-                      }}
-                    >
-                      {loadStatusOptions.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                            <StatusIconContainer color={option.color}>
-                              {option.icon}
-                            </StatusIconContainer>
-                            <Typography variant="body2">
-                              {option.label}
-                            </Typography>
-                          </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </StatusSelector>
-
-                  <StatusSelector>
-                    <Select
-                      value={load?.invoice_status || 'NOT_DETERMINED'}
-                      onChange={handleInvoiceStatusChange}
-                      disabled={isUpdatingStatus}
-                      sx={{
-                        height: 36,
-                        width: { xs: 150, sm: 180 },
-                        '.MuiSelect-select': {
-                          display: 'flex',
-                          alignItems: 'center',
-                          paddingY: 0.5,
-                          whiteSpace: 'nowrap'
-                        }
-                      }}
-                      MenuProps={{
-                        PaperProps: {
-                          sx: { maxHeight: 400 }
-                        }
-                      }}
-                      renderValue={(selected) => {
-                        const option = invoiceStatusOptions.find(opt => opt.value === selected);
-                        return (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Box
-                              sx={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: '50%',
-                                backgroundColor: option?.color || '#9CA3AF'
-                              }}
-                            />
-                            <Typography variant="body2" fontWeight={500}>
-                              {option?.label || 'Not Determined'}
-                            </Typography>
-                          </Box>
-                        );
-                      }}
-                    >
-                      {invoiceStatusOptions.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', gap: 1 }}>
-                            <Box
-                              sx={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: '50%',
-                                backgroundColor: option.color
-                              }}
-                            />
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {option.label}
-                            </Typography>
-                          </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </StatusSelector>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 0.5,
+                    animation: 'bounce 1.4s infinite',
+                    '@keyframes bounce': {
+                      '0%, 80%, 100%': { transform: 'scale(0.6)' },
+                      '40%': { transform: 'scale(1.0)' }
+                    }
+                  }}>
+                    <CircleIcon sx={{ fontSize: 4, color: 'primary.main' }} />
+                    <CircleIcon sx={{ 
+                      fontSize: 4, 
+                      color: 'primary.main',
+                      animationDelay: '0.2s'
+                    }} />
+                    <CircleIcon sx={{ 
+                      fontSize: 4, 
+                      color: 'primary.main',
+                      animationDelay: '0.4s'
+                    }} />
+                  </Box>
+                  <Typography variant="caption" sx={{ 
+                    color: 'text.secondary',
+                    fontSize: '0.75rem',
+                    fontWeight: 500
+                  }}>
+                    {typingUsers.length === 1 
+                      ? `${usersData[typingUsers[0].userId]?.first_name || 'Someone'} is typing...`
+                      : `${typingUsers.length} people are typing...`
+                    }
+                  </Typography>
                 </Box>
               )}
               
-              <IconButton onClick={handleRefreshChat} disabled={isChatLoading}>
-                {isChatLoading ? (
-                  <CircularProgress size={24} thickness={4} />
-                ) : (
-                  <RefreshIcon />
+              {!isLoadDataLoading && (
+                <Box sx={{ 
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  ml: 2
+                }}>
+                  {/* Load Status Button */}
+                  <Tooltip title="Change Load Status">
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={(e) => setLoadStatusAnchor(e.currentTarget)}
+                      disabled={isUpdatingStatus}
+                      sx={{
+                        minWidth: 'auto',
+                        px: 1,
+                        py: 0.5,
+                        borderColor: 'divider',
+                        gap: 0.5,
+                        height: 28
+                      }}
+                    >
+                      <Box sx={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        bgcolor: loadStatusOptions.find(opt => opt.value === (load?.load_status || 'OPEN'))?.color || 'grey.400'
+                      }} />
+                      <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.7rem' }}>
+                        {loadStatusOptions.find(opt => opt.value === (load?.load_status || 'OPEN'))?.shortLabel || 'Status'}
+                      </Typography>
+                    </Button>
+                  </Tooltip>
+
+                  {/* Invoice Status Button */}
+                  <Tooltip title="Change Invoice Status">
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={(e) => setInvoiceStatusAnchor(e.currentTarget)}
+                      disabled={isUpdatingStatus}
+                      sx={{
+                        minWidth: 'auto',
+                        px: 1,
+                        py: 0.5,
+                        borderColor: 'divider',
+                        gap: 0.5,
+                        height: 28
+                      }}
+                    >
+                      <Box sx={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        bgcolor: invoiceStatusOptions.find(opt => opt.value === (load?.invoice_status || 'NOT_DETERMINED'))?.color || 'grey.400'
+                      }} />
+                      <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.7rem' }}>
+                        {invoiceStatusOptions.find(opt => opt.value === (load?.invoice_status || 'NOT_DETERMINED'))?.shortLabel || 'Invoice'}
+                      </Typography>
+                    </Button>
+                  </Tooltip>
+
+                  {/* Load Status Menu */}
+                  <Menu
+                    anchorEl={loadStatusAnchor}
+                    open={Boolean(loadStatusAnchor)}
+                    onClose={() => setLoadStatusAnchor(null)}
+                    PaperProps={{
+                      sx: { 
+                        minWidth: 180,
+                        boxShadow: theme => theme.shadows[3],
+                        borderRadius: 1
+                      }
+                    }}
+                  >
+                    {loadStatusOptions.map((option) => (
+                      <MenuItem 
+                        key={option.value} 
+                        onClick={() => {
+                          handleStatusChange({ target: { value: option.value } });
+                          setLoadStatusAnchor(null);
+                        }}
+                        sx={{ 
+                          py: 1,
+                          minHeight: 'auto',
+                          '&:hover': {
+                            bgcolor: 'action.hover'
+                          }
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <StatusIconContainer color={option.color} sx={{ width: 24, height: 24 }}>
+                            {option.icon}
+                          </StatusIconContainer>
+                          <Typography variant="body2">
+                            {option.label}
+                          </Typography>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Menu>
+
+                  {/* Invoice Status Menu */}
+                  <Menu
+                    anchorEl={invoiceStatusAnchor}
+                    open={Boolean(invoiceStatusAnchor)}
+                    onClose={() => setInvoiceStatusAnchor(null)}
+                    PaperProps={{
+                      sx: { 
+                        minWidth: 180,
+                        boxShadow: theme => theme.shadows[3],
+                        borderRadius: 1
+                      }
+                    }}
+                  >
+                    {invoiceStatusOptions.map((option) => (
+                      <MenuItem 
+                        key={option.value} 
+                        onClick={() => {
+                          handleInvoiceStatusChange({ target: { value: option.value } });
+                          setInvoiceStatusAnchor(null);
+                        }}
+                        sx={{ 
+                          py: 1,
+                          minHeight: 'auto',
+                          '&:hover': {
+                            bgcolor: 'action.hover'
+                          }
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: option.color
+                          }} />
+                          <Typography variant="body2">
+                            {option.label}
+                          </Typography>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Menu>
+                </Box>
+              )}
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {/* Socket.IO Connection Status */}
+                {socketConnectionError && (
+                  <Alert 
+                    severity="info" 
+                    sx={{ fontSize: '0.75rem', py: 0 }}
+                    action={
+                      <Button 
+                        size="small" 
+                        color="inherit" 
+                        onClick={handleReconnectSocket}
+                        sx={{ fontSize: '0.7rem', minWidth: 'auto', px: 1 }}
+                      >
+                        Try Real-time
+                      </Button>
+                    }
+                  >
+                    Using HTTP API
+                  </Alert>
                 )}
-              </IconButton>
+                
+                <IconButton onClick={handleRefreshChat} disabled={isChatLoading}>
+                  {isChatLoading ? (
+                    <CircularProgress size={24} thickness={4} />
+                  ) : (
+                    <RefreshIcon />
+                  )}
+                </IconButton>
+              </Box>
             </Box>
           </PanelHeader>
           
@@ -4284,34 +4702,37 @@ const LoadViewPage = () => {
             flex: 1, 
             display: 'flex', 
             flexDirection: 'column',
-            backgroundColor: "#f8f9fa",
+            backgroundColor: "#ffffff",
             borderRadius: theme => theme.spacing(1),
             margin: theme => theme.spacing(0, 2),
             position: 'relative',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
           }}>
             <ChatBackgroundOverlay />
             <ChatContentWrapper>
               <Box sx={{ 
-                padding: 2,
+                px: 2,
+                py: 1.5,
                 flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
                 overflowY: 'auto',
                 position: 'relative',
                 '&::-webkit-scrollbar': {
-                  width: '6px',
+                  width: '4px',
                 },
                 '&::-webkit-scrollbar-track': {
-                  background: '#f1f1f1',
+                  background: 'transparent',
                 },
                 '&::-webkit-scrollbar-thumb': {
-                  background: '#888',
-                  borderRadius: '3px',
+                  background: 'rgba(0,0,0,0.2)',
+                  borderRadius: '4px',
                 },
                 '&::-webkit-scrollbar-thumb:hover': {
-                  background: '#555',
-                }
+                  background: 'rgba(0,0,0,0.3)',
+                },
+                gap: 1.5
               }} ref={chatContainerRef}>
                 {isChatLoading && chatMessages.length === 0 ? (
                   <Box sx={{ 
@@ -4411,8 +4832,15 @@ const LoadViewPage = () => {
                 fullWidth
                 placeholder={editingMessage ? "Edit your message..." : "Type a message..."}
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
+                onChange={(e) => handleTyping(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                onBlur={() => {
+                  // Emit stopped typing event
+                  const userId = parseInt(localStorage.getItem("userid"));
+                  if (userId && isSocketConnected) {
+                    chatSocketService.emitStoppedTyping(userId, parseInt(id));
+                  }
+                }}
                 onPaste={handlePaste}
                 size="small"
                 variant="outlined"
@@ -4422,7 +4850,7 @@ const LoadViewPage = () => {
                       <IconButton 
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                         size="small"
-              color="primary"
+                        color="primary"
                       >
                         <CiDeliveryTruck size={20} />
                       </IconButton>
