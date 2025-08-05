@@ -137,14 +137,6 @@ const DispatcherEditPage = () => {
         }
       });
       
-      // Ensure required fields are present
-      const requiredFields = ['email', 'company_name', 'first_name', 'last_name', 'telephone', 'city', 'address', 'country', 'state', 'postal_zip'];
-      const missingFields = requiredFields.filter(field => !cleanUserData[field]);
-      
-      if (missingFields.length > 0) {
-        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
-      }
-      
       // ext maydonini alohida ko'rib chiqamiz
       if (userData.ext && userData.ext.trim() !== '') {
         const extValue = parseInt(userData.ext);
@@ -260,7 +252,6 @@ const DispatcherEditPage = () => {
                     value={userData.email}
                     onChange={handleUserChange}
                     type="email"
-                    required
                     variant="outlined"
                   />
                 </Grid>
@@ -298,7 +289,7 @@ const DispatcherEditPage = () => {
                     name="telephone"
                     value={userData.telephone || ''}
                     onChange={handleUserChange}
-                    required
+
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
