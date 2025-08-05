@@ -1517,34 +1517,37 @@ const LoadViewPage = () => {
           return;
         }
         
-        // Update message using Socket.IO or fallback to REST API
         try {
-          if (isSocketConnected) {
-            await chatSocketService.updateMessage(editingMessage.id, {
-              message: messageText,
-              load_id: parseInt(id),
-              user: userId
-            });
-          } else {
-            // Fallback to REST API
-            const updateData = {
-              message: messageText,
-              load_id: parseInt(id),
-              user: userId
-            };
-            if (!editingMessage.file) {
-              updateData.file = null;
-            }
-            await ApiService.putData(`/chat/${editingMessage.id}/`, updateData);
-            fetchChatMessages();
+          // Always use REST API for updating messages
+          const updateData = {
+            message: messageText,
+            load_id: parseInt(id),
+            user: userId
+          };
+          
+          // If message didn't have a file before, set file to null
+          if (!editingMessage.file) {
+            updateData.file = null;
           }
+          
+          // Update message in backend
+          await ApiService.putData(`/chat/${editingMessage.id}/`, updateData);
+          
+          // Update message in local state
+          setChatMessages(prevMessages => 
+            prevMessages.map(msg => 
+              msg.id === editingMessage.id 
+                ? { ...msg, message: messageText, updated_at: new Date().toISOString() }
+                : msg
+            )
+          );
           
           setEditingMessage(null);
           setNewMessage("");
-          showSnackbar("Message updated", "success");
+          showSnackbar("Message updated successfully", "success");
         } catch (error) {
           console.error("Error updating message:", error);
-          showSnackbar("Failed to update message", "error");
+          showSnackbar(error.response?.data?.message || "Failed to update message", "error");
         }
         return;
       }
@@ -1802,8 +1805,8 @@ const LoadViewPage = () => {
   
   // Format file URL to use production API
   const getFormattedFileUrl = (url) => {
-    if (!url) return "";
-    return url.replace('https://0.0.0.0:8000/', 'https://blackhawks.nntexpressinc.com/');
+    if (!url || typeof url !== 'string') return "";
+    return url.startsWith('http') ? url : `https://blackhawks.nntexpressinc.com${url}`;
   };
 
   // Format detailed timestamp with seconds
@@ -2097,119 +2100,252 @@ const LoadViewPage = () => {
     );
   };
 
-  // Function to render the file in chat
   const renderFileInChat = (fileUrl, fileName) => {
-    // Replace URL from development to production URL
     const formattedUrl = fileUrl ? getFormattedFileUrl(fileUrl) : '';
+    const fileExtension = fileName ? fileName.split('.').pop().toLowerCase() : '';
     
     if (isImageUrl(formattedUrl)) {
       return (
-        <Box 
-          sx={{ 
-            mt: 1, 
-            maxWidth: '200px',
-            cursor: 'pointer',
-            border: '1px solid rgba(0,0,0,0.1)',
-            borderRadius: 1,
-            overflow: 'hidden'
-          }}
-          onClick={() => handleFilePreview(formattedUrl, 'image', fileName)}
-        >
+        <Box sx={{ 
+          mt: 1, 
+          maxWidth: '280px',
+          cursor: 'pointer',
+          borderRadius: 2,
+          overflow: 'hidden',
+          position: 'relative',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}>
           <img 
             src={formattedUrl} 
             alt="Image attachment" 
+            onClick={() => handleFilePreview(formattedUrl, 'image', fileName)}
             style={{ 
               width: '100%',
-              maxHeight: '150px',
+              maxHeight: '200px',
               objectFit: 'cover'
             }}
           />
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.4) 100%)',
+            opacity: 0,
+            transition: 'opacity 0.2s',
+            '&:hover': {
+              opacity: 1
+            }
+          }}>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                downloadFile(formattedUrl, fileName);
+              }}
+              sx={{
+                position: 'absolute',
+                bottom: 8,
+                right: 8,
+                bgcolor: 'rgba(255,255,255,0.9)',
+                '&:hover': {
+                  bgcolor: 'white'
+                },
+                padding: '6px'
+              }}
+            >
+              <Download fontSize="small" />
+            </IconButton>
+          </Box>
         </Box>
       );
-    } else if (isPdfFile(formattedUrl)) {
+    } else if (isPdfFile(formattedUrl) || fileExtension === 'pdf') {
       return (
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            mt: 1,
-          }}
-        >
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              color: '#ffffff', 
-              fontWeight: 500,
-              fontSize: '0.9rem', 
-              mb: 0.5 
-            }}
-          >
-            PDF document
-          </Typography>
-          
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1, 
-              cursor: 'pointer',
-            }}
-            onClick={() => handleFilePreview(formattedUrl, 'pdf', fileName)}
-          >
-            <PictureAsPdf sx={{ color: '#e53935', fontSize: 20 }} />
+        <Box sx={{
+          mt: 1,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          p: 1.5,
+          bgcolor: 'rgba(229, 57, 53, 0.1)',
+          borderRadius: 2,
+          maxWidth: '320px',
+          border: '1px solid rgba(229, 57, 53, 0.2)',
+          transition: 'all 0.2s',
+          '&:hover': {
+            bgcolor: 'rgba(229, 57, 53, 0.15)',
+          }
+        }}>
+          <PictureAsPdf sx={{ color: '#e53935', fontSize: 28 }} />
+          <Box sx={{ 
+            flex: 1,
+            minWidth: 0
+          }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                fontWeight: 500,
+                color: '#e53935',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {fileName || 'PDF Document'}
+            </Typography>
             <Typography 
               variant="caption" 
               sx={{ 
-                color: '#ffffff',
-                fontSize: '0.75rem'
+                color: 'rgba(0,0,0,0.6)',
+                display: 'block'
               }}
             >
-              Click to view
+              PDF Document
             </Typography>
           </Box>
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            <IconButton
+              size="small"
+              onClick={() => handleFilePreview(formattedUrl, 'pdf', fileName)}
+              sx={{ 
+                bgcolor: 'rgba(229, 57, 53, 0.1)',
+                '&:hover': {
+                  bgcolor: 'rgba(229, 57, 53, 0.2)'
+                }
+              }}
+            >
+              <Visibility sx={{ fontSize: 20, color: '#e53935' }} />
+            </IconButton>
+            <IconButton
+              size="small"
+              onClick={() => downloadFile(formattedUrl, fileName)}
+              sx={{ 
+                bgcolor: 'rgba(229, 57, 53, 0.1)',
+                '&:hover': {
+                  bgcolor: 'rgba(229, 57, 53, 0.2)'
+                }
+              }}
+            >
+              <Download sx={{ fontSize: 20, color: '#e53935' }} />
+            </IconButton>
+          </Box>
+        </Box>
+      );
+    } else if (fileExtension === 'doc' || fileExtension === 'docx') {
+      return (
+        <Box sx={{
+          mt: 1,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          p: 1.5,
+          bgcolor: 'rgba(25, 118, 210, 0.1)',
+          borderRadius: 2,
+          maxWidth: '320px',
+          border: '1px solid rgba(25, 118, 210, 0.2)',
+          transition: 'all 0.2s',
+          '&:hover': {
+            bgcolor: 'rgba(25, 118, 210, 0.15)',
+          }
+        }}>
+          <Description sx={{ color: '#1976d2', fontSize: 28 }} />
+          <Box sx={{ 
+            flex: 1,
+            minWidth: 0
+          }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                fontWeight: 500,
+                color: '#1976d2',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {fileName || 'Word Document'}
+            </Typography>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: 'rgba(0,0,0,0.6)',
+                display: 'block'
+              }}
+            >
+              Word Document
+            </Typography>
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => downloadFile(formattedUrl, fileName)}
+            sx={{ 
+              bgcolor: 'rgba(25, 118, 210, 0.1)',
+              '&:hover': {
+                bgcolor: 'rgba(25, 118, 210, 0.2)'
+              }
+            }}
+          >
+            <Download sx={{ fontSize: 20, color: '#1976d2' }} />
+          </IconButton>
         </Box>
       );
     } else {
       return (
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            mt: 1,
-          }}
-        >
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              color: '#ffffff', 
-              fontWeight: 500,
-              fontSize: '0.9rem', 
-              mb: 0.5 
-            }}
-          >
-            File attachment
-          </Typography>
-          
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1, 
-              cursor: 'pointer',
-            }}
-            onClick={() => downloadFile(formattedUrl, fileName)}
-          >
-            <InsertDriveFile sx={{ color: '#ffffff', fontSize: 20 }} />
+        <Box sx={{
+          mt: 1,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          p: 1.5,
+          bgcolor: 'rgba(0,0,0,0.04)',
+          borderRadius: 2,
+          maxWidth: '320px',
+          border: '1px solid rgba(0,0,0,0.08)',
+          transition: 'all 0.2s',
+          '&:hover': {
+            bgcolor: 'rgba(0,0,0,0.06)',
+          }
+        }}>
+          <InsertDriveFile sx={{ color: '#607d8b', fontSize: 28 }} />
+          <Box sx={{ 
+            flex: 1,
+            minWidth: 0
+          }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                fontWeight: 500,
+                color: 'text.primary',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {fileName || 'File'}
+            </Typography>
             <Typography 
               variant="caption" 
               sx={{ 
-                color: '#ffffff',
-                fontSize: '0.75rem'
+                color: 'text.secondary',
+                display: 'block'
               }}
             >
-              Click to download
+              {fileExtension.toUpperCase() || 'File'}
             </Typography>
           </Box>
+          <IconButton
+            size="small"
+            onClick={() => downloadFile(formattedUrl, fileName)}
+            sx={{ 
+              bgcolor: 'rgba(0,0,0,0.04)',
+              '&:hover': {
+                bgcolor: 'rgba(0,0,0,0.08)'
+              }
+            }}
+          >
+            <Download sx={{ fontSize: 20, color: '#607d8b' }} />
+          </IconButton>
         </Box>
       );
     }
