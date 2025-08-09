@@ -153,7 +153,7 @@ const TrailerEdit = () => {
     {
       title: 'Basic Information',
       fields: [
-        { name: 'make', label: 'Make', required: true },
+        { name: 'make', label: 'Trailer Number', required: true },
         { name: 'model', label: 'Model', required: true },
         { 
           name: 'unit',

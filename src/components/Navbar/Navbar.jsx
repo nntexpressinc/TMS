@@ -1,6 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { AppBar, Toolbar, IconButton, Typography, Badge, Avatar, Box, Button } from '@mui/material';
-import { Notifications as NotificationsIcon, Settings as SettingsIcon } from '@mui/icons-material';
+import { 
+  AppBar, 
+  Toolbar, 
+  IconButton, 
+  Typography, 
+  Badge, 
+  Avatar, 
+  Box, 
+  Button,
+  Menu,
+  MenuItem,
+  Divider,
+  ListItemIcon
+} from '@mui/material';
+import { 
+  Notifications as NotificationsIcon, 
+  Settings as SettingsIcon,
+  Logout as LogoutIcon,
+  Person as PersonIcon
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSidebar } from '../SidebarContext';
@@ -13,6 +31,26 @@ const Navbar = () => {
   const [user, setUser] = useState(null);
   const [roleName, setRoleName] = useState('');
   const [notifications, setNotifications] = useState([]);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+  
+  const handleProfileClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleSettingsClick = () => {
+    handleClose();
+    navigate('/settings');
+  };
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/login');
+  };
 
   useEffect(() => {
     // Read encoded role and permissions from localStorage
@@ -244,7 +282,13 @@ const Navbar = () => {
               padding: '6px 12px',
               borderRadius: '12px',
               backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              }
             }}
+            onClick={handleProfileClick}
           >
             <Avatar 
               alt="User Profile" 
@@ -274,6 +318,53 @@ const Navbar = () => {
               </Typography>
             </Box>
           </Box>
+          
+          <Menu
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleClose}
+            onClick={handleClose}
+            PaperProps={{
+              sx: {
+                minWidth: 220,
+                mt: 1,
+                overflow: 'visible',
+                filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.15))',
+                '&:before': {
+                  content: '""',
+                  display: 'block',
+                  position: 'absolute',
+                  top: 0,
+                  right: 14,
+                  width: 10,
+                  height: 10,
+                  bgcolor: 'background.paper',
+                  transform: 'translateY(-50%) rotate(45deg)',
+                  zIndex: 0,
+                },
+              },
+            }}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          >
+            <Box sx={{ px: 2, py: 1.5 }}>
+              <Typography sx={{ fontWeight: 500 }}>{getUserFullName()}</Typography>
+              <Typography variant="body2" color="text.secondary">{user?.email}</Typography>
+            </Box>
+            <Divider />
+            <MenuItem onClick={handleSettingsClick} sx={{ py: 1.5 }}>
+              <ListItemIcon>
+                <PersonIcon fontSize="small" />
+              </ListItemIcon>
+              Profile Settings
+            </MenuItem>
+            <MenuItem onClick={handleLogout} sx={{ py: 1.5, color: 'error.main' }}>
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" color="error" />
+              </ListItemIcon>
+              Logout
+            </MenuItem>
+          </Menu>
         </Box>
       </Toolbar>
     </AppBar>

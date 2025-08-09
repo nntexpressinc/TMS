@@ -47,6 +47,7 @@ import EmployeeViewPage from "./components/Employee/EmployeeViewPage";
 import EmployeeEditPage from "./components/Employee/EmployeeEditPage";
 import IftaPage from "./components/IFTA/IftaPage";
 import PermissionDenied from "./components/PermissionDenied";
+import SettingsPage from "./components/Settings/SettingsPage";
 
 const App = () => {
   const { isAuthenticated: isAuth } = useAuth();
@@ -472,6 +473,14 @@ const App = () => {
                     <IftaPage />
                   </PrivateRoute>
                 </PermissionGuard>
+              }
+            />
+            <Route
+              path="settings"
+              element={
+                <PrivateRoute>
+                  <SettingsPage />
+                </PrivateRoute>
               }
             />
           </Route>

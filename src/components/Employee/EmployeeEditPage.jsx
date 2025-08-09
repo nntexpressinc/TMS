@@ -132,68 +132,54 @@ const EmployeeEditPage = () => {
     setSuccess(false);
     setLoading(true);
     try {
-      const allowedFields = [
-        'email', 'company_name', 'first_name', 'last_name', 'telephone', 'callphone', 'city', 'address',
-        'country', 'state', 'postal_zip', 'ext', 'fax', 'role', 'company'
-      ];
-      const cleanUserData = {};
-      allowedFields.forEach(field => {
-        if (userData[field] !== undefined && userData[field] !== null && userData[field] !== '') {
-          cleanUserData[field] = userData[field];
+      // Create FormData instance for both photo and regular data
+      const formDataToSend = new FormData();
+
+      // Add all user data fields
+      Object.entries(userData).forEach(([key, value]) => {
+        // Skip null, undefined, empty strings
+        if (value === null || value === undefined || value === '') {
+          return;
         }
+
+        // Handle ext field specially
+        if (key === 'ext') {
+          const extValue = parseInt(String(value));
+          if (!isNaN(extValue)) {
+            formDataToSend.append('ext', extValue);
+          }
+          return;
+        }
+
+        // Skip profile_photo if it's a URL (meaning it hasn't been changed)
+        if (key === 'profile_photo' && typeof value === 'string') {
+          return;
+        }
+
+        formDataToSend.append(key, value);
       });
-      
-      // Ensure required fields are present
-      const requiredFields = ['email', 'company_name', 'first_name', 'last_name', 'telephone', 'city', 'address', 'country', 'state', 'postal_zip'];
-      const missingFields = requiredFields.filter(field => !cleanUserData[field]);
-      
-      if (missingFields.length > 0) {
-        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+
+      // Add profile photo if it exists
+      if (profilePhotoFile) {
+        formDataToSend.append('profile_photo', profilePhotoFile);
       }
-      
-      // ext maydonini alohida ko'rib chiqamiz
-      if (userData.ext && userData.ext.trim() !== '') {
-        const extValue = parseInt(userData.ext);
-        if (!isNaN(extValue)) {
-          cleanUserData.ext = extValue;
-        }
-      }
-      
+
       // Ensure role is set to employee if not present
-      if (!cleanUserData.role) {
-        cleanUserData.role = 'employee';
+      if (!formDataToSend.get('role')) {
+        formDataToSend.append('role', 'employee');
       }
-      
-      // Remove any undefined or null values
-      Object.keys(cleanUserData).forEach(key => {
-        if (cleanUserData[key] === undefined || cleanUserData[key] === null) {
-          delete cleanUserData[key];
-        }
-      });
-      
-      console.log('User data being sent:', cleanUserData);
+
       console.log('Selected user ID:', userData.id);
       
-      let formData;
-      if (profilePhotoFile) {
-        formData = new FormData();
-        Object.entries(cleanUserData).forEach(([key, value]) => {
-          console.log(`Adding to FormData: ${key} = ${value}`);
-          formData.append(key, value);
-        });
-        formData.append('profile_photo', profilePhotoFile);
-        console.log('FormData entries:');
-        for (let [key, value] of formData.entries()) {
-          console.log(`${key}: ${value}`);
-        }
-        const response = await ApiService.putMediaData(`/auth/users/${userData.id}/`, formData);
-        console.log('Response:', response);
-      } else {
-        // If no profile photo file, use regular PUT request
-        console.log('No profile photo file, using regular PUT request');
-        const response = await ApiService.putData(`/auth/users/${userData.id}/`, cleanUserData);
-        console.log('Response:', response);
+      // Log FormData entries for debugging
+      console.log('FormData entries:');
+      for (let [key, value] of formDataToSend.entries()) {
+        console.log(`${key}: ${value}`);
       }
+
+      // Use putMediaData for all requests since we're using FormData
+      const response = await ApiService.putMediaData(`/auth/users/${userData.id}/`, formDataToSend);
+      console.log('Response:', response);
       setSuccess(true);
       setLoading(false);
       toast.success('User information updated successfully!');
