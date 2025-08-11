@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, TextField, Typography, Button, Paper, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 
-const Stops = ({ loadData, handleChange, disabled }) => {
+const Stops = ({ loadData, handleChange, handleStopsChange, disabled }) => {
   const [stops, setStops] = useState([]);
   const [newStop, setNewStop] = useState({
     id: 0,
@@ -38,14 +38,22 @@ const Stops = ({ loadData, handleChange, disabled }) => {
     if (!loadData?.id) return;
     
     try {
-      // Replace with your actual API endpoint for fetching stops
       const response = await fetch(`/api/load/${loadData.id}/stops/`);
       if (response.ok) {
         const fetchedStops = await response.json();
-        setStops(fetchedStops);
+        setStops(fetchedStops || []);
+      } else {
+        // If stops endpoint doesn't exist, try to get stops from load data
+        if (loadData.stops && Array.isArray(loadData.stops)) {
+          setStops(loadData.stops);
+        }
       }
     } catch (error) {
       console.error('Error fetching stops:', error);
+      // If stops endpoint doesn't exist, try to get stops from load data
+      if (loadData.stops && Array.isArray(loadData.stops)) {
+        setStops(loadData.stops);
+      }
     }
   };
 
@@ -53,6 +61,22 @@ const Stops = ({ loadData, handleChange, disabled }) => {
   const formatDateTimeForDisplay = (date, time) => {
     if (!date && !time) return 'N/A';
     
+    // If we have appointmentdate field (from backend), parse it correctly
+    if (date && typeof date === 'string' && date.includes('T')) {
+      try {
+        const datetime = new Date(date);
+        const day = String(datetime.getDate()).padStart(2, '0');
+        const month = String(datetime.getMonth() + 1).padStart(2, '0');
+        const year = datetime.getFullYear();
+        const hours = String(datetime.getHours()).padStart(2, '0');
+        const minutes = String(datetime.getMinutes()).padStart(2, '0');
+        return `${day}.${month}.${year} ${hours}:${minutes}`;
+      } catch (error) {
+        console.error('Error parsing datetime:', error);
+      }
+    }
+    
+    // If we have separate date and time fields (for new stops)
     const dateStr = date || '';
     const timeStr = time || '';
     
@@ -86,11 +110,16 @@ const Stops = ({ loadData, handleChange, disabled }) => {
   };
 
   const handleAddStop = async () => {
+    if (!newStop.appointmentdate || !newStop.time) {
+      alert('Please enter both date and time');
+      return;
+    }
+
     try {
       const stopToAdd = {
         ...newStop,
         // Combine date and time for storage
-        appointmentdatetime: formatDateTimeForStorage(newStop.appointmentdate, newStop.time)
+        appointmentdate: formatDateTimeForStorage(newStop.appointmentdate, newStop.time)
       };
 
       // Save to backend
@@ -99,44 +128,42 @@ const Stops = ({ loadData, handleChange, disabled }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(stopToAdd)
+        body: JSON.stringify(stopToAdd),
       });
 
       if (response.ok) {
         const savedStop = await response.json();
-        setStops(prevStops => [...prevStops, savedStop]);
+        const updatedStops = [...stops, savedStop];
+        setStops(updatedStops);
         
-        // Reset form
-        setNewStop({
-          id: stops.length + 1,
-          stop_name: 'PICKUP',
-          company_name: '',
-          contact_name: '',
-          reference_id: '',
-          appointmentdate: '',
-          time: '',
-          address1: '',
-          address2: '',
-          country: '',
-          state: '',
-          city: '',
-          zip_code: '',
-          note: '',
-          load: loadData?.id || 0
-        });
+                // Update parent component
+        if (handleStopsChange) {
+          handleStopsChange(updatedStops);
+        }
       } else {
-        console.error('Failed to save stop');
         // Fallback: add to local state only
-        setStops(prevStops => [...prevStops, stopToAdd]);
+        const updatedStops = [...stops, stopToAdd];
+        setStops(updatedStops);
+        
+        // Update parent component
+        if (handleStopsChange) {
+          handleStopsChange(updatedStops);
+        }
       }
     } catch (error) {
       console.error('Error adding stop:', error);
       // Fallback: add to local state only
       const stopToAdd = {
         ...newStop,
-        appointmentdatetime: formatDateTimeForStorage(newStop.appointmentdate, newStop.time)
+        appointmentdate: formatDateTimeForStorage(newStop.appointmentdate, newStop.time)
       };
-      setStops(prevStops => [...prevStops, stopToAdd]);
+      const updatedStops = [...stops, stopToAdd];
+      setStops(updatedStops);
+      
+      // Update parent component
+        if (handleStopsChange) {
+          handleStopsChange(updatedStops);
+        }
     }
 
     // Reset form regardless of save success
@@ -173,11 +200,23 @@ const Stops = ({ loadData, handleChange, disabled }) => {
       }
       
       // Remove from local state
-      setStops(prevStops => prevStops.filter((_, index) => index !== stopIndex));
+      const updatedStops = stops.filter((_, index) => index !== stopIndex);
+      setStops(updatedStops);
+      
+      // Update parent component
+      if (handleStopsChange) {
+        handleStopsChange(updatedStops);
+      }
     } catch (error) {
       console.error('Error removing stop:', error);
       // Still remove from local state even if backend call fails
-      setStops(prevStops => prevStops.filter((_, index) => index !== stopIndex));
+      const updatedStops = stops.filter((_, index) => index !== stopIndex);
+      setStops(updatedStops);
+      
+      // Update parent component
+      if (handleStopsChange) {
+        handleStopsChange(updatedStops);
+      }
     }
   };
 

@@ -2751,6 +2751,29 @@ const LoadViewPage = () => {
       const formData = new FormData();
       formData.append(fileType, file);
       
+      // Preserve stops data during file upload
+      if (load?.stops && Array.isArray(load.stops)) {
+        formData.append("stops", JSON.stringify(load.stops));
+      }
+      
+      // Preserve all other important fields during file upload
+      const fieldsToPreserve = [
+        'load_id', 'reference_id', 'equipment_type', 'total_miles',
+        'per_mile', 'load_pay', 'total_pay', 'driver', 'dispatcher',
+        'customer_broker', 'pickup_location', 'delivery_location',
+        'pickup_date', 'delivery_date', 'created_date', 'updated_date'
+      ];
+      
+      fieldsToPreserve.forEach(field => {
+        if (load?.[field] !== null && load?.[field] !== undefined) {
+          if (typeof load[field] === 'object' && load[field]?.id) {
+            formData.append(field, load[field].id);
+          } else {
+            formData.append(field, load[field]);
+          }
+        }
+      });
+      
       await ApiService.putMediaData(`/load/${id}/`, formData);
       
       // Refresh data

@@ -20,7 +20,8 @@ const FileUploads = ({ loadData, handleChange, isDisabled }) => {
         target: {
           name,
           files,
-          value: { name: files[0].name, file: files[0] }
+          value: { name: files[0].name, file: files[0] },
+          type: 'file' // Ensure type is set for proper handling
         }
       };
       

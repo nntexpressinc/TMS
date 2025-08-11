@@ -273,6 +273,24 @@ const EditLoad = () => {
         formData.append("stops", JSON.stringify(loadData.stops));
       }
 
+      // Preserve all other important fields during file upload
+      const fieldsToPreserve = [
+        'load_id', 'reference_id', 'equipment_type', 'total_miles',
+        'per_mile', 'load_pay', 'total_pay', 'driver', 'dispatcher',
+        'customer_broker', 'pickup_location', 'delivery_location',
+        'pickup_date', 'delivery_date', 'created_date', 'updated_date'
+      ];
+      
+      fieldsToPreserve.forEach(field => {
+        if (loadData[field] !== null && loadData[field] !== undefined) {
+          if (typeof loadData[field] === 'object' && loadData[field]?.id) {
+            formData.append(field, loadData[field].id);
+          } else {
+            formData.append(field, loadData[field]);
+          }
+        }
+      });
+
       try {
         const response = await ApiService.putMediaData(`/load/${id}/`, formData);
         console.log("File uploaded successfully:", response);
