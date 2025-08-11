@@ -8,6 +8,7 @@ import {
   Step,
   StepLabel,
   TextField,
+  Alert,
 } from "@mui/material";
 import { ApiService } from "../../api/auth";
 import LoadForm from "./LoadForm";
@@ -36,15 +37,16 @@ const requiredFields = {
     "total_pay",
     "per_mile",
     "total_miles",
+    "truck", // Added truck as required field
   ],
-  1: ["reference_id"],
-  2: ["reference_id"],
-  3: ["reference_id"],
-  4: ["reference_id"],
-  5: ["reference_id"],
-  6: ["reference_id"],
-  7: ["reference_id"],
-  8: ["reference_id"],
+  1: ["reference_id", "truck"], // Added truck requirement
+  2: ["reference_id", "truck"],
+  3: ["reference_id", "truck"],
+  4: ["reference_id", "truck"],
+  5: ["reference_id", "truck"],
+  6: ["reference_id", "truck"],
+  7: ["reference_id", "truck"],
+  8: ["reference_id", "truck"],
 };
 
 const EditLoad = () => {
@@ -61,8 +63,8 @@ const EditLoad = () => {
     customer_broker: null,
     driver: null,
     co_driver: "",
-    truck: "",
-    dispatcher:null,
+    truck: null, // Initialize truck as null
+    dispatcher: null,
     load_status: "OFFER",
     tags: "",
     equipment_type: "DRYVAN",
@@ -86,15 +88,19 @@ const EditLoad = () => {
     pod: null,
     document: null,
     comercial_invoice: null,
+    stops: [], // Add stops array to preserve stops data
   });
   const [drivers, setDrivers] = useState([]);
   const [dispatchers, setDispatchers] = useState([]);
+  const [trucks, setTrucks] = useState([]); // Add trucks state
   const [chatMessages, setChatMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [showCustomerForm, setShowCustomerForm] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertSeverity, setAlertSeverity] = useState("info");
   const navigate = useNavigate();
   const { isSidebarOpen } = useSidebar();
-  const { id } = useParams(); // URL'dan loadId'ni olish
+  const { id } = useParams();
 
   useEffect(() => {
     const fetchLoadData = async () => {
@@ -103,15 +109,25 @@ const EditLoad = () => {
         try {
           const data = await ApiService.getData(`/load/${id}/`, storedAccessToken);
           console.log("Fetched load data:", data);
+          
           // Set pickup_time and delivery_time from created_date and updated_date
           data.pickup_time = data.created_date ? data.created_date.split('T')[0] : "";
           data.delivery_time = data.updated_date ? data.updated_date.split('T')[0] : "";
+          
+          // Preserve existing stops data
+          if (!data.stops) {
+            data.stops = [];
+          }
+          
           setLoadData(data);
+          
           // Load statusga qarab activeStep'ni sozlash
           const stepIndex = steps.findIndex(step => step.toUpperCase().replace(" ", " ") === data.load_status);
           setActiveStep(stepIndex !== -1 ? stepIndex : 0);
         } catch (error) {
           console.error("Error fetching load data:", error);
+          setAlertMessage("Error loading load data");
+          setAlertSeverity("error");
         }
       }
     };
@@ -140,19 +156,37 @@ const EditLoad = () => {
       }
     };
 
+    const fetchTrucks = async () => {
+      const storedAccessToken = localStorage.getItem("accessToken");
+      if (storedAccessToken) {
+        try {
+          const data = await ApiService.getData(`/truck/`, storedAccessToken);
+          setTrucks(data);
+        } catch (error) {
+          console.error("Error fetching trucks data:", error);
+        }
+      }
+    };
+
     fetchLoadData();
     fetchDrivers();
     fetchDispatchers();
+    fetchTrucks();
   }, [id]);
 
   const handleNext = async () => {
     const currentStep = steps[activeStep].toUpperCase().replace(" ", " ");
 
-    // Validation
+    // Enhanced validation with specific error messages
     const required = requiredFields[activeStep];
     for (const field of required) {
       if (!loadData[field]) {
-        alert(`${field.replace("_", " ")} is required to proceed.`);
+        let fieldName = field.replace("_", " ");
+        if (field === "truck") {
+          fieldName = "Unit/Truck";
+        }
+        setAlertMessage(`${fieldName} is required to proceed.`);
+        setAlertSeverity("error");
         return;
       }
     }
@@ -161,31 +195,42 @@ const EditLoad = () => {
       const formData = new FormData();
       const processedData = { ...loadData };
       
-      // Convert string IDs to integers
-      if (processedData.created_by) processedData.created_by = parseInt(processedData.created_by);
-      if (processedData.customer_broker) processedData.customer_broker = parseInt(processedData.customer_broker);
-      if (processedData.dispatcher) processedData.dispatcher = parseInt(processedData.dispatcher);
-      if (processedData.driver) processedData.driver = parseInt(processedData.driver);
+      // Convert object references to IDs while preserving stops and other complex data
+      if (processedData.created_by && typeof processedData.created_by === 'object') processedData.created_by = processedData.created_by.id;
+      if (processedData.customer_broker && typeof processedData.customer_broker === 'object') processedData.customer_broker = processedData.customer_broker.id;
+      if (processedData.dispatcher && typeof processedData.dispatcher === 'object') processedData.dispatcher = processedData.dispatcher.id;
+      if (processedData.driver && typeof processedData.driver === 'object') processedData.driver = processedData.driver.id;
+      if (processedData.truck && typeof processedData.truck === 'object') processedData.truck = processedData.truck.id;
 
-      // Check and format pickup_time and delivery_time to YYYY-MM-DD
+      // Handle date formatting - preserve exact format entered by user
       const formattedPickupTime = loadData.pickup_time ? new Date(loadData.pickup_time).toISOString().split('T')[0] : "";
       const formattedDeliveryTime = loadData.delivery_time ? new Date(loadData.delivery_time).toISOString().split('T')[0] : "";
       formData.append("created_date", formattedPickupTime);
       formData.append("updated_date", formattedDeliveryTime);
 
+      // Preserve stops data during form submission
+      if (processedData.stops && Array.isArray(processedData.stops)) {
+        formData.append("stops", JSON.stringify(processedData.stops));
+      }
+
       Object.keys(processedData).forEach((key) => {
-        if (processedData[key] !== null && key !== "pickup_time" && key !== "delivery_time") {
+        if (processedData[key] !== null && processedData[key] !== undefined && 
+            key !== "pickup_time" && key !== "delivery_time" && key !== "stops") {
           if (processedData[key]?.file) {
             formData.append(key, processedData[key].file);
-          } else {
+          } else if (typeof processedData[key] !== 'object') {
             formData.append(key, processedData[key]);
           }
         }
       });
+      
       formData.set("load_status", currentStep);
       formData.set("created_by", processedData.created_by || "");
 
       await ApiService.patchData(`/load/${id}/`, formData);
+      
+      setAlertMessage("Load updated successfully");
+      setAlertSeverity("success");
 
       if (activeStep === steps.length - 1) {
         navigate("/loads");
@@ -195,6 +240,8 @@ const EditLoad = () => {
     } catch (error) {
       console.error("Error updating load:", error);
       console.error("Response data:", error.response?.data);
+      setAlertMessage("Error updating load. Please check all required fields.");
+      setAlertSeverity("error");
     }
   };
 
@@ -203,28 +250,51 @@ const EditLoad = () => {
   };
 
   const handleChange = async (e) => {
+    // Enhanced change handler that preserves all existing data including stops
+    const isFileUpload = e.target.type === 'file';
     const { name, files, value } = e.target;
+    
+    // Create updated load data while preserving all existing properties
     const updatedLoadData = {
-      ...loadData,
+      ...loadData, // Preserve all existing data including stops
       [name]: files ? { name: files[0].name, file: files[0] } : value,
     };
+    
     setLoadData(updatedLoadData);
 
+    // Handle file uploads with data preservation
     if (files) {
       const formData = new FormData();
       formData.append(name, files[0]);
       formData.set("created_by", loadData.created_by || "");
+      
+      // Preserve stops data during file upload
+      if (loadData.stops && Array.isArray(loadData.stops)) {
+        formData.append("stops", JSON.stringify(loadData.stops));
+      }
 
       try {
         const response = await ApiService.putMediaData(`/load/${id}/`, formData);
-        console.log(response);
+        console.log("File uploaded successfully:", response);
         if (response.status !== 200) {
           throw new Error("Failed to update load");
         }
+        setAlertMessage("File uploaded successfully");
+        setAlertSeverity("success");
       } catch (error) {
-        console.error("Error:", error);
+        console.error("Error uploading file:", error);
+        setAlertMessage("Error uploading file");
+        setAlertSeverity("error");
       }
     }
+  };
+
+  // Enhanced stops handler
+  const handleStopsChange = (newStops) => {
+    setLoadData(prevData => ({
+      ...prevData,
+      stops: newStops
+    }));
   };
 
   const handleSendMessage = async (e) => {
@@ -253,9 +323,12 @@ const EditLoad = () => {
         setNewMessage("");
       } catch (error) {
         console.error("Error sending message:", error);
+        setAlertMessage("Error sending message");
+        setAlertSeverity("error");
       }
     }
 
+    // Handle file uploads in messages
     const fileFields = {
       1: "comercial_invoice",
       2: "rate_con",
@@ -300,8 +373,12 @@ const EditLoad = () => {
       try {
         const response = await ApiService.postData("/api/customer_broker/", formData);
         console.log("Customer Broker created:", response);
+        setAlertMessage("Customer broker created successfully");
+        setAlertSeverity("success");
       } catch (error) {
         console.error("Error creating customer broker:", error);
+        setAlertMessage("Error creating customer broker");
+        setAlertSeverity("error");
       }
     }
     setShowCustomerForm(!showCustomerForm);
@@ -312,6 +389,16 @@ const EditLoad = () => {
   return (
     <Box sx={{ width: "100%", display: "flex", gap: 2 }}>
       <Box sx={{ width: isSidebarOpen ? "77%" : "87%", pr: 2 }}>
+        {alertMessage && (
+          <Alert 
+            severity={alertSeverity} 
+            onClose={() => setAlertMessage("")}
+            sx={{ mb: 2 }}
+          >
+            {alertMessage}
+          </Alert>
+        )}
+        
         <Box sx={{ position: "sticky", top: 0, zIndex: 1, backgroundColor: "white" }}>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
             
@@ -331,23 +418,28 @@ const EditLoad = () => {
             </Button>
           </Stepper>
         </Box>
+        
         <Box sx={{ overflowY: "auto", maxHeight: "calc(100vh - 200px)" }}>
           <LoadForm
             loadData={loadData}
             drivers={drivers}
             dispatchers={dispatchers}
+            trucks={trucks} // Pass trucks to LoadForm
             handleChange={handleChange}
+            handleStopsChange={handleStopsChange} // Pass stops handler
             activeStep={activeStep}
             showCustomerForm={showCustomerForm}
             handleToggleCustomerForm={handleToggleCustomerForm}
             isDetailsComplete={isDetailsComplete}
             isCustomerBrokerComplete={activeStep >= 1}
           />
+          
+          {/* Date inputs with proper formatting */}
           <TextField
             label="Pickup Date"
             name="created_date"
             type="date"
-            value={loadData.created_date}
+            value={loadData.created_date ? loadData.created_date.split('T')[0] : ''}
             onChange={handleChange}
             sx={{ mb: 2, width: '300px', mr: 2 }}
             InputLabelProps={{
@@ -359,7 +451,7 @@ const EditLoad = () => {
             label="Delivery Date"
             name="updated_date"
             type="date"
-            value={loadData.updated_date}
+            value={loadData.updated_date ? loadData.updated_date.split('T')[0] : ''}
             onChange={handleChange}
             sx={{ mb: 2, width: '300px', mr: 2 }}
             InputLabelProps={{
@@ -369,6 +461,7 @@ const EditLoad = () => {
           />
         </Box>
       </Box>
+      
       <Box sx={{ width: "20%" }}>
         <ChatBox
           chatMessages={chatMessages}

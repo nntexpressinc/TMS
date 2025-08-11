@@ -4101,7 +4101,7 @@ const LoadViewPage = () => {
                               day: 'numeric',
                               hour: 'numeric',
                               minute: 'numeric',
-                              hour12: true
+                              hour12: false
                             }) : stop.fcfs ? (
                               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <Typography variant="caption">
@@ -4110,14 +4110,14 @@ const LoadViewPage = () => {
                                     day: 'numeric',
                                     hour: 'numeric',
                                     minute: 'numeric',
-                                    hour12: true
+                                    hour12: false
                                   })}
                                   {stop.plus_hour ? ` - ${new Date(stop.plus_hour).toLocaleString('en-US', {
                                     month: 'short',
                                     day: 'numeric',
                                     hour: 'numeric',
                                     minute: 'numeric',
-                                    hour12: true
+                                    hour12: false
                                   })}` : ''}
                                 </Typography>
                               </Box>
