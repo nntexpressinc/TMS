@@ -1161,7 +1161,8 @@ const LoadViewPage = () => {
     company_name: "",
     contact_name: "",
     reference_id: "",
-    appointmentdate: "",
+    appointmentdate_date: "",
+    appointmentdate_time: "",
     time: "",
     address1: "",
     address2: "",
@@ -1170,8 +1171,10 @@ const LoadViewPage = () => {
     city: "",
     zip_code: 0,
     note: "",
-    fcfs: "",
-    plus_hour: ""
+    fcfs_date: "",
+    fcfs_time: "",
+    plus_hour_date: "",
+    plus_hour_time: ""
   });
   const [isAddingStop, setIsAddingStop] = useState(false);
   const [allStops, setAllStops] = useState([]);
@@ -1349,6 +1352,22 @@ const LoadViewPage = () => {
           console.log('Load has no stops - this is normal for new loads');
           // Don't try to fetch stops separately for new loads
           // Only fetch stops if they were explicitly created for this load
+        }
+        
+        console.log("📥 LOAD DATA RECEIVED FROM BACKEND:");
+        console.log("  📋 Complete load data:", data);
+        if (data.stop && data.stop.length > 0) {
+          console.log("  🛑 Stops data:", data.stop);
+          data.stop.forEach((stop, index) => {
+            console.log(`    Stop ${index + 1}:`, {
+              name: stop.stop_name,
+              appointmentdate: stop.appointmentdate,
+              fcfs: stop.fcfs,
+              plus_hour: stop.plus_hour
+            });
+          });
+        } else {
+          console.log("  🛑 No stops found in load data");
         }
         
         setLoad(data);
@@ -1845,23 +1864,89 @@ const LoadViewPage = () => {
     }
   };
 
-  // Convert local datetime to UTC ISO string for backend
+  // Convert datetime-local input to exact time ISO string for backend submission
+  // This treats the input as the exact time the user wants, not local time
   const convertLocalToUTC = (localDateTimeString) => {
     if (!localDateTimeString) return null;
     
     try {
-      const localDate = new Date(localDateTimeString);
-      if (isNaN(localDate.getTime())) return null;
+      // Parse the datetime-local string (YYYY-MM-DDTHH:mm format)
+      const [datePart, timePart] = localDateTimeString.split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      const [hour, minute] = timePart.split(':').map(Number);
       
-      // Convert to UTC ISO string
-      return localDate.toISOString();
+      // Create a Date object with the exact time specified by the user
+      // This treats the time as the exact time the user wants, regardless of timezone
+      const userSpecifiedDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+      
+      // Return the ISO string - this will be the exact time the user specified
+      return userSpecifiedDate.toISOString();
     } catch (error) {
-      console.error("Error converting local to UTC:", error);
+      console.error("Error converting datetime-local to exact time:", error);
       return null;
     }
   };
 
-  // Convert UTC datetime to local datetime for input fields
+  // Alternative approach: Convert separate date and time inputs to exact time ISO string
+  // This completely bypasses browser timezone handling
+  const convertDateAndTimeToUTC = (dateString, timeString) => {
+    if (!dateString || !timeString) return null;
+    
+    try {
+      // Parse date (YYYY-MM-DD format)
+      const [year, month, day] = dateString.split('-').map(Number);
+      
+      // Parse time (HH:mm format)
+      const [hour, minute] = timeString.split(':').map(Number);
+      
+      console.log("🕐 TIME CONVERSION DEBUG:");
+      console.log("  📅 User selected date:", dateString);
+      console.log("  🕕 User selected time:", timeString);
+      console.log("  📊 Parsed values - Year:", year, "Month:", month, "Day:", day, "Hour:", hour, "Minute:", minute);
+      
+      // Create a Date object with the exact time specified by the user
+      // Using Date.UTC ensures no timezone conversion
+      const userSpecifiedDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+      
+      console.log("  🌍 Created UTC Date object:", userSpecifiedDate);
+      console.log("  📤 Sending to backend:", userSpecifiedDate.toISOString());
+      
+      // Return the ISO string - this will be the exact time the user specified
+      return userSpecifiedDate.toISOString();
+    } catch (error) {
+      console.error("❌ Error converting date and time to exact time:", error);
+      return null;
+    }
+  };
+
+  // Helper function to extract date and time from ISO string for form fields
+  const extractDateAndTimeFromISO = (isoString) => {
+    if (!isoString) return { date: "", time: "" };
+    
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return { date: "", time: "" };
+      
+      // Extract date in YYYY-MM-DD format
+      const dateStr = date.toISOString().split('T')[0];
+      
+      // Extract time in HH:mm format (24-hour)
+      const timeStr = date.toISOString().split('T')[1].substring(0, 5);
+      
+      console.log("📅 EXTRACTING DATE/TIME FROM ISO:");
+      console.log("  📤 Original ISO:", isoString);
+      console.log("  📅 Extracted date:", dateStr);
+      console.log("  🕕 Extracted time:", timeStr);
+      
+      return { date: dateStr, time: timeStr };
+    } catch (error) {
+      console.error("❌ Error extracting date and time from ISO:", error);
+      return { date: "", time: "" };
+    }
+  };
+
+  // Convert UTC datetime to datetime-local format for input fields
+  // This displays the exact time as stored, without timezone conversion
   const convertUTCToLocal = (utcDateTimeString) => {
     if (!utcDateTimeString) return '';
     
@@ -1869,11 +1954,17 @@ const LoadViewPage = () => {
       const utcDate = new Date(utcDateTimeString);
       if (isNaN(utcDate.getTime())) return '';
       
-      // Convert UTC to local timezone for input display
-      const localDate = new Date(utcDate.getTime() - (utcDate.getTimezoneOffset() * 60000));
-      return localDate.toISOString().slice(0, 16);
+      // Format the date as YYYY-MM-DDTHH:mm for datetime-local input
+      // This shows the exact time as stored, not converted to local timezone
+      const year = utcDate.getUTCFullYear();
+      const month = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(utcDate.getUTCDate()).padStart(2, '0');
+      const hour = String(utcDate.getUTCHours()).padStart(2, '0');
+      const minute = String(utcDate.getUTCMinutes()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}T${hour}:${minute}`;
     } catch (error) {
-      console.error("Error converting UTC to local:", error);
+      console.error("Error converting UTC to datetime-local format:", error);
       return '';
     }
   };
@@ -1893,8 +1984,9 @@ const LoadViewPage = () => {
         day: 'numeric',
         hour: 'numeric',
         minute: 'numeric',
-        hour12: true
-      });
+        hour12: true,
+        timeZone: 'UTC' // Force UTC to show exact time as stored
+      }) + ' UTC';
     } catch (error) {
       console.error("Error formatting time for display:", error);
       return "Error";
@@ -1906,12 +1998,17 @@ const LoadViewPage = () => {
     const errors = [];
     
     // Check if FCFS fields are consistent
-    if (formData.fcfs && formData.plus_hour) {
-      const fcfsDate = new Date(formData.fcfs);
-      const plusHourDate = new Date(formData.plus_hour);
+    if (formData.fcfs_date && formData.fcfs_time && formData.plus_hour_date && formData.plus_hour_time) {
+      const fcfsDateTime = convertDateAndTimeToUTC(formData.fcfs_date, formData.fcfs_time);
+      const plusHourDateTime = convertDateAndTimeToUTC(formData.plus_hour_date, formData.plus_hour_time);
       
-      if (fcfsDate >= plusHourDate) {
-        errors.push("FCFS From time must be earlier than FCFS To time");
+      if (fcfsDateTime && plusHourDateTime) {
+        const fcfsDate = new Date(fcfsDateTime);
+        const plusHourDate = new Date(plusHourDateTime);
+        
+        if (fcfsDate >= plusHourDate) {
+          errors.push("FCFS From time must be earlier than FCFS To time");
+        }
       }
     }
     
@@ -2504,19 +2601,24 @@ const LoadViewPage = () => {
     // Use the utility function for consistent date formatting
     const formatDateTimeForInput = convertUTCToLocal;
 
-    console.log("Original stop data:", {
-      appointmentdate: stop.appointmentdate,
-      fcfs: stop.fcfs,
-      plus_hour: stop.plus_hour
-    });
+    console.log("📝 EDITING STOP - Original data from backend:");
+    console.log("  📅 Original appointmentdate:", stop.appointmentdate);
+    console.log("  🕕 Original fcfs:", stop.fcfs);
+    console.log("  🕕 Original plus_hour:", stop.plus_hour);
+    console.log("  📊 Complete stop object:", stop);
     
     // Set form data with properly formatted date values
+    const appointmentDateTime = extractDateAndTimeFromISO(stop.appointmentdate);
+    const fcfsDateTime = extractDateAndTimeFromISO(stop.fcfs);
+    const plusHourDateTime = extractDateAndTimeFromISO(stop.plus_hour);
+    
     const formattedData = {
       stop_name: stop.stop_name || "",
       company_name: stop.company_name || "",
       contact_name: stop.contact_name || "",
       reference_id: stop.reference_id || "",
-      appointmentdate: formatDateTimeForInput(stop.appointmentdate),
+      appointmentdate_date: appointmentDateTime.date,
+      appointmentdate_time: appointmentDateTime.time,
       time: stop.time || "",
       address1: stop.address1 || "",
       address2: stop.address2 || "",
@@ -2525,15 +2627,20 @@ const LoadViewPage = () => {
       city: stop.city || "",
       zip_code: stop.zip_code || "",
       note: stop.note || "",
-      fcfs: formatDateTimeForInput(stop.fcfs),
-      plus_hour: formatDateTimeForInput(stop.plus_hour)
+      fcfs_date: fcfsDateTime.date,
+      fcfs_time: fcfsDateTime.time,
+      plus_hour_date: plusHourDateTime.date,
+      plus_hour_time: plusHourDateTime.time
     };
     
-    console.log("Formatted stop data for form:", {
-      appointmentdate: formattedData.appointmentdate,
-      fcfs: formattedData.fcfs,
-      plus_hour: formattedData.plus_hour
-    });
+    console.log("📝 EDITING STOP - Formatted data for form:");
+    console.log("  📅 Formatted appointmentdate_date:", formattedData.appointmentdate_date);
+    console.log("  🕕 Formatted appointmentdate_time:", formattedData.appointmentdate_time);
+    console.log("  📅 Formatted fcfs_date:", formattedData.fcfs_date);
+    console.log("  🕕 Formatted fcfs_time:", formattedData.fcfs_time);
+    console.log("  📅 Formatted plus_hour_date:", formattedData.plus_hour_date);
+    console.log("  🕕 Formatted plus_hour_time:", formattedData.plus_hour_time);
+    console.log("  📊 Complete formatted data:", formattedData);
     
     setStopFormData(formattedData);
   };
@@ -2542,11 +2649,41 @@ const LoadViewPage = () => {
   const handleCancelEditStop = () => {
     setEditingStop(null);
     setIsAddingStop(false);
+    
+    // Reset form data
+    setStopFormData({
+      stop_name: "",
+      company_name: "",
+      contact_name: "",
+      reference_id: "",
+      appointmentdate_date: "",
+      appointmentdate_time: "",
+      time: "",
+      address1: "",
+      address2: "",
+      country: "USA",
+      state: "",
+      city: "",
+      zip_code: 0,
+      note: "",
+      fcfs_date: "",
+      fcfs_time: "",
+      plus_hour_date: "",
+      plus_hour_time: ""
+    });
   };
 
   // Function to handle form field changes
   const handleStopFormChange = (e) => {
     const { name, value } = e.target;
+    
+    // Log date/time field changes for debugging
+    if (name.includes('date') || name.includes('time')) {
+      console.log("🔄 FORM FIELD CHANGE:");
+      console.log("  📝 Field name:", name);
+      console.log("  📊 New value:", value);
+      console.log("  🕐 Timestamp:", new Date().toISOString());
+    }
     
     // Handle adding new stop
     if (name === 'stop_name' && value === 'add-new') {
@@ -2573,25 +2710,30 @@ const LoadViewPage = () => {
       return;
     }
     
-    // If appointment date is being set, clear FCFS fields
-    if (name === 'appointmentdate' && value) {
+    // If appointment date or time is being set, clear FCFS fields
+    if ((name === 'appointmentdate_date' || name === 'appointmentdate_time') && value) {
       setStopFormData(prevData => ({
         ...prevData,
         [name]: value,
-        // Clear FCFS fields if appointment date is set
-        fcfs: '',
-        plus_hour: ''
+        // Clear FCFS fields if appointment date/time is set
+        fcfs_date: '',
+        fcfs_time: '',
+        plus_hour_date: '',
+        plus_hour_time: ''
       }));
       return;
     }
     
-    // If FCFS fields are being set, clear appointment date
-    if ((name === 'fcfs' || name === 'plus_hour') && value) {
+    // If FCFS fields are being set, clear appointment date/time
+    if ((name === 'fcfs_date' || name === 'fcfs_time' || name === 'plus_hour_date' || name === 'plus_hour_time') && value) {
       setStopFormData(prevData => ({
         ...prevData,
         [name]: value,
-        // Clear appointment date if FCFS fields are set
-        ...(name === 'fcfs' || prevData.fcfs || prevData.plus_hour ? { appointmentdate: '' } : {})
+        // Clear appointment date/time if FCFS fields are set
+        ...(name === 'fcfs_date' || name === 'fcfs_time' || prevData.fcfs_date || prevData.fcfs_time || prevData.plus_hour_date || prevData.plus_hour_time ? { 
+          appointmentdate_date: '', 
+          appointmentdate_time: '' 
+        } : {})
       }));
       return;
     }
@@ -2609,6 +2751,28 @@ const LoadViewPage = () => {
       showSnackbar('You do not have permission to add stops', 'error');
       return;
     }
+    
+    // Reset form data first
+    setStopFormData({
+      stop_name: "",
+      company_name: "",
+      contact_name: "",
+      reference_id: "",
+      appointmentdate_date: "",
+      appointmentdate_time: "",
+      time: "",
+      address1: "",
+      address2: "",
+      country: "USA",
+      state: "",
+      city: "",
+      zip_code: 0,
+      note: "",
+      fcfs_date: "",
+      fcfs_time: "",
+      plus_hour_date: "",
+      plus_hour_time: ""
+    });
     setIsAddingStop(true);
     
     // Determine the existing stops and next stop number
@@ -2639,23 +2803,10 @@ const LoadViewPage = () => {
       }
     }
     
-    setStopFormData({
-      stop_name: initialStopName,
-      company_name: "",
-      contact_name: "",
-      reference_id: "",
-      appointmentdate: "",
-      time: "",
-      address1: "",
-      address2: "",
-      country: "USA",
-      state: "",
-      city: "",
-      zip_code: 0,
-      note: "",
-      fcfs: "",
-      plus_hour: ""
-    });
+    setStopFormData(prev => ({
+      ...prev,
+      stop_name: initialStopName
+    }));
   };
 
   // Function to save stop
@@ -2678,39 +2829,35 @@ const LoadViewPage = () => {
         load: parseInt(id)
       };
 
-      // Handle appointmentdate field
-      if (stopFormData.appointmentdate) {
-        // Convert local datetime to UTC ISO string using utility function
-        formattedData.appointmentdate = convertLocalToUTC(stopFormData.appointmentdate);
+      // Handle appointmentdate field - combine date and time
+      if (stopFormData.appointmentdate_date && stopFormData.appointmentdate_time) {
+        // Convert separate date and time to exact time ISO string
+        formattedData.appointmentdate = convertDateAndTimeToUTC(stopFormData.appointmentdate_date, stopFormData.appointmentdate_time);
         
-        // If appointmentdate is set, fcfs and plus_hour are optional, set them to null if empty
-        if (!stopFormData.fcfs) {
-          formattedData.fcfs = null;
-        }
-        if (!stopFormData.plus_hour) {
-          formattedData.plus_hour = null;
-        }
+        // If appointmentdate is set, fcfs fields are optional, set them to null
+        formattedData.fcfs = null;
+        formattedData.plus_hour = null;
       } else {
         formattedData.appointmentdate = null;
       }
 
-      // Handle fcfs field
-      if (stopFormData.fcfs) {
-        // Convert local datetime to UTC ISO string using utility function
-        formattedData.fcfs = convertLocalToUTC(stopFormData.fcfs);
+      // Handle fcfs field - combine date and time
+      if (stopFormData.fcfs_date && stopFormData.fcfs_time) {
+        // Convert separate date and time to exact time ISO string
+        formattedData.fcfs = convertDateAndTimeToUTC(stopFormData.fcfs_date, stopFormData.fcfs_time);
         
         // If fcfs is set but appointmentdate is not, make appointmentdate optional
-        if (!stopFormData.appointmentdate) {
+        if (!(stopFormData.appointmentdate_date && stopFormData.appointmentdate_time)) {
           formattedData.appointmentdate = null;
         }
       } else {
         formattedData.fcfs = null;
       }
 
-      // Handle plus_hour field - now it's a datetime-local field
-      if (stopFormData.plus_hour) {
-        // Convert local datetime to UTC ISO string using utility function
-        formattedData.plus_hour = convertLocalToUTC(stopFormData.plus_hour);
+      // Handle plus_hour field - combine date and time
+      if (stopFormData.plus_hour_date && stopFormData.plus_hour_time) {
+        // Convert separate date and time to exact time ISO string
+        formattedData.plus_hour = convertDateAndTimeToUTC(stopFormData.plus_hour_date, stopFormData.plus_hour_time);
       } else {
         formattedData.plus_hour = null;
       }
@@ -2731,16 +2878,29 @@ const LoadViewPage = () => {
         formattedData.reference_id = parseInt(formattedData.reference_id) || null;
       }
 
-      console.log("Saving stop with data:", formattedData);
+      console.log("💾 SAVING STOP - FINAL DATA:");
+      console.log("  📋 Complete formatted data:", formattedData);
+      console.log("  📅 Appointment date being sent:", formattedData.appointmentdate);
+      console.log("  🕕 FCFS From being sent:", formattedData.fcfs);
+      console.log("  🕕 FCFS To being sent:", formattedData.plus_hour);
+      console.log("  🔍 Raw form data for reference:", stopFormData);
 
       let response;
       if (editingStop) {
         // Update existing stop
         response = await ApiService.putData(`/stops/${editingStop}/`, formattedData);
+        console.log("✅ STOP UPDATED - Backend response:", response);
+        console.log("  📅 Appointment date received:", response.appointmentdate);
+        console.log("  🕕 FCFS From received:", response.fcfs);
+        console.log("  🕕 FCFS To received:", response.plus_hour);
         showSnackbar("Stop updated successfully", "success");
       } else if (isAddingStop) {
         // Create new stop
         response = await ApiService.postData(`/stops/`, formattedData);
+        console.log("✅ STOP CREATED - Backend response:", response);
+        console.log("  📅 Appointment date received:", response.appointmentdate);
+        console.log("  🕕 FCFS From received:", response.fcfs);
+        console.log("  🕕 FCFS To received:", response.plus_hour);
         
         // If new stop was created, add the stop ID to the load's "stop" array
         if (response && response.id) {
@@ -2762,6 +2922,28 @@ const LoadViewPage = () => {
       
       // Refresh stops data
       fetchAllStops();
+      
+      // Reset form data
+      setStopFormData({
+        stop_name: "",
+        company_name: "",
+        contact_name: "",
+        reference_id: "",
+        appointmentdate_date: "",
+        appointmentdate_time: "",
+        time: "",
+        address1: "",
+        address2: "",
+        country: "USA",
+        state: "",
+        city: "",
+        zip_code: 0,
+        note: "",
+        fcfs_date: "",
+        fcfs_time: "",
+        plus_hour_date: "",
+        plus_hour_time: ""
+      });
       
       // Reset edit state
       setEditingStop(null);
@@ -2797,7 +2979,21 @@ const LoadViewPage = () => {
       setEditingStop(null);
       setIsAddingStop(false);
       
-      console.log("Fetched stops from load:", loadData.stop);
+      console.log("🔄 STOPS REFRESHED:");
+      console.log("  📋 Complete load data:", loadData);
+      if (loadData.stop && loadData.stop.length > 0) {
+        console.log("  🛑 Stops found:", loadData.stop.length);
+        loadData.stop.forEach((stop, index) => {
+          console.log(`    Stop ${index + 1}:`, {
+            name: stop.stop_name,
+            appointmentdate: stop.appointmentdate,
+            fcfs: stop.fcfs,
+            plus_hour: stop.plus_hour
+          });
+        });
+      } else {
+        console.log("  🛑 No stops found");
+      }
     } catch (error) {
       console.error("Error fetching stops:", error);
       setStopsError('Failed to fetch stops data');
@@ -3946,52 +4142,125 @@ const LoadViewPage = () => {
                         onChange={handleStopFormChange}
                       />
                     </Grid>
+                    {/* Appointment Date/Time Row */}
                     <Grid item xs={12}>
+                      <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                        Appointment Date & Time
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Appointment Date"
+                        name="appointmentdate_date"
+                        type="date"
+                        value={stopFormData.appointmentdate_date || ''}
+                        onChange={handleStopFormChange}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        helperText="Select appointment date"
+                        // Disable if FCFS fields are filled
+                        disabled={!!(stopFormData.fcfs_date || stopFormData.fcfs_time || stopFormData.plus_hour_date || stopFormData.plus_hour_time)}
+                        size="medium"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
                         label="Appointment Time"
-                        name="appointmentdate"
-                        type="datetime-local"
-                        value={stopFormData.appointmentdate || ''}
+                        name="appointmentdate_time"
+                        type="time"
+                        value={stopFormData.appointmentdate_time || ''}
                         onChange={handleStopFormChange}
                         InputLabelProps={{
                           shrink: true,
                         }}
-                        helperText="Set a specific appointment time (disables FCFS fields)"
+                        helperText="Select appointment time (24-hour format)"
                         // Disable if FCFS fields are filled
-                        disabled={!!(stopFormData.fcfs || stopFormData.plus_hour)}
+                        disabled={!!(stopFormData.fcfs_date || stopFormData.fcfs_time || stopFormData.plus_hour_date || stopFormData.plus_hour_time)}
+                        size="medium"
+                      />
+                    </Grid>
+                    {/* FCFS From Row */}
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                        FCFS From (First Come, First Served - Start)
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="FCFS From Date"
+                        name="fcfs_date"
+                        type="date"
+                        value={stopFormData.fcfs_date || ''}
+                        onChange={handleStopFormChange}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        helperText="Select start date"
+                        // Disable if appointment date is filled
+                        disabled={!!(stopFormData.appointmentdate_date || stopFormData.appointmentdate_time)}
+                        size="medium"
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        label="FCFS From"
-                        name="fcfs"
-                        type="datetime-local"
-                        value={stopFormData.fcfs || ''}
+                        label="FCFS From Time"
+                        name="fcfs_time"
+                        type="time"
+                        value={stopFormData.fcfs_time || ''}
                         onChange={handleStopFormChange}
                         InputLabelProps={{
                           shrink: true,
                         }}
-                        helperText="First Come, First Served - Start time (disables appointment time)"
+                        helperText="Select start time (24-hour format)"
                         // Disable if appointment date is filled
-                        disabled={!!stopFormData.appointmentdate}
+                        disabled={!!(stopFormData.appointmentdate_date || stopFormData.appointmentdate_time)}
+                        size="medium"
+                      />
+                    </Grid>
+                    
+                    {/* FCFS To Row */}
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                        FCFS To (First Come, First Served - End)
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="FCFS To Date"
+                        name="plus_hour_date"
+                        type="date"
+                        value={stopFormData.plus_hour_date || ''}
+                        onChange={handleStopFormChange}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        helperText="Select end date"
+                        // Disable if appointment date is filled
+                        disabled={!!(stopFormData.appointmentdate_date || stopFormData.appointmentdate_time)}
+                        size="medium"
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        label="FCFS To"
-                        name="plus_hour"
-                        type="datetime-local"
-                        value={stopFormData.plus_hour || ''}
+                        label="FCFS To Time"
+                        name="plus_hour_time"
+                        type="time"
+                        value={stopFormData.plus_hour_time || ''}
                         onChange={handleStopFormChange}
                         InputLabelProps={{
                           shrink: true,
                         }}
-                        helperText="First Come, First Served - End time (disables appointment time)"
+                        helperText="Select end time (24-hour format)"
                         // Disable if appointment date is filled
-                        disabled={!!stopFormData.appointmentdate}
+                        disabled={!!(stopFormData.appointmentdate_date || stopFormData.appointmentdate_time)}
+                        size="medium"
                       />
                     </Grid>
                     <Grid item xs={12}>
@@ -4213,52 +4482,126 @@ const LoadViewPage = () => {
                             onChange={handleStopFormChange}
                           />
                         </Grid>
+                        {/* Appointment Date/Time Row */}
                         <Grid item xs={12}>
+                          <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                            Appointment Date & Time
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            label="Appointment Date"
+                            name="appointmentdate_date"
+                            type="date"
+                            value={stopFormData.appointmentdate_date || ''}
+                            onChange={handleStopFormChange}
+                            InputLabelProps={{
+                              shrink: true,
+                            }}
+                            helperText="Select appointment date"
+                            // Disable if FCFS fields are filled
+                            disabled={!!(stopFormData.fcfs_date || stopFormData.fcfs_time || stopFormData.plus_hour_date || stopFormData.plus_hour_time)}
+                            size="medium"
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
                           <TextField
                             fullWidth
                             label="Appointment Time"
-                            name="appointmentdate"
-                            type="datetime-local"
-                            value={stopFormData.appointmentdate || ''}
+                            name="appointmentdate_time"
+                            type="time"
+                            value={stopFormData.appointmentdate_time || ''}
                             onChange={handleStopFormChange}
                             InputLabelProps={{
                               shrink: true,
                             }}
-                            helperText="Set a specific appointment time (disables FCFS fields)"
+                            helperText="Select appointment time (24-hour format)"
                             // Disable if FCFS fields are filled
-                            disabled={!!(stopFormData.fcfs || stopFormData.plus_hour)}
+                            disabled={!!(stopFormData.fcfs_date || stopFormData.fcfs_time || stopFormData.plus_hour_date || stopFormData.plus_hour_time)}
+                            size="medium"
+                          />
+                        </Grid>
+                        
+                        {/* FCFS From Row */}
+                        <Grid item xs={12}>
+                          <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                            FCFS From (First Come, First Served - Start)
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            label="FCFS From Date"
+                            name="fcfs_date"
+                            type="date"
+                            value={stopFormData.fcfs_date || ''}
+                            onChange={handleStopFormChange}
+                            InputLabelProps={{
+                              shrink: true,
+                            }}
+                            helperText="Select start date"
+                            // Disable if appointment date is filled
+                            disabled={!!(stopFormData.appointmentdate_date || stopFormData.appointmentdate_time)}
+                            size="medium"
                           />
                         </Grid>
                         <Grid item xs={12} md={6}>
                           <TextField
                             fullWidth
-                            label="FCFS From"
-                            name="fcfs"
-                            type="datetime-local"
-                            value={stopFormData.fcfs || ''}
+                            label="FCFS From Time"
+                            name="fcfs_time"
+                            type="time"
+                            value={stopFormData.fcfs_time || ''}
                             onChange={handleStopFormChange}
                             InputLabelProps={{
                               shrink: true,
                             }}
-                            helperText="First Come, First Served - Start time (disables appointment time)"
+                            helperText="Select start time (24-hour format)"
                             // Disable if appointment date is filled
-                            disabled={!!stopFormData.appointmentdate}
+                            disabled={!!(stopFormData.appointmentdate_date || stopFormData.appointmentdate_time)}
+                            size="medium"
+                          />
+                        </Grid>
+                        
+                        {/* FCFS To Row */}
+                        <Grid item xs={12}>
+                          <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                            FCFS To (First Come, First Served - End)
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            label="FCFS To Date"
+                            name="plus_hour_date"
+                            type="date"
+                            value={stopFormData.plus_hour_date || ''}
+                            onChange={handleStopFormChange}
+                            InputLabelProps={{
+                              shrink: true,
+                            }}
+                            helperText="Select end date"
+                            // Disable if appointment date is filled
+                            disabled={!!(stopFormData.appointmentdate_date || stopFormData.appointmentdate_time)}
+                            size="medium"
                           />
                         </Grid>
                         <Grid item xs={12} md={6}>
                           <TextField
                             fullWidth
-                            label="FCFS To"
-                            name="plus_hour"
-                            type="datetime-local"
-                            value={stopFormData.plus_hour || ''}
+                            label="FCFS To Time"
+                            name="plus_hour_time"
+                            type="time"
+                            value={stopFormData.plus_hour_time || ''}
                             onChange={handleStopFormChange}
                             InputLabelProps={{
                               shrink: true,
                             }}
-                            helperText="First Come, First Served - End time (disables appointment time)"
+                            helperText="Select end time (24-hour format)"
                             // Disable if appointment date is filled
-                            disabled={!!stopFormData.appointmentdate}
+                            disabled={!!(stopFormData.appointmentdate_date || stopFormData.appointmentdate_time)}
+                            size="medium"
                           />
                         </Grid>
                         {/* <Grid item xs={12}>
