@@ -1925,21 +1925,8 @@ const LoadViewPage = () => {
       }
     }
     
-    // Check if dates are not in the past (optional validation)
-    const now = new Date();
-    if (formData.appointmentdate) {
-      const appointmentDate = new Date(formData.appointmentdate);
-      if (appointmentDate < now) {
-        errors.push("Appointment time cannot be in the past");
-      }
-    }
-    
-    if (formData.fcfs) {
-      const fcfsDate = new Date(formData.fcfs);
-      if (fcfsDate < now) {
-        errors.push("FCFS From time cannot be in the past");
-      }
-    }
+    // Past date validation removed as per business requirements
+    // Users can now enter past dates for appointmentdate and fcfs fields
     
     return errors;
   };
