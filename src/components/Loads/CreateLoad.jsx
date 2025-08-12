@@ -16,13 +16,11 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemAvatar,
   ListItemIcon,
   InputAdornment,
   CircularProgress,
   AvatarGroup,
   Tooltip,
-  Badge,
   Grid,
   Autocomplete,
   Alert,
@@ -34,14 +32,12 @@ import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import SendIcon from "@mui/icons-material/Send";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
-import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-import GroupIcon from "@mui/icons-material/Group";
-import PersonIcon from "@mui/icons-material/Person";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import BusinessIcon from "@mui/icons-material/Business";
 import DescriptionIcon from "@mui/icons-material/Description";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import EventIcon from "@mui/icons-material/Event";
+import PersonIcon from "@mui/icons-material/Person";
 import { ApiService } from "../../api/auth";
 import LoadForm from "./LoadForm";
 import ChatBox from "./ChatBox";
@@ -99,14 +95,6 @@ const MessageInput = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.background.paper,
 }));
 
-const InfoPanel = styled(Paper)(({ theme }) => ({
-  width: "300px",
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-  borderRadius: theme.spacing(1),
-}));
-
 const steps = [
   "Open",
   "Covered",
@@ -129,15 +117,16 @@ const requiredFields = {
     "total_pay",
     "per_mile",
     "total_miles",
+    "truck", // Added truck as required field
   ],
-  1: ["reference_id"],
-  2: ["reference_id"],
-  3: ["reference_id"],
-  4: ["reference_id"],
-  5: ["reference_id"],
-  6: ["reference_id"],
-  7: ["reference_id"],
-  8: ["reference_id"],
+  1: ["reference_id", "truck"], // Added truck requirement
+  2: ["reference_id", "truck"],
+  3: ["reference_id", "truck"],
+  4: ["reference_id", "truck"],
+  5: ["reference_id", "truck"],
+  6: ["reference_id", "truck"],
+  7: ["reference_id", "truck"],
+  8: ["reference_id", "truck"],
 };
 
 const STATE_OPTIONS = [
@@ -429,7 +418,7 @@ const LoadPage = () => {
     customer_broker: null,
     driver: null,
     dispatcher: null,
-    truck: null,
+    truck: null, // Initialize truck as null to ensure validation works
     stop: [],
     company_name: "",
     reference_id: "",
@@ -451,6 +440,7 @@ const LoadPage = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [brokers, setBrokers] = useState([]);
+  const [trucks, setTrucks] = useState([]); // Add trucks state
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { id } = useParams();
@@ -471,6 +461,7 @@ const LoadPage = () => {
 
   useEffect(() => {
     fetchBrokers();
+    fetchTrucks(); // Add trucks fetching
     if (id) {
       fetchLoadData();
     }
@@ -482,6 +473,16 @@ const LoadPage = () => {
       setBrokers(data);
     } catch (error) {
       console.error("Error fetching brokers:", error);
+    }
+  };
+
+  // Add trucks fetching function
+  const fetchTrucks = async () => {
+    try {
+      const data = await ApiService.getData("/truck/"); // Adjust endpoint as needed
+      setTrucks(data);
+    } catch (error) {
+      console.error("Error fetching trucks:", error);
     }
   };
 
@@ -550,9 +551,14 @@ const LoadPage = () => {
     const currentStep = steps[activeStep].toUpperCase().replace(" ", " ");
     const required = requiredFields[activeStep];
 
+    // Enhanced validation with specific error messages
     for (const field of required) {
       if (!loadData[field]) {
-        alert(`${field.replace("_", " ")} is required to proceed.`);
+        let fieldName = field.replace("_", " ");
+        if (field === "truck") {
+          fieldName = "Unit/Truck";
+        }
+        alert(`${fieldName} is required to proceed.`);
         return;
       }
     }
@@ -566,6 +572,7 @@ const LoadPage = () => {
       if (processedData.customer_broker && typeof processedData.customer_broker === 'object') processedData.customer_broker = processedData.customer_broker.id;
       if (processedData.dispatcher && typeof processedData.dispatcher === 'object') processedData.dispatcher = processedData.dispatcher.id;
       if (processedData.driver && typeof processedData.driver === 'object') processedData.driver = processedData.driver.id;
+      if (processedData.truck && typeof processedData.truck === 'object') processedData.truck = processedData.truck.id;
 
       Object.keys(processedData).forEach((key) => {
         // Skip created_date and updated_date unless they are explicitly set in a valid format
@@ -624,6 +631,7 @@ const LoadPage = () => {
       if (processedData.customer_broker && typeof processedData.customer_broker === 'object') processedData.customer_broker = processedData.customer_broker.id;
       if (processedData.dispatcher && typeof processedData.dispatcher === 'object') processedData.dispatcher = processedData.dispatcher.id;
       if (processedData.driver && typeof processedData.driver === 'object') processedData.driver = processedData.driver.id;
+      if (processedData.truck && typeof processedData.truck === 'object') processedData.truck = processedData.truck.id;
 
       Object.keys(processedData).forEach((key) => {
         if (key === "created_date" || key === "updated_date") {
@@ -673,6 +681,13 @@ const LoadPage = () => {
       setLoadData((prevData) => ({
         ...prevData,
         dispatcher: value.id,
+      }));
+    }
+
+    if (name === 'truck' && typeof value === 'object') {
+      setLoadData((prevData) => ({
+        ...prevData,
+        truck: value,
       }));
     }
 
@@ -766,6 +781,11 @@ const LoadPage = () => {
       // Ensure driver is sent as an ID
       if (processedData.driver && typeof processedData.driver === 'object') {
         processedData.driver = processedData.driver.id;
+      }
+      
+      // Ensure truck is sent as an ID
+      if (processedData.truck && typeof processedData.truck === 'object') {
+        processedData.truck = processedData.truck.id;
       }
 
       Object.keys(processedData).forEach((key) => {
@@ -865,6 +885,24 @@ const LoadPage = () => {
           </Box>
           <Box sx={{ p: 2, overflowY: "auto" }}>
             <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <Autocomplete
+                  fullWidth
+                  options={trucks}
+                  getOptionLabel={(option) => `${option.make} ${option.model} - ${option.unit_number}`}
+                  value={loadData.truck}
+                  onChange={(_, newValue) => handleChange({ target: { name: 'truck', value: newValue } })}
+                  renderInput={(params) => (
+                    <TextField 
+                      {...params} 
+                      label="Select Unit/Truck" 
+                      required
+                      error={!loadData.truck}
+                      helperText={!loadData.truck ? "Unit selection is required" : ""}
+                    />
+                  )}
+                />
+              </Grid>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -1067,6 +1105,15 @@ const LoadPage = () => {
                 <ListItemText
                   primary="Dispatcher"
                   secondary={loadData.dispatcher?.user?.email || "Not assigned"}
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <LocalShippingIcon />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Unit/Truck"
+                  secondary={loadData.truck ? `${loadData.truck.make} ${loadData.truck.model} - ${loadData.truck.unit_number}` : "Not assigned"}
                 />
               </ListItem>
             </List>

@@ -172,6 +172,11 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
   };
 
   const handleCreateLoad = async () => {
+    // Validate required fields
+    if (!loadData.unit_id) {
+      setError('Unit selection is required');
+      return;
+    }
     if (!loadData.customer_broker || !loadData.load_id) {
       setError("Load ID and Customer/Broker are required");
       return;
