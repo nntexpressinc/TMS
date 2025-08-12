@@ -1189,6 +1189,8 @@ const LoadViewPage = () => {
   const chatContainerRef = useRef(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const [permissions, setPermissions] = useState({});
+  const [isStopsLoading, setIsStopsLoading] = useState(false);
+  const [stopsError, setStopsError] = useState(null);
   // Socket.IO chat state
   const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [isSocketConnecting, setIsSocketConnecting] = useState(false);
@@ -1341,9 +1343,28 @@ const LoadViewPage = () => {
       setIsLoadDataLoading(true);
       try {
         const data = await ApiService.getData(`/load/${id}/`);
+        
+        // Ensure stops data is properly loaded
+        if (data && (!data.stop || data.stop.length === 0)) {
+          console.warn('Load data received without stops, attempting to fetch stops separately...');
+          
+          // Try to fetch stops data separately if it's missing
+          try {
+            const stopsResponse = await ApiService.getData(`/stops/?load=${id}`);
+            if (stopsResponse && stopsResponse.length > 0) {
+              // Update the load data with the stops
+              data.stop = stopsResponse;
+              console.log('Stops data restored from separate API call');
+            }
+          } catch (stopsError) {
+            console.warn('Could not fetch stops separately:', stopsError);
+          }
+        }
+        
         setLoad(data);
         setLoadStatus(data.load_status || 'OPEN');
         setInvoiceStatus(data.invoice_status || 'NOT_DETERMINED');
+        
         // Fetch chat messages
         fetchChatMessages();
       } catch (error) {
@@ -1809,34 +1830,142 @@ const LoadViewPage = () => {
     return url.startsWith('http') ? url : `https://blackhawks.nntexpressinc.com${url}`;
   };
 
-  // Format detailed timestamp with seconds
+  // Utility functions for consistent date/time handling
   const formatDetailedTime = (timestamp) => {
     if (!timestamp) return "Unknown time";
     
-    return new Date(timestamp).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return "Invalid Date";
+      
+      // Format in UTC to avoid timezone issues
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+        timeZone: 'UTC'
+      }) + ' UTC';
+    } catch (error) {
+      console.error("Error formatting detailed time:", error);
+      return "Error";
+    }
+  };
+
+  // Convert local datetime to UTC ISO string for backend
+  const convertLocalToUTC = (localDateTimeString) => {
+    if (!localDateTimeString) return null;
+    
+    try {
+      const localDate = new Date(localDateTimeString);
+      if (isNaN(localDate.getTime())) return null;
+      
+      // Convert to UTC ISO string
+      return localDate.toISOString();
+    } catch (error) {
+      console.error("Error converting local to UTC:", error);
+      return null;
+    }
+  };
+
+  // Convert UTC datetime to local datetime for input fields
+  const convertUTCToLocal = (utcDateTimeString) => {
+    if (!utcDateTimeString) return '';
+    
+    try {
+      const utcDate = new Date(utcDateTimeString);
+      if (isNaN(utcDate.getTime())) return '';
+      
+      // Convert UTC to local timezone for input display
+      const localDate = new Date(utcDate.getTime() - (utcDate.getTimezoneOffset() * 60000));
+      return localDate.toISOString().slice(0, 16);
+    } catch (error) {
+      console.error("Error converting UTC to local:", error);
+      return '';
+    }
+  };
+
+  // Format time for display without timezone conversion (show exact time as stored)
+  const formatTimeForDisplay = (timestamp) => {
+    if (!timestamp) return "Not specified";
+    
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return "Invalid Date";
+      
+      // Format the time exactly as it is, without timezone conversion
+      // This ensures the time shown is exactly what was saved
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true
+      });
+    } catch (error) {
+      console.error("Error formatting time for display:", error);
+      return "Error";
+    }
+  };
+
+  // Validate date fields for logical consistency
+  const validateDateFields = (formData) => {
+    const errors = [];
+    
+    // Check if FCFS fields are consistent
+    if (formData.fcfs && formData.plus_hour) {
+      const fcfsDate = new Date(formData.fcfs);
+      const plusHourDate = new Date(formData.plus_hour);
+      
+      if (fcfsDate >= plusHourDate) {
+        errors.push("FCFS From time must be earlier than FCFS To time");
+      }
+    }
+    
+    // Check if dates are not in the past (optional validation)
+    const now = new Date();
+    if (formData.appointmentdate) {
+      const appointmentDate = new Date(formData.appointmentdate);
+      if (appointmentDate < now) {
+        errors.push("Appointment time cannot be in the past");
+      }
+    }
+    
+    if (formData.fcfs) {
+      const fcfsDate = new Date(formData.fcfs);
+      if (fcfsDate < now) {
+        errors.push("FCFS From time cannot be in the past");
+      }
+    }
+    
+    return errors;
   };
 
   // Format date with time for display
   const formatDateWithTime = (dateString) => {
     if (!dateString) return "Not specified";
     
-    const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: true
-    });
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Invalid Date";
+      
+      // Format in UTC to avoid timezone issues
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true,
+        timeZone: 'UTC'
+      }) + ' UTC';
+    } catch (error) {
+      console.error("Error formatting date with time:", error);
+      return "Error";
+    }
   };
 
   // Render chat messages
@@ -2393,28 +2522,10 @@ const LoadViewPage = () => {
 
   // Completely replace the handleEditStop function
   const handleEditStop = (stop) => {
-    if (!permissions.stop_update) {
-      showSnackbar('You do not have permission to edit stops', 'error');
-      return;
-    }
     setEditingStop(stop.id);
     
-    // Format date fields for HTML datetime-local input (requires YYYY-MM-DDThh:mm format)
-    const formatDateTimeForInput = (dateStr) => {
-      if (!dateStr) return '';
-      
-      try {
-        // Check if dateStr is already a valid date string or needs conversion
-        const date = new Date(dateStr);
-        if (isNaN(date.getTime())) return ''; // Invalid date
-        
-        // Format to YYYY-MM-DDThh:mm
-        return date.toISOString().slice(0, 16);
-      } catch (error) {
-        console.error("Error formatting date:", error);
-        return '';
-      }
-    };
+    // Use the utility function for consistent date formatting
+    const formatDateTimeForInput = convertUTCToLocal;
 
     console.log("Original stop data:", {
       appointmentdate: stop.appointmentdate,
@@ -2474,7 +2585,7 @@ const LoadViewPage = () => {
           return num > max ? num : max;
         }
         return max;
-      }, 1);
+      }, 0);
       
       const nextStopName = `Stop-${maxStopNumber + 1}`;
       
@@ -2592,7 +2703,9 @@ const LoadViewPage = () => {
 
       // Handle appointmentdate field
       if (stopFormData.appointmentdate) {
-        formattedData.appointmentdate = new Date(stopFormData.appointmentdate).toISOString();
+        // Convert local datetime to UTC ISO string using utility function
+        formattedData.appointmentdate = convertLocalToUTC(stopFormData.appointmentdate);
+        
         // If appointmentdate is set, fcfs and plus_hour are optional, set them to null if empty
         if (!stopFormData.fcfs) {
           formattedData.fcfs = null;
@@ -2606,7 +2719,9 @@ const LoadViewPage = () => {
 
       // Handle fcfs field
       if (stopFormData.fcfs) {
-        formattedData.fcfs = new Date(stopFormData.fcfs).toISOString();
+        // Convert local datetime to UTC ISO string using utility function
+        formattedData.fcfs = convertLocalToUTC(stopFormData.fcfs);
+        
         // If fcfs is set but appointmentdate is not, make appointmentdate optional
         if (!stopFormData.appointmentdate) {
           formattedData.appointmentdate = null;
@@ -2617,9 +2732,17 @@ const LoadViewPage = () => {
 
       // Handle plus_hour field - now it's a datetime-local field
       if (stopFormData.plus_hour) {
-        formattedData.plus_hour = new Date(stopFormData.plus_hour).toISOString();
+        // Convert local datetime to UTC ISO string using utility function
+        formattedData.plus_hour = convertLocalToUTC(stopFormData.plus_hour);
       } else {
         formattedData.plus_hour = null;
+      }
+
+      // Validate date fields before saving
+      const dateValidationErrors = validateDateFields(stopFormData);
+      if (dateValidationErrors.length > 0) {
+        showSnackbar(dateValidationErrors.join('. '), "error");
+        return;
       }
 
       // For numeric fields, ensure they are numbers or null
@@ -2642,16 +2765,16 @@ const LoadViewPage = () => {
         // Create new stop
         response = await ApiService.postData(`/stops/`, formattedData);
         
-        // Agar yangi stop yaratilgan bo'lsa, loadni "stop" arrayiga shu stopning ID sini qo'shish kerak
+        // If new stop was created, add the stop ID to the load's "stop" array
         if (response && response.id) {
-          // Avval hozirgi loadni olamiz
+          // First get the current load
           const currentLoad = await ApiService.getData(`/load/${id}/`);
           const currentStopIds = currentLoad.stop ? currentLoad.stop.map(s => s.id) : [];
           
-          // Yangi stop ID sini qo'shamiz
+          // Add the new stop ID
           const updatedStopIds = [...currentStopIds, response.id];
           
-          // Loadni yangilaymiz
+          // Update the load
           await ApiService.patchData(`/load/${id}/`, {
             stop: updatedStopIds
           });
@@ -2675,10 +2798,42 @@ const LoadViewPage = () => {
 
   const fetchAllStops = async () => {
     try {
-      // Loadni qayta yuklash bilan, "stop" field ichidagi ma'lumotlarni olamiz
+      setIsStopsLoading(true);
+      setStopsError(null);
+      
+      // Reload the load to get updated "stop" field data
       const loadData = await ApiService.getData(`/load/${id}/`);
       
-      // Loadni "stop" fieldi bilan yangilaymiz
+      // Ensure stops data is present
+      if (loadData && (!loadData.stop || loadData.stop.length === 0)) {
+        console.warn('Load data missing stops, attempting to restore...');
+        
+        // Try to fetch stops separately
+        try {
+          const stopsResponse = await ApiService.getData(`/stops/?load=${id}`);
+          if (stopsResponse && stopsResponse.length > 0) {
+            // Update the load data with the stops
+            loadData.stop = stopsResponse;
+            
+            // Update the load in the backend to ensure consistency
+            const stopIds = stopsResponse.map(stop => stop.id);
+            await ApiService.patchData(`/load/${id}/`, {
+              stop: stopIds
+            });
+            
+            console.log('Stops data restored and synchronized with backend');
+            showSnackbar('Stops data restored successfully', 'success');
+          } else {
+            console.warn('No stops found for this load');
+            setStopsError('No stops found for this load');
+          }
+        } catch (stopsError) {
+          console.warn('Could not restore stops:', stopsError);
+          setStopsError('Failed to restore stops data');
+        }
+      }
+      
+      // Update the load with "stop" field data
       setLoad(loadData);
       
       // Ensure editing states are reset after fetching stops
@@ -2688,7 +2843,10 @@ const LoadViewPage = () => {
       console.log("Fetched stops from load:", loadData.stop);
     } catch (error) {
       console.error("Error fetching stops:", error);
-      showSnackbar("Failed to load stops", "error");
+      setStopsError('Failed to fetch stops data');
+      showSnackbar("Failed to fetch stops", "error");
+    } finally {
+      setIsStopsLoading(false);
     }
   };
 
@@ -2741,21 +2899,46 @@ const LoadViewPage = () => {
   const handleFileUpload = async (event, fileType) => {
     if (!permissions.load_update) {
       showSnackbar('You do not have permission to upload files', 'error');
-      return;
     }
     
     const file = event.target.files[0];
     if (!file) return;
     
     try {
+      // Store current stops data before file upload
+      const currentStops = load.stop || [];
+      
       const formData = new FormData();
       formData.append(fileType, file);
       
       await ApiService.putMediaData(`/load/${id}/`, formData);
       
-      // Refresh data
+      // Refresh load data while preserving stops
       const updatedLoad = await ApiService.getData(`/load/${id}/`);
-      setLoad(updatedLoad);
+      
+      // Ensure stops data is preserved
+      if (updatedLoad && currentStops.length > 0) {
+        // If the updated load doesn't have stops, restore them
+        if (!updatedLoad.stop || updatedLoad.stop.length === 0) {
+          console.warn('Stops data was lost during file upload, restoring...');
+          
+          // Restore stops by updating the load with the stops data
+          const stopIds = currentStops.map(stop => stop.id);
+          await ApiService.patchData(`/load/${id}/`, {
+            stop: stopIds
+          });
+          
+          // Fetch the load again with restored stops
+          const restoredLoad = await ApiService.getData(`/load/${id}/`);
+          setLoad(restoredLoad);
+        } else {
+          // Stops are present, update normally
+          setLoad(updatedLoad);
+        }
+      } else {
+        // No stops to preserve, update normally
+        setLoad(updatedLoad);
+      }
       
       showSnackbar(`File uploaded successfully`, "success");
     } catch (error) {
@@ -2831,6 +3014,17 @@ const LoadViewPage = () => {
       fetchTrailers();
     }
   }, [isLoading, load]);
+
+  // Ensure stops data consistency when load data changes
+  useEffect(() => {
+    if (load && load.id) {
+      // Check if stops data is missing and restore if necessary
+      if (!load.stop || load.stop.length === 0) {
+        console.log('Load data loaded but stops are missing, attempting to restore...');
+        fetchAllStops();
+      }
+    }
+  }, [load?.id]); // Only depend on load ID to avoid infinite loops
   
   // Handle edit section
   const handleEditSection = (section) => {
@@ -2869,14 +3063,14 @@ const LoadViewPage = () => {
       setEditFormData(formData);
       console.log("Edit equipment formData:", formData);
       
-      // Unitdan ma'lumot olish uchun
+              // Get information from unit
       if (load.unit_id) {
         const selectedUnit = units.find(unit => unit.id === load.unit_id);
         if (selectedUnit) {
-          // Load oynasi ochilganda, unit ma'lumotlaridan trailer ma'lumotlarini olish
+          // When load page opens, get trailer information from unit data
           if (selectedUnit.trailer && selectedUnit.trailer.length > 0) {
             const trailerId = selectedUnit.trailer[0];
-            // Trailer ma'lumotlarini olish
+            // Get trailer information
             const fetchTrailerInfo = async () => {
               try {
                 const trailerInfo = await ApiService.getData(`/trailer/${trailerId}/`);
@@ -2988,7 +3182,7 @@ const LoadViewPage = () => {
           driver_pay: editFormData.driver_pay ? parseFloat(editFormData.driver_pay) : null
         };
       } else if (editingSection === 'equipment') {
-        // Tuzatilgan qism - trailerga tegishli ma'lumotlarni ham qo'shish
+        // Fixed section - add trailer-related information as well
         dataToUpdate = {
           truck: editFormData.truck ? parseInt(editFormData.truck) : null,
           trailer: editFormData.trailer ? parseInt(editFormData.trailer) : null,
@@ -3001,7 +3195,7 @@ const LoadViewPage = () => {
           if (selectedUnit) {
             dataToUpdate.team_id = selectedUnit.team_id;
             
-            // Unitdan truck, trailer, va driver ma'lumotlarini olish
+            // Get truck, trailer, and driver information from unit
             if (selectedUnit.truck && selectedUnit.truck.length > 0) {
               dataToUpdate.truck = selectedUnit.truck[0];
             }
@@ -3052,6 +3246,9 @@ const LoadViewPage = () => {
         };
       }
       
+      // Store current stops data before updating
+      const currentStops = load.stop || [];
+      
       // Update the load data using PATCH to only update specific fields
       const updatedLoad = await ApiService.patchData(`/load/${id}/`, dataToUpdate);
       console.log("Updated load response:", updatedLoad);
@@ -3059,8 +3256,28 @@ const LoadViewPage = () => {
       // Refresh data after update to ensure all fields are up to date
       const refreshedLoad = await ApiService.getData(`/load/${id}/`);
       
-      // Update local state with complete data
-      setLoad(refreshedLoad);
+      // Ensure stops data is preserved
+      if (refreshedLoad && currentStops.length > 0) {
+        if (!refreshedLoad.stop || refreshedLoad.stop.length === 0) {
+          console.warn('Stops data was lost during load update, restoring...');
+          
+          // Restore stops by updating the load with the stops data
+          const stopIds = currentStops.map(stop => stop.id);
+          await ApiService.patchData(`/load/${id}/`, {
+            stop: stopIds
+          });
+          
+          // Fetch the load again with restored stops
+          const restoredLoad = await ApiService.getData(`/load/${id}/`);
+          setLoad(restoredLoad);
+        } else {
+          // Stops are present, update normally
+          setLoad(refreshedLoad);
+        }
+      } else {
+        // No stops to preserve, update normally
+        setLoad(refreshedLoad);
+      }
       
       showSnackbar('Load updated successfully', 'success');
       
@@ -3125,7 +3342,7 @@ const LoadViewPage = () => {
     }
   };
 
-  // Yangi xabarlar kelganda scroll qilish
+          // Scroll to bottom when new messages arrive
   useEffect(() => {
     if (shouldScrollToBottom && chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -3150,7 +3367,7 @@ const LoadViewPage = () => {
       setUnits(unitsData);
     } catch (error) {
       console.error('Error fetching units:', error);
-      showSnackbar('Unitlarni yuklashda xatolik yuz berdi', 'error');
+      showSnackbar('Error loading units', 'error');
     }
   };
 
@@ -3161,7 +3378,7 @@ const LoadViewPage = () => {
       setTeams(teamsData);
     } catch (error) {
       console.error('Error fetching teams:', error);
-      showSnackbar('Teamlarni yuklashda xatolik yuz berdi', 'error');
+      showSnackbar('Error loading teams', 'error');
     }
   };
 
@@ -3309,20 +3526,54 @@ const LoadViewPage = () => {
     }
   };
 
+  // Function to sort stops in the correct order: Pick Up, Stop-1, Stop-2, Delivery
+  const sortStopsInOrder = (stops) => {
+    if (!stops || stops.length === 0) return [];
+    
+    return stops.sort((a, b) => {
+      // Pick Up always comes first
+      if (a.stop_name === "PICKUP") return -1;
+      if (b.stop_name === "PICKUP") return 1;
+      
+      // Delivery always comes last
+      if (a.stop_name === "DELIVERY") return 1;
+      if (b.stop_name === "DELIVERY") return -1;
+      
+      // For numbered stops, sort by number
+      if (a.stop_name.startsWith('Stop-') && b.stop_name.startsWith('Stop-')) {
+        const aNum = parseInt(a.stop_name.match(/Stop-(\d+)/)?.[1] || '0', 10);
+        const bNum = parseInt(b.stop_name.match(/Stop-(\d+)/)?.[1] || '0', 10);
+        return aNum - bNum;
+      }
+      
+      // If one is numbered and the other isn't, numbered comes first
+      if (a.stop_name.startsWith('Stop-')) return -1;
+      if (b.stop_name.startsWith('Stop-')) return 1;
+      
+      // Default alphabetical order for other stops
+      return a.stop_name.localeCompare(b.stop_name);
+    });
+  };
+
   // Add a function to generate stop options
   const generateStopOptions = (stops) => {
     // Always have PICKUP and DELIVERY as options
     const options = [
-      { value: "PICKUP", label: "Pickup" },
+      { value: "PICKUP", label: "Pick Up" },
       { value: "DELIVERY", label: "Delivery" }
     ];
     
-    // Add any existing numbered stops (Stop-2, Stop-3, etc.)
+    // Add any existing numbered stops (Stop-1, Stop-2, etc.)
     const existingNumberedStops = stops
       .filter(s => s.stop_name.startsWith('Stop-'))
-      .map(s => s.stop_name);
+      .map(s => s.stop_name)
+      .sort((a, b) => {
+        const aNum = parseInt(a.match(/Stop-(\d+)/)?.[1] || '0', 10);
+        const bNum = parseInt(b.match(/Stop-(\d+)/)?.[1] || '0', 10);
+        return aNum - bNum;
+      });
     
-    // Add all existing numbered stops to options
+    // Add all existing numbered stops to options in order
     existingNumberedStops.forEach(stopName => {
       if (!options.some(opt => opt.value === stopName)) {
         options.push({ value: stopName, label: stopName });
@@ -3337,7 +3588,7 @@ const LoadViewPage = () => {
         return num > max ? num : max;
       }
       return max;
-    }, 1);
+    }, 0);
     
     // Add the next stop in sequence
     const nextStopName = `Stop-${maxStopNumber + 1}`;
@@ -3365,7 +3616,7 @@ const LoadViewPage = () => {
         currentLoad.stop.filter(s => s.id !== stopId).map(s => s.id) : 
         [];
       
-      // Loadni yangilangan stop array bilan yangilaymiz
+              // Update the load with the updated stop array
       await ApiService.patchData(`/load/${id}/`, {
         stop: updatedStopIds
       });
@@ -3396,7 +3647,7 @@ const LoadViewPage = () => {
     setDeleteStopDialog({
       open: true,
       stopId: stop.id,
-      stopName: stop.stop_name === "PICKUP" ? "Pickup" : 
+      stopName: stop.stop_name === "PICKUP" ? "Pick Up" : 
                 stop.stop_name === "DELIVERY" ? "Delivery" : 
                 stop.stop_name
     });
@@ -3538,29 +3789,45 @@ const LoadViewPage = () => {
   const formatMessageTime = (timestamp) => {
     if (!timestamp) return "Invalid Date";
     
-    const messageDate = new Date(timestamp);
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-    
-    // If message from today, just show time
-    if (messageDate.toDateString() === today.toDateString()) {
-      return messageDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    try {
+      const messageDate = new Date(timestamp);
+      if (isNaN(messageDate.getTime())) return "Invalid Date";
+      
+      const today = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(today.getDate() - 1);
+      
+      // If message from today, just show time in UTC
+      if (messageDate.toDateString() === today.toDateString()) {
+        return messageDate.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          timeZone: 'UTC'
+        }) + ' UTC';
+      }
+      
+      // If message from yesterday, show 'Yesterday' + time in UTC
+      if (messageDate.toDateString() === yesterday.toDateString()) {
+        return `Yesterday, ${messageDate.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          timeZone: 'UTC'
+        })} UTC`;
+      }
+      
+      // Otherwise show full date in UTC
+      return messageDate.toLocaleString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        timeZone: 'UTC'
+      }) + ' UTC';
+    } catch (error) {
+      console.error("Error formatting message time:", error);
+      return "Error";
     }
-    
-    // If message from yesterday, show 'Yesterday' + time
-    if (messageDate.toDateString() === yesterday.toDateString()) {
-      return `Yesterday, ${messageDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
-    }
-    
-    // Otherwise show full date
-    return messageDate.toLocaleString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
   };
 
   return (
@@ -3593,9 +3860,20 @@ const LoadViewPage = () => {
             {/* Stops Information with Edit Functionality */}
             <StopsContainer>
               <StopsHeader>
-                <Typography variant="subtitle2" fontWeight={600}>
-                  Stops
-                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Stops
+                  </Typography>
+                  {load.stop && load.stop.length > 0 && (
+                    <Typography variant="caption" color="text.secondary">
+                      {load.stop.length} stop{load.stop.length !== 1 ? 's' : ''} • Route: {sortStopsInOrder(load.stop).map(stop => 
+                        stop.stop_name === "PICKUP" ? "Pick Up" : 
+                        stop.stop_name === "DELIVERY" ? "Delivery" : 
+                        stop.stop_name
+                      ).join(' → ')}
+                    </Typography>
+                  )}
+                </Box>
                 <Box>
                   {/* Commented out by user
                   <IconButton 
@@ -3608,16 +3886,28 @@ const LoadViewPage = () => {
                       <MdCheckCircle size={18} />
                     }
                   </IconButton> */}
-                  {permissions.stop_create && (
+                  <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button 
-                      startIcon={<AddIcon />} 
+                      startIcon={<RefreshIcon />} 
                       size="small" 
-                      onClick={handleAddStop}
-                      disabled={isAddingStop || editingStop !== null}
+                      variant="outlined"
+                      onClick={fetchAllStops}
+                      disabled={isAddingStop || editingStop !== null || isStopsLoading}
+                      title="Refresh stops data"
                     >
-                      Add Stop
+                      {isStopsLoading ? 'Refreshing...' : 'Refresh'}
                     </Button>
-                  )}
+                    {permissions.stop_create && (
+                      <Button 
+                        startIcon={<AddIcon />} 
+                        size="small" 
+                        onClick={handleAddStop}
+                        disabled={isAddingStop || editingStop !== null}
+                      >
+                        Add Stop
+                      </Button>
+                    )}
+                  </Box>
                 </Box>
               </StopsHeader>
               
@@ -3702,6 +3992,7 @@ const LoadViewPage = () => {
                         InputLabelProps={{
                           shrink: true,
                         }}
+                        helperText="Set a specific appointment time (disables FCFS fields)"
                         // Disable if FCFS fields are filled
                         disabled={!!(stopFormData.fcfs || stopFormData.plus_hour)}
                       />
@@ -3717,7 +4008,7 @@ const LoadViewPage = () => {
                         InputLabelProps={{
                           shrink: true,
                         }}
-                        helperText="Start time of the interval"
+                        helperText="First Come, First Served - Start time (disables appointment time)"
                         // Disable if appointment date is filled
                         disabled={!!stopFormData.appointmentdate}
                       />
@@ -3733,7 +4024,7 @@ const LoadViewPage = () => {
                         InputLabelProps={{
                           shrink: true,
                         }}
-                        helperText="End time of the interval"
+                        helperText="First Come, First Served - End time (disables appointment time)"
                         // Disable if appointment date is filled
                         disabled={!!stopFormData.appointmentdate}
                       />
@@ -3831,8 +4122,50 @@ const LoadViewPage = () => {
               )}
               
               {/* Show stops when not adding a new one */}
-              {!isAddingStop && (load.stop && load.stop.length > 0 ? (
-                load.stop.map(stop => (
+              {/* Show error message if stops failed to load */}
+              {stopsError && (
+                <Box sx={{ 
+                  p: 2, 
+                  mx: 2, 
+                  mb: 2, 
+                  bgcolor: 'error.light', 
+                  color: 'error.contrastText', 
+                  borderRadius: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}>
+                  <Info color="inherit" />
+                  <Typography variant="body2">
+                    {stopsError}
+                  </Typography>
+                  <Button 
+                    size="small" 
+                    variant="contained" 
+                    onClick={fetchAllStops}
+                    disabled={isStopsLoading}
+                    sx={{ ml: 'auto' }}
+                  >
+                    Retry
+                  </Button>
+                </Box>
+              )}
+
+              {/* Show loading state */}
+              {isStopsLoading && (
+                <Box sx={{ 
+                  p: 3, 
+                  textAlign: 'center', 
+                  color: 'text.secondary' 
+                }}>
+                  <CircularProgress size={24} sx={{ mb: 1 }} />
+                  <Typography variant="body2">Loading stops...</Typography>
+                </Box>
+              )}
+
+              {/* Show stops when not adding a new one */}
+              {!isAddingStop && !isStopsLoading && (load.stop && load.stop.length > 0 ? (
+                sortStopsInOrder(load.stop).map(stop => (
                   editingStop === stop.id ? (
                     <StopEditContainer key={stop.id}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -3926,6 +4259,7 @@ const LoadViewPage = () => {
                             InputLabelProps={{
                               shrink: true,
                             }}
+                            helperText="Set a specific appointment time (disables FCFS fields)"
                             // Disable if FCFS fields are filled
                             disabled={!!(stopFormData.fcfs || stopFormData.plus_hour)}
                           />
@@ -3941,7 +4275,7 @@ const LoadViewPage = () => {
                             InputLabelProps={{
                               shrink: true,
                             }}
-                            helperText="Start time of the interval"
+                            helperText="First Come, First Served - Start time (disables appointment time)"
                             // Disable if appointment date is filled
                             disabled={!!stopFormData.appointmentdate}
                           />
@@ -3957,7 +4291,7 @@ const LoadViewPage = () => {
                             InputLabelProps={{
                               shrink: true,
                             }}
-                            helperText="End time of the interval"
+                            helperText="First Come, First Served - End time (disables appointment time)"
                             // Disable if appointment date is filled
                             disabled={!!stopFormData.appointmentdate}
                           />
@@ -4079,11 +4413,33 @@ const LoadViewPage = () => {
                           <TimelineIcon fontSize={compactView ? 'small' : 'medium'} />
                         )}
                       </StopIconContainer>
+                      {/* Add stop sequence indicator */}
+                      {stop.stop_name.startsWith('Stop-') && (
+                        <Box sx={{ 
+                          position: 'absolute', 
+                          top: -8, 
+                          right: -8, 
+                          bgcolor: 'primary.main', 
+                          color: 'white', 
+                          borderRadius: '50%', 
+                          width: 20, 
+                          height: 20, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          fontSize: '0.7rem',
+                          fontWeight: 'bold',
+                          zIndex: 1,
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                        }}>
+                          {stop.stop_name.match(/Stop-(\d+)/)?.[1] || ''}
+                        </Box>
+                      )}
                       <StopDetails>
                         <StopHeader>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <StopAddress>
-                              {stop.stop_name === "PICKUP" ? "Pickup" : 
+                              {stop.stop_name === "PICKUP" ? "Pick Up" : 
                                stop.stop_name === "DELIVERY" ? "Delivery" : 
                                stop.stop_name}
                             </StopAddress>
@@ -4096,29 +4452,11 @@ const LoadViewPage = () => {
                             </IconButton>
                           </Box>
                           <StopDate>
-                            {stop.appointmentdate ? new Date(stop.appointmentdate).toLocaleString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: 'numeric',
-                              minute: 'numeric',
-                              hour12: true
-                            }) : stop.fcfs ? (
+                            {stop.appointmentdate ? formatTimeForDisplay(stop.appointmentdate) : stop.fcfs ? (
                               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <Typography variant="caption">
-                                  FCFS: {new Date(stop.fcfs).toLocaleString('en-US', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: 'numeric',
-                                    minute: 'numeric',
-                                    hour12: true
-                                  })}
-                                  {stop.plus_hour ? ` - ${new Date(stop.plus_hour).toLocaleString('en-US', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: 'numeric',
-                                    minute: 'numeric',
-                                    hour12: true
-                                  })}` : ''}
+                                  FCFS: {formatTimeForDisplay(stop.fcfs)}
+                                  {stop.plus_hour ? ` - ${formatTimeForDisplay(stop.plus_hour)}` : ''}
                                 </Typography>
                               </Box>
                             ) : "Not specified"}
@@ -4145,22 +4483,8 @@ const LoadViewPage = () => {
                             {/* Display FCFS information in expanded view */}
                             {stop.fcfs && (
                               <Typography variant="caption" color="text.secondary" display="block">
-                                FCFS: {new Date(stop.fcfs).toLocaleString('en-US', {
-                                  weekday: 'short',
-                                  month: 'short',
-                                  day: 'numeric',
-                                  hour: 'numeric',
-                                  minute: 'numeric',
-                                  hour12: true
-                                })}
-                                {stop.plus_hour ? ` - ${new Date(stop.plus_hour).toLocaleString('en-US', {
-                                  weekday: 'short',
-                                  month: 'short',
-                                  day: 'numeric',
-                                  hour: 'numeric',
-                                  minute: 'numeric',
-                                  hour12: true
-                                })}` : ''}
+                                FCFS: {formatTimeForDisplay(stop.fcfs)}
+                                {stop.plus_hour ? ` - ${formatTimeForDisplay(stop.plus_hour)}` : ''}
                               </Typography>
                             )}
                           </>
@@ -4177,17 +4501,44 @@ const LoadViewPage = () => {
                       )}
                     </StopItem>
                   )
-                ))
-              ) : (
-                !isAddingStop && (
-                  <Box sx={{ textAlign: 'center', p: 3, color: 'text.secondary' }}>
-                    <Typography variant="body2">No stops added yet</Typography>
+                )).map((stop, index, array) => (
+                    <React.Fragment key={stop.id}>
+                      {stop}
+                      {/* Add visual separator between stops */}
+                      {index < array.length - 1 && (
+                        <Box sx={{ 
+                          height: 2, 
+                          bgcolor: 'divider', 
+                          mx: 2, 
+                          my: 1, 
+                          borderRadius: 1 
+                        }} />
+                      )}
+                    </React.Fragment>
+                  ))
+                              ) : (
+                !isAddingStop && !isStopsLoading && !stopsError && (
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    p: 4, 
+                    color: 'text.secondary',
+                    border: '2px dashed',
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    mx: 2
+                  }}>
+                    <LocalShippingIcon sx={{ fontSize: 40, mb: 2, opacity: 0.5 }} />
+                    <Typography variant="body1" gutterBottom>
+                      No stops configured yet
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Add pickup, delivery, and intermediate stops to define your route
+                    </Typography>
                     <Button 
-                      variant="outlined" 
-                      size="small" 
+                      variant="contained" 
+                      size="medium" 
                       startIcon={<AddIcon />}
                       onClick={handleAddStop}
-                      sx={{ mt: 1 }}
                     >
                       Add First Stop
                     </Button>
@@ -5020,7 +5371,7 @@ const LoadViewPage = () => {
               })
               .catch(error => {
                 console.error("Error fetching load data:", error);
-                showSnackbar("Ma'lumotlarni yangilashda xatolik yuz berdi", "error");
+                showSnackbar("Error updating data", "error");
               })
               .finally(() => {
                 setIsLoadDataLoading(false);
@@ -5103,7 +5454,7 @@ const LoadViewPage = () => {
                           {...params}
                           label="Unit Number"
                           size="small"
-                          helperText="Unit tanlanganda truck, trailer va driver ma'lumotlari avtomatik to'ldiriladi"
+                          helperText="When a unit is selected, truck, trailer and driver information will be automatically filled"
                         />
                       )}
                     />
@@ -5373,7 +5724,7 @@ const LoadViewPage = () => {
                       </IconButton>
                     </Box>
                     
-                    {/* Agar unit tanlangan bo'lsa, unitdan truck ma'lumotlarini ko'rsatish */}
+                    {/* If unit is selected, show truck information from the unit */}
                     {editFormData.unit_id && (
                       (() => {
                         const selectedUnit = units.find(unit => unit.id === editFormData.unit_id);
@@ -5431,7 +5782,7 @@ const LoadViewPage = () => {
                       </IconButton>
                     </Box>
                     
-                    {/* Agar unit tanlangan bo'lsa, unitdan trailer ma'lumotlarini ko'rsatish */}
+                    {/* If unit is selected, show trailer information from the unit */}
                     {editFormData.unit_id && (
                       (() => {
                         const selectedUnit = units.find(unit => unit.id === editFormData.unit_id);
@@ -5519,7 +5870,7 @@ const LoadViewPage = () => {
                         </DetailItem>
                       </>
                     ) : load.unit_id ? (
-                      // Agar unit tanlangan bo'lsa, unitdan truck ma'lumotlarini ko'rsatish
+                      // If unit is selected, show truck information from the unit
                       (() => {
                         const selectedUnit = units.find(unit => unit.id === load.unit_id);
                         if (selectedUnit && selectedUnit.truck && selectedUnit.truck.length > 0) {

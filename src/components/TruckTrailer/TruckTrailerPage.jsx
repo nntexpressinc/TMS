@@ -547,7 +547,7 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
       width: 150,
       valueFormatter: (params) => params?.value || '-'
     },
-    { field: 'make', headerName: 'Make', width: 120 },
+    { field: 'make', headerName: 'Trailer Number', width: 120 },
     { field: 'model', headerName: 'Model', width: 120 },
     { field: 'year', headerName: 'Year', width: 100 },
     { field: 'plate_number', headerName: 'Plate Number', width: 120 },

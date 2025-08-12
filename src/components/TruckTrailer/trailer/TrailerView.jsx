@@ -64,7 +64,7 @@ const TrailerView = () => {
     // Add trailer information
     const trailerData = [
       ['Unit Number', trailer.unit_number || '-'],
-      ['Make', trailer.make || '-'],
+      ['Trailer Number', trailer.make || '-'],
       ['Model', trailer.model || '-'],
       ['Year', trailer.year || '-'],  
       ['VIN', trailer.vin || '-'],
