@@ -1346,19 +1346,9 @@ const LoadViewPage = () => {
         
         // Ensure stops data is properly loaded
         if (data && (!data.stop || data.stop.length === 0)) {
-          console.warn('Load data received without stops, attempting to fetch stops separately...');
-          
-          // Try to fetch stops data separately if it's missing
-          try {
-            const stopsResponse = await ApiService.getData(`/stops/?load=${id}`);
-            if (stopsResponse && stopsResponse.length > 0) {
-              // Update the load data with the stops
-              data.stop = stopsResponse;
-              console.log('Stops data restored from separate API call');
-            }
-          } catch (stopsError) {
-            console.warn('Could not fetch stops separately:', stopsError);
-          }
+          console.log('Load has no stops - this is normal for new loads');
+          // Don't try to fetch stops separately for new loads
+          // Only fetch stops if they were explicitly created for this load
         }
         
         setLoad(data);
@@ -2791,36 +2781,16 @@ const LoadViewPage = () => {
       // Reload the load to get updated "stop" field data
       const loadData = await ApiService.getData(`/load/${id}/`);
       
-      // Ensure stops data is present
+      // Only fetch stops if they were explicitly created for this load
+      // Don't try to restore stops that don't exist
       if (loadData && (!loadData.stop || loadData.stop.length === 0)) {
-        console.warn('Load data missing stops, attempting to restore...');
-        
-        // Try to fetch stops separately
-        try {
-          const stopsResponse = await ApiService.getData(`/stops/?load=${id}`);
-          if (stopsResponse && stopsResponse.length > 0) {
-            // Update the load data with the stops
-            loadData.stop = stopsResponse;
-            
-            // Update the load in the backend to ensure consistency
-            const stopIds = stopsResponse.map(stop => stop.id);
-            await ApiService.patchData(`/load/${id}/`, {
-              stop: stopIds
-            });
-            
-            console.log('Stops data restored and synchronized with backend');
-            showSnackbar('Stops data restored successfully', 'success');
-          } else {
-            console.warn('No stops found for this load');
-            setStopsError('No stops found for this load');
-          }
-        } catch (stopsError) {
-          console.warn('Could not restore stops:', stopsError);
-          setStopsError('Failed to restore stops data');
-        }
+        console.log('Load has no stops - this is normal for new loads');
+        // Don't try to fetch or restore stops for new loads
+        setLoad(loadData);
+        return;
       }
       
-      // Update the load with "stop" field data
+      // Update the load with existing "stop" field data
       setLoad(loadData);
       
       // Ensure editing states are reset after fetching stops
@@ -2903,21 +2873,29 @@ const LoadViewPage = () => {
       // Refresh load data while preserving stops
       const updatedLoad = await ApiService.getData(`/load/${id}/`);
       
-      // Ensure stops data is preserved
+      // Only restore stops if this load actually had stops before the operation
+      // This prevents linking all stops to new loads
       if (updatedLoad && currentStops.length > 0) {
-        // If the updated load doesn't have stops, restore them
+        // Check if stops were actually lost (not just a new load with no stops)
         if (!updatedLoad.stop || updatedLoad.stop.length === 0) {
-          console.warn('Stops data was lost during file upload, restoring...');
-          
-          // Restore stops by updating the load with the stops data
-          const stopIds = currentStops.map(stop => stop.id);
-          await ApiService.patchData(`/load/${id}/`, {
-            stop: stopIds
-          });
-          
-          // Fetch the load again with restored stops
-          const restoredLoad = await ApiService.getData(`/load/${id}/`);
-          setLoad(restoredLoad);
+          // Only restore if we're sure this load should have stops
+          // For new loads, don't restore stops
+          if (load.stop && load.stop.length > 0) {
+            console.warn('Stops data was lost during file upload, restoring...');
+            
+            // Restore stops by updating the load with the stops data
+            const stopIds = currentStops.map(stop => stop.id);
+            await ApiService.patchData(`/load/${id}/`, {
+              stop: stopIds
+            });
+            
+            // Fetch the load again with restored stops
+            const restoredLoad = await ApiService.getData(`/load/${id}/`);
+            setLoad(restoredLoad);
+          } else {
+            // This is a new load with no stops, don't restore
+            setLoad(updatedLoad);
+          }
         } else {
           // Stops are present, update normally
           setLoad(updatedLoad);
@@ -3002,16 +2980,8 @@ const LoadViewPage = () => {
     }
   }, [isLoading, load]);
 
-  // Ensure stops data consistency when load data changes
-  useEffect(() => {
-    if (load && load.id) {
-      // Check if stops data is missing and restore if necessary
-      if (!load.stop || load.stop.length === 0) {
-        console.log('Load data loaded but stops are missing, attempting to restore...');
-        fetchAllStops();
-      }
-    }
-  }, [load?.id]); // Only depend on load ID to avoid infinite loops
+  // Removed automatic stops restoration to prevent linking all stops to new loads
+  // New loads should start with no stops
   
   // Handle edit section
   const handleEditSection = (section) => {
@@ -3243,20 +3213,28 @@ const LoadViewPage = () => {
       // Refresh data after update to ensure all fields are up to date
       const refreshedLoad = await ApiService.getData(`/load/${id}/`);
       
-      // Ensure stops data is preserved
+      // Only restore stops if this load actually had stops before the operation
+      // This prevents linking all stops to new loads
       if (refreshedLoad && currentStops.length > 0) {
         if (!refreshedLoad.stop || refreshedLoad.stop.length === 0) {
-          console.warn('Stops data was lost during load update, restoring...');
-          
-          // Restore stops by updating the load with the stops data
-          const stopIds = currentStops.map(stop => stop.id);
-          await ApiService.patchData(`/load/${id}/`, {
-            stop: stopIds
-          });
-          
-          // Fetch the load again with restored stops
-          const restoredLoad = await ApiService.getData(`/load/${id}/`);
-          setLoad(restoredLoad);
+          // Only restore if we're sure this load should have stops
+          // For new loads, don't restore stops
+          if (load.stop && load.stop.length > 0) {
+            console.warn('Stops data was lost during load update, restoring...');
+            
+            // Restore stops by updating the load with the stops data
+            const stopIds = currentStops.map(stop => stop.id);
+            await ApiService.patchData(`/load/${id}/`, {
+              stop: stopIds
+            });
+            
+            // Fetch the load again with restored stops
+            const restoredLoad = await ApiService.getData(`/load/${id}/`);
+            setLoad(restoredLoad);
+          } else {
+            // This is a new load with no stops, don't restore
+            setLoad(refreshedLoad);
+          }
         } else {
           // Stops are present, update normally
           setLoad(refreshedLoad);
