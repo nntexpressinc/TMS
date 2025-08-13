@@ -756,7 +756,8 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
   const [loadData, setLoadData] = useState({
     load_id: "",
     reference_id: "",
-    customer_broker: null
+    customer_broker: null,
+    weight: ""
   });
   const [brokers, setBrokers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -822,7 +823,8 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
         load_id: loadData.load_id,
         customer_broker: loadData.customer_broker.id,
         load_status: "OPEN", 
-        company_name: loadData.customer_broker.company_name
+        company_name: loadData.customer_broker.company_name,
+        weight: loadData.weight ? loadData.weight.toString() : null
       });
       
       console.log("Load created:", response);
@@ -932,6 +934,20 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
                 name="reference_id"
                 value={loadData.reference_id}
                 onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Weight"
+                name="weight"
+                type="text"
+                inputProps={{
+                  pattern: "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                }}
+                value={loadData.weight}
+                onChange={handleChange}
+                helperText="Format: Up to 8 digits with optional 2 decimal places"
               />
             </Grid>
             <Grid item xs={12}>
@@ -3308,7 +3324,8 @@ const LoadViewPage = () => {
           company_name: editFormData.company_name,
           equipment_type: editFormData.equipment_type,
           unit_id: editFormData.unit_id || null,
-          team_id: editFormData.team_id || null
+          team_id: editFormData.team_id || null,
+          weight: editFormData.weight ? editFormData.weight.toString() : null
         };
 
         // If unit is selected, update truck, trailer, and driver as well
@@ -5738,6 +5755,21 @@ const LoadViewPage = () => {
                       value={editFormData.reference_id}
                       onChange={handleFormChange}
                     />
+
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Weight"
+                      name="weight"
+                      type="text"
+                      inputProps={{
+                        pattern: "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                      }}
+                      value={editFormData.weight || ''}
+                      onChange={handleFormChange}
+                      helperText="Format: Up to 8 digits with optional 2 decimal places"
+                    />
+                    
                     <TextField
                       fullWidth
                       size="small"
@@ -5809,6 +5841,11 @@ const LoadViewPage = () => {
                     <DetailItem>
                       <DetailLabel>Reference ID</DetailLabel>
                       <DetailValue>{load.reference_id || "Not assigned"}</DetailValue>
+                    </DetailItem>
+
+                    <DetailItem>
+                      <DetailLabel>Weight</DetailLabel>
+                      <DetailValue>{load.weight || "Not assigned"}</DetailValue>
                     </DetailItem>
                     
                     <DetailItem>
