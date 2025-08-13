@@ -1786,21 +1786,39 @@ const LoadViewPage = () => {
       
       // For cross-origin URLs, we need to fetch first
       fetch(formattedUrl)
-        .then(response => response.blob())
-        .then(blob => {
+        .then(response => {
+          // Try to get the filename from Content-Disposition header
+          const contentDisposition = response.headers.get('Content-Disposition');
+          let serverFileName = '';
+          if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+            if (filenameMatch && filenameMatch[1]) {
+              serverFileName = filenameMatch[1].replace(/['"]/g, '');
+            }
+          }
+          return response.blob().then(blob => ({ blob, serverFileName }));
+        })
+        .then(({ blob, serverFileName }) => {
           // Create blob URL
           const blobUrl = URL.createObjectURL(blob);
           
-          // Create anchor element
+          // Create a hidden anchor element
           const a = document.createElement('a');
+          a.style.display = 'none';
           a.href = blobUrl;
-          a.download = fileName || 'download';
+          // Use server filename if available, fallback to URL's last segment, then fileName param
+          const originalName = serverFileName || url.split('/').pop() || fileName || 'download';
+          a.download = decodeURIComponent(originalName);
+          
+          // Append to body, click, and clean up safely
           document.body.appendChild(a);
           a.click();
           
           // Clean up
           setTimeout(() => {
-            document.body.removeChild(a);
+            if (a && a.parentNode) {
+              a.parentNode.removeChild(a);
+            }
             URL.revokeObjectURL(blobUrl);
           }, 100);
         })
@@ -1812,7 +1830,12 @@ const LoadViewPage = () => {
           a.download = fileName || 'download';
           document.body.appendChild(a);
           a.click();
-          document.body.removeChild(a);
+          // Safe cleanup
+          setTimeout(() => {
+            if (a && a.parentNode) {
+              a.parentNode.removeChild(a);
+            }
+          }, 100);
         });
     } catch (error) {
       console.error("Error downloading file:", error);
@@ -3078,7 +3101,9 @@ const LoadViewPage = () => {
       const currentStops = load.stop || [];
       
       const formData = new FormData();
-      formData.append(fileType, file);
+      const fileName = file.name; // Get original file name
+      formData.append('filename', fileName); // Send original filename to backend
+      formData.append(fileType, file, fileName); // Append file with original name
       
       await ApiService.putMediaData(`/load/${id}/`, formData);
       
@@ -5755,6 +5780,20 @@ const LoadViewPage = () => {
                       value={editFormData.reference_id}
                       onChange={handleFormChange}
                     />
+                    
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Weight"
+                      name="weight"
+                      type="text"
+                      inputProps={{
+                        pattern: "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                      }}
+                      value={editFormData.weight || ''}
+                      onChange={handleFormChange}
+                      helperText="Format: Up to 8 digits with optional 2 decimal places"
+                    />
 
                     <TextField
                       fullWidth
@@ -5848,6 +5887,11 @@ const LoadViewPage = () => {
                       <DetailValue>{load.weight || "Not assigned"}</DetailValue>
                     </DetailItem>
                     
+                    <DetailItem>
+                      <DetailLabel>Weight</DetailLabel>
+                      <DetailValue>{load.weight || "Not assigned"}</DetailValue>
+                    </DetailItem>
+
                     <DetailItem>
                       <DetailLabel>Company</DetailLabel>
                       <DetailValue>{load.company_name || "Not assigned"}</DetailValue>
@@ -6885,6 +6929,36 @@ const LoadViewPage = () => {
                       </Box>
                     </Box>
                     
+                    {/* Pictures */}
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                        Pictures
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <TextField 
+                          fullWidth
+                          disabled
+                          size="small"
+                          placeholder="No file selected"
+                          value={load.pictures ? 'Pictures Document' : ''}
+                        />
+                        <Button
+                          variant="outlined"
+                          component="label"
+                          size="small"
+                        >
+                          Browse
+                          <input
+                            type="file"
+                            hidden
+                            onChange={(e) => handleFileUpload(e, 'pictures')}
+                            accept="image/*"
+                            multiple
+                          />
+                        </Button>
+                      </Box>
+                    </Box>
+
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
                       <Button 
                         variant="outlined" 
@@ -6918,7 +6992,7 @@ const LoadViewPage = () => {
                           <IconButton size="small" onClick={() => handleViewFile(load.rate_con, 'Rate Con')}>
                             <Visibility fontSize="small" />
                           </IconButton>
-                          <IconButton size="small" onClick={() => downloadFile(load.rate_con, 'rate_con')}>
+                          <IconButton size="small" onClick={() => downloadFile(load.rate_con)}>
                             <GetApp fontSize="small" />
                           </IconButton>
                         </FileActions>
@@ -6964,7 +7038,7 @@ const LoadViewPage = () => {
                           <IconButton size="small" onClick={() => handleViewFile(load.bol, 'BOL')}>
                             <Visibility fontSize="small" />
                           </IconButton>
-                          <IconButton size="small" onClick={() => downloadFile(load.bol, 'bol')}>
+                          <IconButton size="small" onClick={() => downloadFile(load.bol)}>
                             <GetApp fontSize="small" />
                           </IconButton>
                         </FileActions>
@@ -7010,7 +7084,7 @@ const LoadViewPage = () => {
                           <IconButton size="small" onClick={() => handleViewFile(load.pod, 'POD')}>
                             <Visibility fontSize="small" />
                           </IconButton>
-                          <IconButton size="small" onClick={() => downloadFile(load.pod, 'pod')}>
+                          <IconButton size="small" onClick={() => downloadFile(load.pod)}>
                             <GetApp fontSize="small" />
                           </IconButton>
                         </FileActions>
@@ -7056,7 +7130,7 @@ const LoadViewPage = () => {
                           <IconButton size="small" onClick={() => handleViewFile(load.comercial_invoice, 'Invoice')}>
                             <Visibility fontSize="small" />
                           </IconButton>
-                          <IconButton size="small" onClick={() => downloadFile(load.comercial_invoice, 'comercial_invoice')}>
+                          <IconButton size="small" onClick={() => downloadFile(load.comercial_invoice)}>
                             <GetApp fontSize="small" />
                           </IconButton>
                         </FileActions>
@@ -7077,6 +7151,54 @@ const LoadViewPage = () => {
                             type="file"
                             hidden
                             onChange={(e) => handleFileUpload(e, 'comercial_invoice')}
+                          />
+                        </EmptyFilesMessage>
+                      </Box>
+                    )}
+
+                    {/* Pictures */}
+                    <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
+                      Pictures
+                    </Typography>
+                    
+                    {load.pictures ? (
+                      <FileItem>
+                        <FileIcon fileType="image">
+                          <Image />
+                        </FileIcon>
+                        
+                        <FileDetails>
+                          <FileName>Load Pictures</FileName>
+                          <FileInfo>Added on {new Date().toLocaleDateString()}</FileInfo>
+                        </FileDetails>
+                        
+                        <FileActions>
+                          <IconButton size="small" onClick={() => handleViewFile(load.pictures, 'Pictures')}>
+                            <Visibility fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => downloadFile(load.pictures)}>
+                            <GetApp fontSize="small" />
+                          </IconButton>
+                        </FileActions>
+                      </FileItem>
+                    ) : (
+                      <Box component="label" sx={{ cursor: 'pointer', display: 'block' }}>
+                        <EmptyFilesMessage>
+                          <Image />
+                          <Typography variant="body2">No Pictures uploaded</Typography>
+                          <Button 
+                            variant="text" 
+                            size="small" 
+                            sx={{ mt: 0.5, fontSize: '0.75rem' }}
+                          >
+                            Upload Pictures
+                          </Button>
+                          <input
+                            type="file"
+                            hidden
+                            onChange={(e) => handleFileUpload(e, 'pictures')}
+                            accept="image/*"
+                            multiple
                           />
                         </EmptyFilesMessage>
                       </Box>
