@@ -271,6 +271,7 @@ const Navbar = () => {
                 color: '#ffffff'
               }
             }}
+            onClick={handleSettingsClick}
           >
             {t('Settings')}
           </Button>
