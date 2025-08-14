@@ -592,7 +592,8 @@ const LoadsPage = () => {
     { value: 'unloading', label: 'Unloading', icon: <MdFileDownload />, color: '#F59E0B' },
     { value: 'delivered', label: 'Delivered', icon: <MdDoneAll />, color: '#10B981' },
     { value: 'completed', label: 'Completed', icon: <MdCheckCircle />, color: '#059669' },
-    { value: 'in_yard', label: 'In Yard', icon: <MdHome />, color: '#6B7280' }
+    { value: 'in_yard', label: 'In Yard', icon: <MdHome />, color: '#6B7280' },
+    { value: 'canceled', label: 'Canceled', icon: <MdHome />, color: '#EF4444' }
   ];
 
   const invoiceStatuses = [

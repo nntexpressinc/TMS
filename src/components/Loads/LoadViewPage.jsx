@@ -1413,7 +1413,8 @@ const LoadViewPage = () => {
     { value: 'UNLOADING', label: 'Unloading', icon: <MdFileDownload size={16} />, color: '#F59E0B' },
     { value: 'DELIVERED', label: 'Delivered', icon: <MdDoneAll size={16} />, color: '#10B981' },
     { value: 'COMPLETED', label: 'Completed', icon: <MdCheckCircle size={16} />, color: '#059669' },
-    { value: 'IN_YARD', label: 'In Yard', icon: <MdHome size={16} />, color: '#6B7280' }
+    { value: 'IN_YARD', label: 'In Yard', icon: <MdHome size={16} />, color: '#6B7280' },
+    { value: 'CANCELED', label: 'Canceled', icon: <MdHome size={16} />, color: '#EF4444' }
   ];
 
   // Load steps for the stepper
@@ -1425,7 +1426,8 @@ const LoadViewPage = () => {
     { id: 5, name: "On Route" },
     { id: 6, name: "Unloading" },
     { id: 7, name: "Delivered" },
-    { id: 8, name: "Completed" }
+    { id: 8, name: "Completed" },
+    { id: 9, name: "Canceled" },
   ];
 
   const invoiceStatusOptions = [
