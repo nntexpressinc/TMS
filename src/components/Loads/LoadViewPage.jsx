@@ -954,8 +954,60 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
                 <Autocomplete
                   fullWidth
-                  options={brokers}
-                  getOptionLabel={(option) => option.company_name || ""}
+                  options={brokers || []}
+                  filterOptions={(options, { inputValue }) => {
+                    try {
+                      const list = Array.isArray(options) ? options : [];
+                      const q = (inputValue || '').toString().trim().toLowerCase();
+
+                      if (!q) return list.slice(0, 50);
+
+                      const scored = [];
+                      const maxResults = 200;
+
+                      const scoreFor = (opt) => {
+                        if (!opt) return -Infinity;
+                        const name = (opt.company_name || '').toString().toLowerCase();
+                        const mc = (opt.mc_number || '').toString().toLowerCase();
+                        const email = (opt.email_address || '').toString().toLowerCase();
+
+                        let score = 0;
+                        if (name === q || mc === q || email === q) score += 100;
+                        if (name.startsWith(q) || mc.startsWith(q) || email.startsWith(q)) score += 50;
+                        if (name.split(/\s+/).some(w => w.startsWith(q))) score += 30;
+                        if (name.includes(q)) score += 10;
+                        if (mc.includes(q)) score += 20;
+                        if (email.includes(q)) score += 5;
+
+                        const idx = name.indexOf(q);
+                        if (idx >= 0) score += Math.max(0, 5 - idx);
+
+                        return score;
+                      };
+
+                      for (let i = 0; i < list.length; i++) {
+                        const opt = list[i];
+                        if (!opt) continue;
+                        const s = scoreFor(opt);
+                        if (s > 0) scored.push({ opt, score: s });
+                      }
+
+                      scored.sort((a, b) => {
+                        if (b.score !== a.score) return b.score - a.score;
+                        const na = (a.opt.company_name || a.opt.mc_number || '').toString().toLowerCase();
+                        const nb = (b.opt.company_name || b.opt.mc_number || '').toString().toLowerCase();
+                        return na.localeCompare(nb);
+                      });
+
+                      return scored.slice(0, maxResults).map(s => s.opt);
+                    } catch (err) {
+                      console.error('broker filter error', err);
+                      return options || [];
+                    }
+                  }}
+                  autoHighlight
+                  clearOnEscape
+                  getOptionLabel={(option) => option.company_name || option.mc_number || option.email_address || ""}
                   value={loadData.customer_broker}
                   onChange={handleBrokerChange}
                   renderInput={(params) => (
@@ -965,14 +1017,15 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
                       required
                       error={!loadData.customer_broker}
                       helperText={!loadData.customer_broker ? "Broker/Mijoz tanlanishi shart" : ""}
+                      placeholder="Search by company name or MC number"
                     />
                   )}
                   renderOption={(props, option) => (
                     <li {...props}>
                       <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                        <Typography variant="body1">{option.company_name}</Typography>
+                        <Typography variant="body1">{option.company_name || option.mc_number}</Typography>
                         <Typography variant="caption" color="text.secondary">
-                          MC: {option.mc_number} | {option.email_address}
+                          MC: {option.mc_number} {option.email_address ? `| ${option.email_address}` : ''}
                         </Typography>
                       </Box>
                     </li>

@@ -319,7 +319,69 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
                 <Autocomplete
                   fullWidth
                   options={brokers || []}
-                  filterOptions={brokerFilterOptions}
+                  filterOptions={(options, { inputValue }) => {
+                    try {
+                      const list = Array.isArray(options) ? options : [];
+                      const q = (inputValue || '').toString().trim().toLowerCase();
+
+                      // If empty query, return a small subset for snappy UI
+                      if (!q) return list.slice(0, 50);
+
+                      const scored = [];
+                      const maxResults = 200; // keep UI responsive
+
+                      const scoreFor = (opt) => {
+                        if (!opt) return -Infinity;
+                        const name = (opt.company_name || '').toString().toLowerCase();
+                        const mc = (opt.mc_number || '').toString().toLowerCase();
+                        const email = (opt.email_address || '').toString().toLowerCase();
+
+                        let score = 0;
+
+                        // Exact full match is best
+                        if (name === q || mc === q || email === q) score += 100;
+
+                        // Prefix matches are very relevant
+                        if (name.startsWith(q) || mc.startsWith(q) || email.startsWith(q)) score += 50;
+
+                        // Word-start matches in company name
+                        if (name.split(/\s+/).some(w => w.startsWith(q))) score += 30;
+
+                        // Substring matches
+                        if (name.includes(q)) score += 10;
+                        if (mc.includes(q)) score += 20; // MC match slightly more important
+                        if (email.includes(q)) score += 5;
+
+                        // Slight boost for earlier position
+                        const idx = name.indexOf(q);
+                        if (idx >= 0) score += Math.max(0, 5 - idx);
+
+                        return score;
+                      };
+
+                      for (let i = 0; i < list.length; i++) {
+                        const opt = list[i];
+                        if (!opt) continue;
+                        const s = scoreFor(opt);
+                        if (s > 0) scored.push({ opt, score: s });
+                      }
+
+                      // Sort by score desc, then by company_name for stable order
+                      scored.sort((a, b) => {
+                        if (b.score !== a.score) return b.score - a.score;
+                        const na = (a.opt.company_name || a.opt.mc_number || '').toString().toLowerCase();
+                        const nb = (b.opt.company_name || b.opt.mc_number || '').toString().toLowerCase();
+                        return na.localeCompare(nb);
+                      });
+
+                      return scored.slice(0, maxResults).map(s => s.opt);
+                    } catch (err) {
+                      console.error('broker filter error', err);
+                      return options || [];
+                    }
+                  }}
+                  autoHighlight
+                  clearOnEscape
                   getOptionLabel={(option) => {
                     if (!option) return '';
                     // option can be a string when freeSolo or during typing; handle gracefully
