@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Typography, Box, Button, TextField, MenuItem, InputAdornment, Chip, IconButton, Menu, Popover, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, FormControl, InputLabel, Select, Grid, Alert, Snackbar, CircularProgress } from "@mui/material";
+import { Typography, Box, Button, TextField, MenuItem, InputAdornment, Chip, IconButton, Menu, Popover, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, createFilterOptions, FormControl, InputLabel, Select, Grid, Alert, Snackbar, CircularProgress } from "@mui/material";
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { ApiService } from "../../api/auth";
 import { useNavigate } from 'react-router-dom';
@@ -267,6 +267,11 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
     }
   };
 
+  // Custom filter for brokers: search by company name, MC number, or email
+  const brokerFilterOptions = createFilterOptions({
+    stringify: (option) => `${option.company_name || ''} ${option.mc_number || ''} ${option.email_address || ''}`
+  });
+
   return (
     <>
       <Dialog 
@@ -313,8 +318,20 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
                 <Autocomplete
                   fullWidth
-                  options={brokers}
-                  getOptionLabel={(option) => option.company_name || ""}
+                  options={brokers || []}
+                  filterOptions={brokerFilterOptions}
+                  getOptionLabel={(option) => {
+                    if (!option) return '';
+                    // option can be a string when freeSolo or during typing; handle gracefully
+                    if (typeof option === 'string') return option;
+                    return option.company_name || option.mc_number || option.email_address || '';
+                  }}
+                  isOptionEqualToValue={(option, value) => {
+                    // Accept equality by id if available, otherwise by company name or mc_number
+                    if (!option || !value) return false;
+                    if (option.id && value.id) return option.id === value.id;
+                    return (option.company_name === value.company_name) || (option.mc_number === value.mc_number);
+                  }}
                   value={loadData.customer_broker}
                   onChange={handleBrokerChange}
                   renderInput={(params) => (
@@ -324,14 +341,15 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
                       required
                       error={!loadData.customer_broker}
                       helperText={!loadData.customer_broker ? "Customer/Broker is required" : ""}
+                      placeholder="Search by company name or MC number"
                     />
                   )}
                   renderOption={(props, option) => (
                     <li {...props}>
                       <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                        <Typography variant="body1">{option.company_name}</Typography>
+                        <Typography variant="body1">{option.company_name || option.mc_number}</Typography>
                         <Typography variant="caption" color="text.secondary">
-                          MC: {option.mc_number} | {option.email_address}
+                          MC: {option.mc_number} {option.email_address ? `| ${option.email_address}` : ''}
                         </Typography>
                       </Box>
                     </li>

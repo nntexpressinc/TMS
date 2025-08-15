@@ -2705,7 +2705,7 @@ const LoadViewPage = () => {
       country: "USA",
       state: "",
       city: "",
-      zip_code: 0,
+  zip_code: '',
       note: "",
       fcfs_date: "",
       fcfs_time: "",
@@ -2807,7 +2807,7 @@ const LoadViewPage = () => {
       country: "USA",
       state: "",
       city: "",
-      zip_code: 0,
+      zip_code: '',
       note: "",
       fcfs_date: "",
       fcfs_time: "",
@@ -2911,8 +2911,12 @@ const LoadViewPage = () => {
       }
 
       // For numeric fields, ensure they are numbers or null
-      if (formattedData.zip_code) {
-        formattedData.zip_code = parseInt(formattedData.zip_code) || null;
+      if (formattedData.zip_code === '' || formattedData.zip_code === null || typeof formattedData.zip_code === 'undefined') {
+        formattedData.zip_code = null;
+      } else {
+        // If it's a string or number, try to coerce to integer; if invalid, set null
+        const parsedZip = parseInt(formattedData.zip_code);
+        formattedData.zip_code = Number.isNaN(parsedZip) ? null : parsedZip;
       }
       
       if (formattedData.reference_id && !isNaN(formattedData.reference_id)) {
@@ -2978,7 +2982,7 @@ const LoadViewPage = () => {
         country: "USA",
         state: "",
         city: "",
-        zip_code: 0,
+  zip_code: '',
         note: "",
         fcfs_date: "",
         fcfs_time: "",
