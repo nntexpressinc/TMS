@@ -20,6 +20,9 @@ const InvoiceCreatePage = () => {
   const [loadOptions, setLoadOptions] = useState([]);
   const [selectedLoads, setSelectedLoads] = useState([]);
   const [loadsLoading, setLoadsLoading] = useState(false);
+  const [loadsPage, setLoadsPage] = useState(1);
+  const [loadsPageSize, setLoadsPageSize] = useState(25);
+  const [loadsTotalPages, setLoadsTotalPages] = useState(1);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,9 +60,13 @@ const InvoiceCreatePage = () => {
     const fetchLoads = async () => {
       try {
         setLoadsLoading(true);
-        const data = await getAllLoads();
+        const data = await getAllLoads({ page: loadsPage, page_size: loadsPageSize });
         if (!mounted) return;
+        // data may be paginated { results, count, next, previous }
         const arr = Array.isArray(data) ? data : (data.results || []);
+        if (data && typeof data.count === 'number') {
+          setLoadsTotalPages(Math.max(1, Math.ceil(data.count / loadsPageSize)));
+        }
         const opts = arr.map(l => ({
           // value should be the numeric database id the backend expects
           value: Number(l.id),
@@ -67,14 +74,15 @@ const InvoiceCreatePage = () => {
         }));
         setLoadOptions(opts);
       } catch (err) {
-        setLoadOptions([]);
+  console.error('Failed to fetch loads page:', err);
+  setLoadOptions([]);
       } finally {
         setLoadsLoading(false);
       }
     };
     fetchLoads();
     return () => { mounted = false; };
-  }, []);
+  }, [loadsPage, loadsPageSize]);
 
   const handleLoadsChange = (selected) => {
     setSelectedLoads(selected || []);
@@ -129,6 +137,18 @@ const InvoiceCreatePage = () => {
 
           <div className="form-group">
             <label>{t("Loads")}:</label>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+              <select value={loadsPageSize} onChange={(e) => { setLoadsPageSize(Number(e.target.value)); setLoadsPage(1); }} style={{ padding: 8, borderRadius: 6 }}>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button type="button" onClick={() => setLoadsPage(p => Math.max(1, p - 1))} className="btn btn-sm">Prev</button>
+                <span style={{ fontSize: 13 }}>{t('Page')} {loadsPage} / {loadsTotalPages}</span>
+                <button type="button" onClick={() => setLoadsPage(p => Math.min(loadsTotalPages, p + 1))} className="btn btn-sm">Next</button>
+              </div>
+            </div>
             <Select
               isMulti
               options={loadOptions}

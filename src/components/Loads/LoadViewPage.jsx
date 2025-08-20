@@ -7018,6 +7018,35 @@ const LoadViewPage = () => {
                       </Box>
                     </Box>
 
+                    {/* Tonu (new) */}
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                        Tonu
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <TextField 
+                          fullWidth
+                          disabled
+                          size="small"
+                          placeholder="No file selected"
+                          value={load.tonu ? 'Tonu Document' : ''}
+                        />
+                        <Button
+                          variant="outlined"
+                          component="label"
+                          size="small"
+                        >
+                          Browse
+                          <input
+                            type="file"
+                            hidden
+                            onChange={(e) => handleFileUpload(e, 'tonu')}
+                            accept="image/*,application/pdf"
+                          />
+                        </Button>
+                      </Box>
+                    </Box>
+
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
                       <Button 
                         variant="outlined" 
@@ -7258,6 +7287,50 @@ const LoadViewPage = () => {
                             onChange={(e) => handleFileUpload(e, 'pictures')}
                             accept="image/*"
                             multiple
+                          />
+                        </EmptyFilesMessage>
+                      </Box>
+                    )}
+                    {/* Tonu (new) */}
+                    <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
+                      Tonu
+                    </Typography>
+                    {load.tonu ? (
+                      <FileItem>
+                        <FileIcon fileType={getFileType(load.tonu)}>
+                          {getFileIcon(getFileType(load.tonu))}
+                        </FileIcon>
+
+                        <FileDetails>
+                          <FileName>Tonu Document</FileName>
+                          <FileInfo>Added on {new Date().toLocaleDateString()}</FileInfo>
+                        </FileDetails>
+
+                        <FileActions>
+                          <IconButton size="small" onClick={() => handleViewFile(load.tonu, 'Tonu')}>
+                            <Visibility fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => downloadFile(load.tonu)}>
+                            <GetApp fontSize="small" />
+                          </IconButton>
+                        </FileActions>
+                      </FileItem>
+                    ) : (
+                      <Box component="label" sx={{ cursor: 'pointer', display: 'block' }}>
+                        <EmptyFilesMessage>
+                          <InsertDriveFile />
+                          <Typography variant="body2">No Tonu uploaded</Typography>
+                          <Button 
+                            variant="text" 
+                            size="small" 
+                            sx={{ mt: 0.5, fontSize: '0.75rem' }}
+                          >
+                            Upload Tonu
+                          </Button>
+                          <input
+                            type="file"
+                            hidden
+                            onChange={(e) => handleFileUpload(e, 'tonu')}
                           />
                         </EmptyFilesMessage>
                       </Box>

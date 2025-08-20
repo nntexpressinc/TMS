@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Typography, Box, Button, TextField, MenuItem, InputAdornment, Chip, IconButton, Menu, Popover, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, createFilterOptions, FormControl, InputLabel, Select, Grid, Alert, Snackbar, CircularProgress } from "@mui/material";
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { ApiService } from "../../api/auth";
@@ -647,6 +647,11 @@ const LoadsPage = () => {
   const navigate = useNavigate();
   const { isSidebarOpen } = useSidebar();
   const [copiedId, setCopiedId] = useState(null);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [nextUrl, setNextUrl] = useState(null);
+  const [prevUrl, setPrevUrl] = useState(null);
 
   // Read permissions from localStorage
   useEffect(() => {
@@ -744,75 +749,109 @@ const LoadsPage = () => {
     { value: "trip_bil_status", label: "Trip Bill Status" }
   ];
 
-  useEffect(() => {
-    const fetchLoadsData = async () => {
-      setLoading(true);
-      const storedAccessToken = localStorage.getItem("accessToken");
-      if (storedAccessToken) {
-        try {
-          const data = await ApiService.getData(`/load/`, storedAccessToken);
-          console.log("API Response:", data);
+  const fetchLoadsData = useCallback(async (url) => {
+    setLoading(true);
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
-          const formattedData = data.map(load => {
-            return {
-              id: load.id,
-              created_by: load.created_by?.nickname || '',
-              customer_broker: load.customer_broker?.company_name || '',
-              driver: load.driver || null,  // O'zgartirildi: butun driver obyektini saqlaymiz
-              dispatcher: load.dispatcher?.nickname || '',
-              created_by_id: load.created_by?.id,
-              customer_broker_id: load.customer_broker?.id,
-              driver_id: load.driver?.id,
-              dispatcher_id: load.dispatcher?.id,
-              company_name: load.company_name,
-              reference_id: load.reference_id,
-              instructions: load.instructions,
-              bills: load.bills,
-              created_date: load.created_date,
-              load_id: load.load_id,
-              trip_id: load.trip_id,
-              co_driver: load.co_driver,
-              truck: load.truck || null,  // O'zgartirildi: butun truck obyektini saqlaymiz
-              load_status: load.load_status,
-              equipment_type: load.equipment_type,
-              trip_status: load.trip_status,
-              invoice_status: load.invoice_status,
-              trip_bil_status: load.trip_bil_status,
-              load_pay: load.load_pay,
-              driver_pay: load.driver_pay,
-              total_pay: load.total_pay,
-              per_mile: load.per_mile,
-              mile: load.mile,
-              empty_mile: load.empty_mile,
-              total_miles: load.total_miles,
-              flagged: load.flagged,
-              flagged_reason: load.flagged_reason,
-              note: load.note,
-              chat: load.chat,
-              ai: load.ai,
-              rate_con: load.rate_con,
-              bol: load.bol,
-              pod: load.pod,
-              document: load.document,
-              comercial_invoice: load.comercial_invoice,
-              tags: load.tags
-            };
-          });
-          console.log("Formatted Data:", formattedData);
-          setLoads(formattedData);
-          setFilteredLoads(formattedData);
-        } catch (error) {
-          console.error("Error fetching loads data:", error);
-        } finally {
-          setLoading(false);
-        }
+    try {
+      let data;
+
+      if (url && /^https?:\/\//i.test(url)) {
+        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        data = await res.json();
       } else {
-        setLoading(false);
+        const endpoint = url || `/load/?page_size=${pageSize}`;
+        data = await ApiService.getData(endpoint);
       }
-    };
 
+      const arr = Array.isArray(data) ? data : (data && Array.isArray(data.results) ? data.results : []);
+
+      setNextUrl(data && data.next ? data.next : null);
+      setPrevUrl(data && data.previous ? data.previous : null);
+      setTotalCount(data && typeof data.count === 'number' ? data.count : arr.length);
+
+      const formattedData = arr.map(load => ({
+        id: load.id,
+        created_by: load.created_by?.nickname || '',
+        customer_broker: load.customer_broker?.company_name || '',
+        driver: load.driver || null,
+        dispatcher: load.dispatcher?.nickname || '',
+        created_by_id: load.created_by?.id,
+        customer_broker_id: load.customer_broker?.id,
+        driver_id: load.driver?.id,
+        dispatcher_id: load.dispatcher?.id,
+        company_name: load.company_name,
+        reference_id: load.reference_id,
+        instructions: load.instructions,
+        bills: load.bills,
+        created_date: load.created_date,
+        load_id: load.load_id,
+        trip_id: load.trip_id,
+        co_driver: load.co_driver,
+        truck: load.truck || null,
+        load_status: load.load_status,
+        equipment_type: load.equipment_type,
+        trip_status: load.trip_status,
+        invoice_status: load.invoice_status,
+        trip_bil_status: load.trip_bil_status,
+        load_pay: load.load_pay,
+        driver_pay: load.driver_pay,
+        total_pay: load.total_pay,
+        per_mile: load.per_mile,
+        mile: load.mile,
+        empty_mile: load.empty_mile,
+        total_miles: load.total_miles,
+        flagged: load.flagged,
+        flagged_reason: load.flagged_reason,
+        note: load.note,
+        chat: load.chat,
+        ai: load.ai,
+        rate_con: load.rate_con,
+        bol: load.bol,
+        pod: load.pod,
+        document: load.document,
+        comercial_invoice: load.comercial_invoice,
+        tags: load.tags
+      }));
+
+      setLoads(formattedData);
+      setFilteredLoads(formattedData);
+
+      // derive current page from API pagination links (API pages are 1-based)
+      try {
+        let currentApiPage = 1;
+        if (data && data.previous) {
+          const prevUrlObj = new URL(data.previous);
+          const prevPage = prevUrlObj.searchParams.get('page');
+          if (prevPage) currentApiPage = parseInt(prevPage, 10) + 1;
+        } else if (data && data.next) {
+          const nextUrlObj = new URL(data.next);
+          const nextPage = nextUrlObj.searchParams.get('page');
+          if (nextPage) currentApiPage = parseInt(nextPage, 10) - 1;
+        }
+        setPage(Math.max(0, currentApiPage - 1));
+      } catch (err) {
+        // ignore parsing errors and keep existing page
+      }
+    } catch (error) {
+      console.error("Error fetching loads data:", error);
+      setLoads([]);
+      setFilteredLoads([]);
+      setNextUrl(null);
+      setPrevUrl(null);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [pageSize]);
+
+  useEffect(() => {
     fetchLoadsData();
-  }, []);
+  }, [fetchLoadsData]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -828,26 +867,52 @@ const LoadsPage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [isSidebarOpen]);
 
-  useEffect(() => {
-    if (searchTerm === "") {
-      setFilteredLoads(loads);
-      return;
+  // helper: build API endpoint for current filters (memoized)
+  const buildEndpoint = useCallback((opts = {}) => {
+    const qs = new URLSearchParams();
+    const page = opts.page || 1;
+    qs.set('page', page);
+    qs.set('page_size', opts.page_size || pageSize);
+
+    const term = (searchTerm || '').toString().trim();
+    if (term) {
+      // map searchCategory to specific query param when possible
+      switch (searchCategory) {
+        case 'id':
+          qs.set('id', term);
+          break;
+        case 'load_id':
+          qs.set('load_id', term);
+          break;
+        case 'load_status':
+          qs.set('load_status', term);
+          break;
+        case 'invoice_status':
+          qs.set('invoice_status', term);
+          break;
+        case 'company_name':
+          qs.set('company_name', term);
+          break;
+        case 'reference_id':
+          qs.set('reference_id', term);
+          break;
+        default:
+          qs.set('search', term);
+      }
     }
 
-    const filtered = loads.filter(load => {
-      if (searchCategory === "all") {
-        return Object.values(load).some(value =>
-          String(value).toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      } else {
-        return String(load[searchCategory])
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
-      }
-    });
+    if (selectedStatus) qs.set('load_status', selectedStatus);
+    if (selectedInvoiceStatus) qs.set('invoice_status', selectedInvoiceStatus);
 
-    setFilteredLoads(filtered);
-  }, [searchTerm, searchCategory, loads]);
+    return `/load/?${qs.toString()}`;
+  }, [pageSize, searchTerm, searchCategory, selectedStatus, selectedInvoiceStatus]);
+
+  // Trigger server fetch when search inputs or filters change
+  useEffect(() => {
+    setPage(0);
+    const endpoint = buildEndpoint({ page: 1, page_size: pageSize });
+    fetchLoadsData(endpoint);
+  }, [buildEndpoint, fetchLoadsData, pageSize]);
 
   const handleCreateLoad = () => {
     setIsCreateModalOpen(true);
@@ -861,9 +926,7 @@ const LoadsPage = () => {
     navigate(`/loads/view/${newLoad.id}`);
   };
 
-  const handleEditLoad = (loadId) => {
-    navigate(`/loads/edit/${loadId}`);
-  };
+  // removed unused handleEditLoad to satisfy linter
 
   const handleViewLoad = (loadId) => {
     navigate(`/loads/view/${loadId}`);
@@ -1198,6 +1261,31 @@ const LoadsPage = () => {
 
   const CustomFooter = () => {
     const totals = calculateTotals();
+  const totalPages = totalCount ? Math.max(1, Math.ceil(totalCount / pageSize)) : Math.max(1, Math.ceil((filteredLoads?.length || 0) / pageSize));
+
+    const handlePrev = () => {
+      if (prevUrl) {
+        // fetch previous page from API
+        fetchLoadsData(prevUrl);
+      } else {
+        setPage(p => Math.max(0, p - 1));
+      }
+    };
+
+    const handleNext = () => {
+      if (nextUrl) {
+        // fetch next page from API
+        fetchLoadsData(nextUrl);
+      } else {
+        setPage(p => Math.min(totalPages - 1, p + 1));
+      }
+    };
+
+    const handlePageSizeChange = (e) => {
+      const newSize = Number(e.target.value);
+      setPageSize(newSize);
+      setPage(0);
+    };
 
     return (
       <Box sx={{
@@ -1218,7 +1306,30 @@ const LoadsPage = () => {
             <strong>Total Miles:</strong> {totals.totalMiles.toFixed(0)}
           </Typography>
         </Box>
-        <div className="MuiDataGrid-pagination" />
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button size="small" variant="outlined" onClick={handlePrev} disabled={!(prevUrl || page > 0)}>
+            Prev
+          </Button>
+          <Typography sx={{ mx: 1 }}>
+            Page {page + 1} of {totalPages}
+          </Typography>
+          <Button size="small" variant="outlined" onClick={handleNext} disabled={!(nextUrl || page < totalPages - 1)}>
+            Next
+          </Button>
+
+          <TextField
+            select
+            size="small"
+            value={pageSize}
+            onChange={handlePageSizeChange}
+            sx={{ width: 100, ml: 2 }}
+          >
+            {[10, 20, 50, 100].map(size => (
+              <MenuItem key={size} value={size}>{size} / page</MenuItem>
+            ))}
+          </TextField>
+        </Box>
       </Box>
     );
   };
@@ -1452,8 +1563,21 @@ const LoadsPage = () => {
           <DataGrid
             rows={filteredLoads}
             columns={columns}
-            pageSize={10}
-            rowsPerPageOptions={[10, 20, 50]}
+            pagination
+            page={page}
+            onPageChange={(newPage) => {
+              // request server page (API pages are 1-based)
+              const endpoint = buildEndpoint({ page: newPage + 1, page_size: pageSize });
+              fetchLoadsData(endpoint);
+            }}
+            pageSize={pageSize}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              // fetch first page with new size
+              const endpoint = buildEndpoint({ page: 1, page_size: newSize });
+              fetchLoadsData(endpoint);
+            }}
+            rowsPerPageOptions={[10, 20, 50, 100]}
             components={{
               Footer: CustomFooter,
               Toolbar: GridToolbar

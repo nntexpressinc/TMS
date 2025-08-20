@@ -15,7 +15,7 @@ const InvoicesPage = () => {
   const [toDate, setToDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     const fetchInvoices = async () => {
@@ -206,7 +206,15 @@ const InvoicesPage = () => {
             </table>
 
             {totalPages > 1 && (
-              <div className="pagination">
+              <div className="pagination" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                  className="page-button"
+                  disabled={currentPage === 1}
+                >
+                  Prev
+                </button>
+
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                   <button
                     key={page}
@@ -216,6 +224,24 @@ const InvoicesPage = () => {
                     {page}
                   </button>
                 ))}
+
+                <button
+                  onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                  className="page-button"
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+
+                <div style={{ marginLeft: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <label style={{ fontSize: 14, color: '#374151' }}>Per page:</label>
+                  <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} style={{ padding: '6px 8px', borderRadius: 6 }}>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
               </div>
             )}
           </>
