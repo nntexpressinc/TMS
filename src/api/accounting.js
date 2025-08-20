@@ -38,6 +38,21 @@ export const getDispatchers = async () => {
   }
 };
 
+// Cache storage
+const cache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Helper function to get cache key
+const getCacheKey = (endpoint, params) => {
+  return `${endpoint}?${new URLSearchParams(params).toString()}`;
+};
+
+// Helper function to check if cache is valid
+const isCacheValid = (cacheEntry) => {
+  if (!cacheEntry) return false;
+  return Date.now() - cacheEntry.timestamp < CACHE_TTL;
+};
+
 // Yangi: Driver pay list olish
 export const getDriverPayList = async (params = {}) => {
   try {
@@ -53,13 +68,32 @@ export const getDriverPayList = async (params = {}) => {
     if (params.pay_from) queryParams.append('pay_from', params.pay_from);
     if (params.pay_to) queryParams.append('pay_to', params.pay_to);
     
+    // Check cache first
+    const cacheKey = getCacheKey('driver_pay', params);
+    const cachedData = cache.get(cacheKey);
+    if (isCacheValid(cachedData)) {
+      return cachedData.data;
+    }
+
+    // If not in cache or cache expired, make API call
     const response = await axios.get(`${API_URL}/driver/pay/driver/?${queryParams.toString()}`, {
       headers: {
         Authorization: `Bearer ${storedAccessToken}`,
       },
+      signal: params.signal // Support for AbortController
     });
+
+    // Update cache
+    cache.set(cacheKey, {
+      data: response.data,
+      timestamp: Date.now()
+    });
+
     return response.data;
   } catch (error) {
+    if (error.name === 'AbortError') {
+      throw error; // Let the component handle abort errors
+    }
     console.error('Error fetching driver pay list:', error.message);
     throw error;
   }
@@ -175,6 +209,179 @@ export const getAllLoads = async () => {
     return response.data;
   } catch (error) {
     console.error('Error fetching loads:', error.message);
+    throw error;
+  }
+};
+
+// Invoice related endpoints
+export const getInvoices = async (params = {}) => {
+  try {
+    const storedAccessToken = localStorage.getItem('accessToken');
+    if (!storedAccessToken) {
+      throw new Error('No access token found');
+    }
+
+    // Build query string if frontend requests paging/search
+    const query = new URLSearchParams();
+    if (params.page) query.append('page', params.page);
+    if (params.search) query.append('search', params.search);
+    if (params.per_page) query.append('per_page', params.per_page);
+
+    const url = `${API_URL}/invoices/${query.toString() ? `?${query.toString()}` : ''}`;
+
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${storedAccessToken}`,
+      }
+    });
+
+  // API may return an array (as documented) or a paginated object { results, count }
+  const data = response.data;
+    if (Array.isArray(data)) {
+      return {
+        results: data,
+        count: data.length
+      };
+    }
+
+    // If server already returns paginated shape, pass it through
+    return data;
+  } catch (error) {
+    console.error('Error fetching invoices:', error.message);
+    throw error;
+  }
+};
+
+export const getInvoiceById = async (id) => {
+  try {
+    const storedAccessToken = localStorage.getItem('accessToken');
+    if (!storedAccessToken) {
+      throw new Error('No access token found');
+    }
+
+    const response = await axios.get(`${API_URL}/invoices/${id}/`, {
+      headers: {
+        Authorization: `Bearer ${storedAccessToken}`,
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching invoice:', error.message);
+    throw error;
+  }
+};
+
+export const createInvoice = async (data) => {
+  try {
+    const storedAccessToken = localStorage.getItem('accessToken');
+    if (!storedAccessToken) {
+      throw new Error('No access token found');
+    }
+
+    const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+
+    const headers = {
+      Authorization: `Bearer ${storedAccessToken}`,
+    };
+
+    // When sending FormData, let the browser set Content-Type (multipart/form-data with boundary)
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    // For JSON payloads, only send the fields the API expects.
+    const payload = isFormData ? data : {
+      invoice_date: data.invoice_date,
+      status: data.status,
+      notes: data.notes,
+      loads: data.loads
+    };
+
+    const response = await axios.post(
+      `${API_URL}/invoices/`,
+      payload,
+      {
+        headers,
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error('Error creating invoice:', error.message);
+    throw error;
+  }
+};
+
+export const updateInvoice = async (id, data) => {
+  try {
+    const storedAccessToken = localStorage.getItem('accessToken');
+    if (!storedAccessToken) {
+      throw new Error('No access token found');
+    }
+    const response = await axios.put(
+      `${API_URL}/invoices/${id}/`,
+      data,
+      {
+        headers: {
+          Authorization: `Bearer ${storedAccessToken}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+
+    // Update localStorage after update
+    const storedInvoices = localStorage.getItem('invoices');
+    if (storedInvoices) {
+      const invoices = JSON.parse(storedInvoices);
+      const index = invoices.findIndex(inv => inv.id === id);
+      if (index !== -1) {
+        invoices[index] = response.data;
+        localStorage.setItem('invoices', JSON.stringify(invoices));
+      }
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Error updating invoice:', error.message);
+    throw error;
+  }
+};
+
+// Helper function to invalidate related caches
+const invalidateInvoiceCaches = () => {
+  const keysToDelete = [];
+  for (const key of cache.keys()) {
+    if (key.startsWith('invoices') || key.startsWith('invoice_')) {
+      keysToDelete.push(key);
+    }
+  }
+  keysToDelete.forEach(key => cache.delete(key));
+};
+
+export const deleteInvoice = async (id) => {
+  try {
+    const storedAccessToken = localStorage.getItem('accessToken');
+    if (!storedAccessToken) {
+      throw new Error('No access token found');
+    }
+    const response = await axios.delete(`${API_URL}/invoices/${id}/`, {
+      headers: {
+        Authorization: `Bearer ${storedAccessToken}`,
+      },
+    });
+    
+    // Update localStorage after deletion
+    const storedInvoices = localStorage.getItem('invoices');
+    if (storedInvoices) {
+      const invoices = JSON.parse(storedInvoices);
+      const filteredInvoices = invoices.filter(inv => inv.id !== id);
+      localStorage.setItem('invoices', JSON.stringify(filteredInvoices));
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting invoice:', error.message);
     throw error;
   }
 };

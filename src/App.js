@@ -22,6 +22,9 @@ import TruckTrailerPage from "./components/TruckTrailer/TruckTrailerPage";
 import TruckCreatePage from "./components/TruckTrailer/truck/TruckCreatePage";
 import TrailerCreatePage from "./components/TruckTrailer/trailer/TrailerCreatePage";
 import AccountingPage from "./components/Accounting/AccountingPage";
+import InvoicesPage from "./components/Accounting/InvoicesPage";
+import InvoiceCreatePage from "./components/Accounting/invoices/InvoiceCreatePage";
+import InvoiceViewPage from "./components/Accounting/invoices/InvoiceViewPage";
 import PrivateRoute from "./components/PrivateRoute";
 import Layout from "./components/Layout/Layout";
 import { SidebarProvider } from "./components/SidebarContext";
@@ -48,6 +51,7 @@ import EmployeeEditPage from "./components/Employee/EmployeeEditPage";
 import IftaPage from "./components/IFTA/IftaPage";
 import PermissionDenied from "./components/PermissionDenied";
 import SettingsPage from "./components/Settings/SettingsPage";
+import PermissionGuard from "./components/PermissionGuard";
 
 const App = () => {
   const { isAuthenticated: isAuth } = useAuth();
@@ -426,6 +430,36 @@ const App = () => {
               }
             />
             <Route
+              path="invoices"
+              element={
+                <PermissionGuard permissionKey="accounting">
+                  <PrivateRoute>
+                    <InvoicesPage />
+                  </PrivateRoute>
+                </PermissionGuard>
+              }
+            />
+            <Route
+              path="invoices/create"
+              element={
+                <PermissionGuard permissionKey="accounting">
+                  <PrivateRoute>
+                    <InvoiceCreatePage />
+                  </PrivateRoute>
+                </PermissionGuard>
+              }
+            />
+            <Route
+              path="invoices/:id"
+              element={
+                <PermissionGuard permissionKey="accounting">
+                  <PrivateRoute>
+                    <InvoiceViewPage />
+                  </PrivateRoute>
+                </PermissionGuard>
+              }
+            />
+            <Route
               path="ifta"
               element={
                 <PermissionGuard permissionKey="ifta">
@@ -497,22 +531,7 @@ const App = () => {
   );
 };
 
-// PermissionGuard component
-function PermissionGuard({ permissionKey, children }) {
-  const permissionsEnc = localStorage.getItem("permissionsEnc");
-  let permissions = {};
-  if (permissionsEnc) {
-    try {
-      permissions = JSON.parse(decodeURIComponent(escape(atob(permissionsEnc))));
-    } catch (e) {
-      permissions = {};
-    }
-  }
-  if (permissionKey && permissions[permissionKey] === false) {
-    return <PermissionDenied />;
-  }
-  return children;
-}
+
 
 // Helper to find first allowed route
 function getFirstAllowedRoute() {

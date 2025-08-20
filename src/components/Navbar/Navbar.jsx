@@ -30,7 +30,7 @@ const Navbar = () => {
   const { isSidebarOpen } = useSidebar();
   const [user, setUser] = useState(null);
   const [roleName, setRoleName] = useState('');
-  const [notifications, setNotifications] = useState([]);
+  const [notifications] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   
@@ -57,7 +57,6 @@ const Navbar = () => {
     const roleNameEnc = localStorage.getItem("roleNameEnc");
     const permissionsEnc = localStorage.getItem("permissionsEnc");
     let decodedRole = "";
-    let decodedPermissions = {};
     if (roleNameEnc) {
       try {
         decodedRole = decodeURIComponent(escape(atob(roleNameEnc)));
@@ -68,8 +67,8 @@ const Navbar = () => {
     }
     if (permissionsEnc) {
       try {
-        decodedPermissions = JSON.parse(decodeURIComponent(escape(atob(permissionsEnc))));
-        // You can use decodedPermissions if needed
+        JSON.parse(decodeURIComponent(escape(atob(permissionsEnc))));
+        // Permissions are available if needed
       } catch (e) {
         // ignore
       }

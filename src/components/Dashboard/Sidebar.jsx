@@ -5,7 +5,6 @@ import "./sidebar.scss";
 import { useTranslation } from "react-i18next";
 import { MdSpaceDashboard, MdExpandMore, MdExpandLess, MdAccountBalance } from "react-icons/md";
 import { FaTruckLoading, FaTruck, FaTrailer } from "react-icons/fa";
-import { MdOutlineSupervisedUserCircle } from "react-icons/md";
 import { IoMdLogOut } from "react-icons/io";
 import { FaUserTie, FaUsers, FaRedRiver, FaUserCog } from "react-icons/fa";
 
@@ -15,6 +14,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const navigate = useNavigate();
   const [isVehicleOpen, setIsVehicleOpen] = useState(false);
   const [isManageOpen, setIsManageOpen] = useState(false);
+  const [isAccountingOpen, setIsAccountingOpen] = useState(false);
   const [permissions, setPermissions] = useState({});
 
   useEffect(() => {
@@ -137,13 +137,29 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       id: 9,
       title: t("Accounting"),
       icon: <MdAccountBalance />,
-      link: "/accounting",
+      isDropdown: true,
+      items: [
+        {
+          id: 'pay-reports',
+          title: t("Pay Reports"),
+          icon: <MdAccountBalance />,
+          link: "/accounting",
+        },
+        {
+          id: 'invoices',
+          title: t("Invoices"),
+          icon: <FaRedRiver />,
+          link: "/invoices",
+        }
+      ],
+      isOpen: isAccountingOpen,
+      toggleDropdown: () => setIsAccountingOpen(!isAccountingOpen),
       permission: "accounting"
     },
     {
       id: 10,
       title: t("IFTA"),
-      icon: <MdAccountBalance />,
+      icon: <FaTruck />,
       link: "/ifta",
       permission: "ifta"
     },
