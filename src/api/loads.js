@@ -22,6 +22,7 @@ export const getAllLoads = async (params = {}) => {
   if (params.page) query.append('page', params.page);
   if (params.page_size) query.append('page_size', params.page_size);
   if (params.search) query.append('search', params.search);
+  if (params.load_status) query.append('load_status', params.load_status);
 
   const endpoint = `${ENDPOINTS.LOADS}${query.toString() ? `?${query.toString()}` : ''}`;
   // ApiService.getData will prefix BASE_URL and add auth header

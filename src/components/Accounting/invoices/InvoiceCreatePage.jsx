@@ -60,22 +60,24 @@ const InvoiceCreatePage = () => {
     const fetchLoads = async () => {
       try {
         setLoadsLoading(true);
-        const data = await getAllLoads({ page: loadsPage, page_size: loadsPageSize });
+        const data = await getAllLoads({
+          page: loadsPage,
+          page_size: loadsPageSize,
+          load_status: 'COMPLETED'   // ✅ filter only completed loads
+        });
         if (!mounted) return;
-        // data may be paginated { results, count, next, previous }
         const arr = Array.isArray(data) ? data : (data.results || []);
         if (data && typeof data.count === 'number') {
           setLoadsTotalPages(Math.max(1, Math.ceil(data.count / loadsPageSize)));
         }
         const opts = arr.map(l => ({
-          // value should be the numeric database id the backend expects
           value: Number(l.id),
           label: `Load #${l.load_id || l.load_number || l.id}`
         }));
         setLoadOptions(opts);
       } catch (err) {
-  console.error('Failed to fetch loads page:', err);
-  setLoadOptions([]);
+        console.error('Failed to fetch loads page:', err);
+        setLoadOptions([]);
       } finally {
         setLoadsLoading(false);
       }
@@ -83,6 +85,7 @@ const InvoiceCreatePage = () => {
     fetchLoads();
     return () => { mounted = false; };
   }, [loadsPage, loadsPageSize]);
+
 
   const handleLoadsChange = (selected) => {
     setSelectedLoads(selected || []);

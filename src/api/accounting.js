@@ -60,14 +60,14 @@ export const getDriverPayList = async (params = {}) => {
     if (!storedAccessToken) {
       throw new Error('No access token found');
     }
-    
+
     const queryParams = new URLSearchParams();
     if (params.weekly_number) queryParams.append('weekly_number', params.weekly_number);
     if (params.search) queryParams.append('search', params.search);
     if (params.driver) queryParams.append('driver', params.driver);
     if (params.pay_from) queryParams.append('pay_from', params.pay_from);
     if (params.pay_to) queryParams.append('pay_to', params.pay_to);
-    
+
     // Check cache first
     const cacheKey = getCacheKey('driver_pay', params);
     const cachedData = cache.get(cacheKey);
@@ -195,17 +195,30 @@ export const downloadPayReportPDF = async (data) => {
   }
 };
 
-export const getAllLoads = async () => {
+export const getAllLoads = async (params = {}) => {
   try {
     const storedAccessToken = localStorage.getItem('accessToken');
     if (!storedAccessToken) {
       throw new Error('No access token found');
     }
-    const response = await axios.get(`${API_URL}/load/`, {
+
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    if (params.load_status) queryParams.append('load_status', params.load_status);
+    if (params.page) queryParams.append('page', params.page);
+    if (params.page_size) queryParams.append('page_size', params.page_size);
+
+    const queryString = queryParams.toString();
+    const url = `${API_URL}/load/${queryString ? `?${queryString}` : ''}`;
+
+    console.log('API Request URL:', url); // This will show you the exact URL being called
+
+    const response = await axios.get(url, {
       headers: {
         Authorization: `Bearer ${storedAccessToken}`,
       },
     });
+
     return response.data;
   } catch (error) {
     console.error('Error fetching loads:', error.message);
@@ -235,8 +248,8 @@ export const getInvoices = async (params = {}) => {
       }
     });
 
-  // API may return an array (as documented) or a paginated object { results, count }
-  const data = response.data;
+    // API may return an array (as documented) or a paginated object { results, count }
+    const data = response.data;
     if (Array.isArray(data)) {
       return {
         results: data,
@@ -370,7 +383,7 @@ export const deleteInvoice = async (id) => {
         Authorization: `Bearer ${storedAccessToken}`,
       },
     });
-    
+
     // Update localStorage after deletion
     const storedInvoices = localStorage.getItem('invoices');
     if (storedInvoices) {
@@ -378,7 +391,7 @@ export const deleteInvoice = async (id) => {
       const filteredInvoices = invoices.filter(inv => inv.id !== id);
       localStorage.setItem('invoices', JSON.stringify(filteredInvoices));
     }
-    
+
     return response.data;
   } catch (error) {
     console.error('Error deleting invoice:', error.message);
