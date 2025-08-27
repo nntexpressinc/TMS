@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { initializeSecurity } from "./utils/security";
 import LoginPage from "./components/Login/LoginPage";
 import DashboardPage from "./components/Dashboard/DashboardPage";
 import ProfilePage from "./components/Profile/ProfilePage";
@@ -58,11 +57,7 @@ const App = () => {
   const isAuthenticated = isAuth || localStorage.getItem("accessToken");
 
   // Xavfsizlik sozlamalarini ishga tushirish
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'production') {
-      initializeSecurity();
-    }
-  }, []);
+  
 
   return (
     <SidebarProvider>
