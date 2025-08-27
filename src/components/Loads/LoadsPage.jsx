@@ -746,7 +746,8 @@ const LoadsPage = () => {
     { value: "load_status", label: "Load Status" },
     { value: "trip_status", label: "Trip Status" },
     { value: "invoice_status", label: "Invoice Status" },
-    { value: "trip_bil_status", label: "Trip Bill Status" }
+    { value: "trip_bil_status", label: "Trip Bill Status" },
+    { value: "team", label: "Team" }
   ];
 
   const fetchLoadsData = useCallback(async (url) => {
@@ -876,7 +877,6 @@ const LoadsPage = () => {
 
     const term = (searchTerm || '').toString().trim();
     if (term) {
-      // map searchCategory to specific query param when possible
       switch (searchCategory) {
         case 'id':
           qs.set('id', term);
@@ -896,6 +896,9 @@ const LoadsPage = () => {
         case 'reference_id':
           qs.set('reference_id', term);
           break;
+        case 'team':
+          qs.set('team_id', term);
+          break;
         default:
           qs.set('search', term);
       }
@@ -906,6 +909,61 @@ const LoadsPage = () => {
 
     return `/load/?${qs.toString()}`;
   }, [pageSize, searchTerm, searchCategory, selectedStatus, selectedInvoiceStatus]);
+  // Excel export handler
+  const handleExportExcel = async () => {
+    const qs = new URLSearchParams();
+    qs.set('export', 'excel');
+    const term = (searchTerm || '').toString().trim();
+    if (term) {
+      switch (searchCategory) {
+        case 'id':
+          qs.set('id', term);
+          break;
+        case 'load_id':
+          qs.set('load_id', term);
+          break;
+        case 'load_status':
+          qs.set('load_status', term);
+          break;
+        case 'invoice_status':
+          qs.set('invoice_status', term);
+          break;
+        case 'company_name':
+          qs.set('company_name', term);
+          break;
+        case 'reference_id':
+          qs.set('reference_id', term);
+          break;
+        case 'team':
+          qs.set('team_id', term);
+          break;
+        default:
+          qs.set('search', term);
+      }
+    }
+    if (selectedStatus) qs.set('load_status', selectedStatus);
+    if (selectedInvoiceStatus) qs.set('invoice_status', selectedInvoiceStatus);
+    const url = `${process.env.REACT_APP_API_BASE_URL || 'https://nnt.nntexpressinc.com/api'}/load/?${qs.toString()}`;
+    const token = localStorage.getItem('accessToken');
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to download Excel');
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = 'loads.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      alert('Excel export failed!');
+    }
+  };
 
   // Trigger server fetch when search inputs or filters change
   useEffect(() => {
@@ -1340,16 +1398,15 @@ const LoadsPage = () => {
         <Typography variant="h5" gutterBottom>
           Loads
         </Typography>
-           <Box sx={{
-          display: 'flex',
-          width: '80%',
-          gap: 2,
-          alignItems: 'center',
-          backgroundColor: 'white',
-          padding: '6px',
-          borderRadius: '12px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-        }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', width: '80%', gap: 2, backgroundColor: 'white', padding: '6px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+          <Button
+            variant="outlined"
+            color="success"
+            onClick={handleExportExcel}
+            sx={{ minWidth: 0, px: 2 }}
+          >
+            Export to Excel
+          </Button>
           <TextField
             select
             value={searchCategory}
@@ -1402,12 +1459,12 @@ const LoadsPage = () => {
           >
             <FilterListIcon />
           </IconButton>
-      </Box>
           {permissions.load_create && (
             <Button variant="contained" color="primary" onClick={handleCreateLoad}>
               Create Load
             </Button>
           )}
+        </Box>
       </Box>
 
       <CreateLoadModal
