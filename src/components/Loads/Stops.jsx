@@ -112,11 +112,8 @@ const Stops = ({ loadData, handleChange, handleStopsChange, disabled }) => {
   const handleAddStop = async () => {
     // remove the required check for appointmentdate & time
     // if you still want validation only for DELIVERY, you can do:
-    if (
-      newStop.stop_name === "DELIVERY" &&
-      (!newStop.appointmentdate || !newStop.time)
-    ) {
-      alert("Please enter both date and time for delivery stops");
+    if (!newStop.appointmentdate || !newStop.time) {
+      alert('Please enter both date and time');
       return;
     }
 
@@ -152,7 +149,19 @@ const Stops = ({ loadData, handleChange, handleStopsChange, disabled }) => {
         }
       }
     } catch (error) {
-      console.error("Error adding stop:", error);
+      console.error('Error adding stop:', error);
+      // Fallback: add to local state only
+      const stopToAdd = {
+        ...newStop,
+        appointmentdate: formatDateTimeForStorage(newStop.appointmentdate, newStop.time)
+      };
+      const updatedStops = [...stops, stopToAdd];
+      setStops(updatedStops);
+      
+      // Update parent component
+        if (handleStopsChange) {
+          handleStopsChange(updatedStops);
+        }
     }
 
     // reset form
@@ -372,7 +381,7 @@ const Stops = ({ loadData, handleChange, handleStopsChange, disabled }) => {
           variant="contained"
           color="primary"
           onClick={handleAddStop}
-        // disabled={!newStop.company_name}setNewStop
+        disabled={!newStop.company_name}setNewStop
         >
           Add Stop
         </Button>
