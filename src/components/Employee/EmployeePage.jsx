@@ -293,14 +293,22 @@ const EmployeePage = () => {
         </Box>
         <Button 
           variant="contained" 
-          color="primary" 
+          // color="primary" 
           onClick={handleCreateEmployee}
           sx={{
-            height: '32px',
-            textTransform: 'none',
-            px: 2,
-            whiteSpace: 'nowrap'
-          }}
+    backgroundColor: 'white',
+    color: 'black',
+    border: '1px solid rgb(189, 189, 189)',  // kulrang border
+    height: '32px',
+    textTransform: 'none',
+    px: 2,
+    whiteSpace: 'nowrap',
+    '&:hover': {
+      backgroundColor: '#f5f5f5', 
+      border: '1px solid rgb(189, 189, 189)', 
+      color: 'black'
+    }
+  }}
         >
           Create Employee
         </Button>

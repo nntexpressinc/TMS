@@ -26,7 +26,7 @@ body {
   background-color: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background-color: #6a9ce6;
+  background-color: #000000;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -74,7 +74,7 @@ body {
 
 .light {
   --primary: 99, 102, 241, 1;
-  --primarychart: #63bdf1;
+  --primarychart: #0d0d0e;
 
   --background: 249, 250, 251, 1;
   --background-secondary: 255, 255, 255, 1;
@@ -147,7 +147,7 @@ body {
   background-color: transparent;
 }
 .scrollScrolbar::-webkit-scrollbar-thumb {
-  background-color: #6a9ce6;
+  background-color: #000000;
 }
 
 .chat-back {

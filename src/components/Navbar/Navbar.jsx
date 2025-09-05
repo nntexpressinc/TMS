@@ -205,8 +205,8 @@ const Navbar = () => {
         width: isSidebarOpen ? 'calc(100% - 250px)' : 'calc(100% - 60px)',
         ml: isSidebarOpen ? '250px' : '60px',
         transition: 'all 0.3s ease',
-        backgroundColor: '#0093E9',
-        backgroundImage: 'linear-gradient(160deg, #0093E9 0%, #772a9a 100%)',
+        backgroundColor: '#000000',
+        // backgroundImage: 'linear-gradient(160deg, #0093E9 0%, #772a9a 100%)',
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
         height: '64px'

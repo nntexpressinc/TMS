@@ -84,7 +84,7 @@ const DriverPage = () => {
 
     const filtered = drivers.filter(driver => {
       if (searchCategory === "all") {
-        return Object.values(driver).some(value => 
+        return Object.values(driver).some(value =>
           String(value).toLowerCase().includes(searchTerm.toLowerCase())
         );
       } else {
@@ -194,27 +194,27 @@ const DriverPage = () => {
       }
     },
     // User Information
-    { 
-      field: 'user_company', 
-      headerName: 'Company Name', 
+    {
+      field: 'user_company',
+      headerName: 'Company Name',
       width: 150,
       valueGetter: (params) => params.row.user?.company_name || '-'
     },
-    { 
-      field: 'user_first_name', 
-      headerName: 'First Name', 
+    {
+      field: 'user_first_name',
+      headerName: 'First Name',
       width: 120,
       valueGetter: (params) => params.row.user?.first_name || '-'
     },
-    { 
-      field: 'user_last_name', 
-      headerName: 'Last Name', 
+    {
+      field: 'user_last_name',
+      headerName: 'Last Name',
       width: 120,
       valueGetter: (params) => params.row.user?.last_name || '-'
     },
-    { 
-      field: 'user_telephone', 
-      headerName: 'Phone', 
+    {
+      field: 'user_telephone',
+      headerName: 'Phone',
       width: 130,
       valueGetter: (params) => params.row.user?.telephone || '-'
     },
@@ -228,7 +228,7 @@ const DriverPage = () => {
       renderCell: (params) => {
         const statusConfig = driverStatuses.find(s => s.value === params.value);
         return (
-          <Box sx={{ 
+          <Box sx={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -257,27 +257,27 @@ const DriverPage = () => {
         );
       }
     },
-    { 
-      field: 'user_city', 
-      headerName: 'City', 
+    {
+      field: 'user_city',
+      headerName: 'City',
       width: 120,
       valueGetter: (params) => params.row.user?.city || '-'
     },
-    { 
-      field: 'user_address', 
-      headerName: 'Address', 
+    {
+      field: 'user_address',
+      headerName: 'Address',
       width: 150,
       valueGetter: (params) => params.row.user?.address || '-'
     },
-    { 
-      field: 'user_country', 
-      headerName: 'Country', 
+    {
+      field: 'user_country',
+      headerName: 'Country',
       width: 120,
       valueGetter: (params) => params.row.user?.country || '-'
     },
-    { 
-      field: 'user_state', 
-      headerName: 'State', 
+    {
+      field: 'user_state',
+      headerName: 'State',
       width: 120,
       valueGetter: (params) => params.row.user?.state || '-'
     },
@@ -300,25 +300,25 @@ const DriverPage = () => {
     { field: 'payd', headerName: 'Payd', width: 100 },
     { field: 'escrow_deposit', headerName: 'Escrow Deposit', width: 130 },
     { field: 'motive_id', headerName: 'Motive ID', width: 120 },
-    { 
-      field: 'assigned_truck', 
-      headerName: 'Assigned Truck', 
+    {
+      field: 'assigned_truck',
+      headerName: 'Assigned Truck',
       width: 130,
       valueGetter: (params) => params.row.assigned_truck || '-'
     },
-    { 
-      field: 'assigned_trailer', 
-      headerName: 'Assigned Trailer', 
+    {
+      field: 'assigned_trailer',
+      headerName: 'Assigned Trailer',
       width: 130,
       valueGetter: (params) => params.row.assigned_trailer || '-'
     },
-    { 
-      field: 'assigned_dispatcher', 
-      headerName: 'Assigned Dispatcher', 
+    {
+      field: 'assigned_dispatcher',
+      headerName: 'Assigned Dispatcher',
       width: 150,
       valueGetter: (params) => params.row.assigned_dispatcher || '-'
     },
-    
+
   ];
 
   return (
@@ -327,10 +327,10 @@ const DriverPage = () => {
         <Typography variant="h5" gutterBottom sx={{ mb: 0 }}>
           Drivers
         </Typography>
-        <Box sx={{ 
-          display: 'flex', 
+        <Box sx={{
+          display: 'flex',
           width: '50%',
-          gap: 1, 
+          gap: 1,
           alignItems: 'center',
           backgroundColor: 'white',
           padding: '6px',
@@ -342,7 +342,7 @@ const DriverPage = () => {
             value={searchCategory}
             onChange={(e) => setSearchCategory(e.target.value)}
             variant="outlined"
-            sx={{ 
+            sx={{
               width: '150px',
               '& .MuiOutlinedInput-root': {
                 borderRadius: '8px',
@@ -380,9 +380,9 @@ const DriverPage = () => {
             }}
           />
 
-          <IconButton 
-            onClick={() => {}}
-            sx={{ 
+          <IconButton
+            onClick={() => { }}
+            sx={{
               backgroundColor: '#F9FAFB',
               borderRadius: '8px',
               height: '32px',
@@ -393,26 +393,34 @@ const DriverPage = () => {
             <FilterListIcon />
           </IconButton>
         </Box>
-        <Button 
+        <Button
           variant="contained" 
-          color="primary" 
+          // color="primary" 
           onClick={handleCreateDriver}
           sx={{
-            height: '32px',
-            textTransform: 'none',
-            px: 2,
-            whiteSpace: 'nowrap'
-          }}
+    backgroundColor: 'white',
+    color: 'black',
+    border: '1px solid rgb(189, 189, 189)',  // kulrang border
+    height: '32px',
+    textTransform: 'none',
+    px: 2,
+    whiteSpace: 'nowrap',
+    '&:hover': {
+      backgroundColor: '#f5f5f5', 
+      border: '1px solid rgb(189, 189, 189)', 
+      color: 'black'
+    }
+  }}
         >
           Create Driver
         </Button>
       </Box>
 
       {/* Status Filter Buttons */}
-      <Box sx={{ 
-        display: 'flex', 
-        gap: 1, 
-        mb: 2, 
+      <Box sx={{
+        display: 'flex',
+        gap: 1,
+        mb: 2,
         flexWrap: 'wrap',
         backgroundColor: 'white',
         p: 2,

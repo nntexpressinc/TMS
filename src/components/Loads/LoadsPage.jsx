@@ -115,7 +115,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
     }
 
     const unitId = newValue.id;
-    
+
     // Set unit ID
     setLoadData(prev => ({
       ...prev,
@@ -136,13 +136,13 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
     // Auto-populate trailer if unit has a trailer
     if (newValue.trailer && newValue.trailer.length > 0) {
       const trailerId = newValue.trailer[0]; // Get first trailer ID
-      
+
       // Set trailer ID in form data
       setLoadData(prev => ({
         ...prev,
         trailer_id: trailerId
       }));
-      
+
       // Get trailer information and set equipment type based on trailer type
       const fetchTrailerInfo = async () => {
         try {
@@ -157,7 +157,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
           console.error('Error fetching trailer info:', error);
         }
       };
-      
+
       fetchTrailerInfo();
     }
 
@@ -199,7 +199,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
         load_status: "OPEN",
         company_name: loadData.customer_broker.company_name
       });
-      
+
       console.log("Load created:", response);
       onCreateSuccess(response);
       onClose();
@@ -232,7 +232,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
       setError("Company name and MC number are required");
       return;
     }
-    
+
     try {
       // Convert numeric strings to numbers
       const formattedData = {
@@ -240,7 +240,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
         contact_number: newBroker.contact_number ? parseInt(newBroker.contact_number) : null,
         zip_code: newBroker.zip_code ? parseInt(newBroker.zip_code) : null
       };
-      
+
       const response = await ApiService.postData("/customer_broker/", formattedData);
       setBrokers(prev => [...prev, response]);
       setLoadData(prev => ({
@@ -274,10 +274,10 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
 
   return (
     <>
-      <Dialog 
-        open={open} 
-        onClose={onClose} 
-        maxWidth="sm" 
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="sm"
         fullWidth
       >
         <DialogTitle>
@@ -397,9 +397,9 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
                   value={loadData.customer_broker}
                   onChange={handleBrokerChange}
                   renderInput={(params) => (
-                    <TextField 
-                      {...params} 
-                      label="Customer/Broker" 
+                    <TextField
+                      {...params}
+                      label="Customer/Broker"
                       required
                       error={!loadData.customer_broker}
                       helperText={!loadData.customer_broker ? "Customer/Broker is required" : ""}
@@ -417,7 +417,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
                     </li>
                   )}
                 />
-                <IconButton 
+                <IconButton
                   color="primary"
                   onClick={handleAddBroker}
                   sx={{ mt: 1 }}
@@ -474,8 +474,8 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={onClose}>Cancel</Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             onClick={handleCreateLoad}
             disabled={loading || !loadData.customer_broker || !loadData.load_id}
             startIcon={loading ? <CircularProgress size={20} /> : <AddIcon />}
@@ -584,8 +584,8 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
                     'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
                     'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
                     'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'].map(state => (
-                    <MenuItem key={state} value={state}>{state}</MenuItem>
-                  ))}
+                      <MenuItem key={state} value={state}>{state}</MenuItem>
+                    ))}
                 </Select>
               </FormControl>
             </Grid>
@@ -618,8 +618,8 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseBrokerModal}>Cancel</Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             onClick={handleSaveBroker}
             disabled={!newBroker.company_name || !newBroker.mc_number}
           >
@@ -720,13 +720,13 @@ const LoadsPage = () => {
     let filtered = [...loads];
 
     if (loadStatus) {
-      filtered = filtered.filter(load => 
+      filtered = filtered.filter(load =>
         load.load_status?.toLowerCase() === loadStatus.toLowerCase()
       );
     }
 
     if (invoiceStatus) {
-      filtered = filtered.filter(load => 
+      filtered = filtered.filter(load =>
         load.invoice_status === invoiceStatus
       );
     }
@@ -1104,11 +1104,11 @@ const LoadsPage = () => {
             py: '4px'
           }}>
             <Typography
-              sx={{ 
+              sx={{
                 whiteSpace: 'nowrap',
                 overflow: 'visible',
                 cursor: 'pointer',
-                color: '#3B82F6',
+                color: '#000000',
                 textDecoration: 'underline'
               }}
               onClick={() => handleViewLoad(params.row.id)}
@@ -1137,7 +1137,7 @@ const LoadsPage = () => {
       }
     },
     { field: 'company_name', headerName: 'Company Name', width: 120 },
- 
+
     {
       field: 'created_by',
       headerName: 'Created By',
@@ -1201,11 +1201,11 @@ const LoadsPage = () => {
       renderCell: (params) => {
         const driver = params.row.driver;
         if (!driver) return '-';
-        
+
         const firstName = driver.user?.first_name || '';
         const lastName = driver.user?.last_name || '';
         const fullName = `${firstName} ${lastName}`.trim();
-        
+
         const formatName = (name) => {
           if (!name || name === '-') return '-';
           if (name.length <= 15) return name;
@@ -1227,9 +1227,9 @@ const LoadsPage = () => {
         );
       }
     },
-    { 
-      field: 'truck', 
-      headerName: 'Truck', 
+    {
+      field: 'truck',
+      headerName: 'Truck',
       width: 120,
       valueGetter: (params) => {
         const truck = params.row.truck;
@@ -1319,7 +1319,7 @@ const LoadsPage = () => {
 
   const CustomFooter = () => {
     const totals = calculateTotals();
-  const totalPages = totalCount ? Math.max(1, Math.ceil(totalCount / pageSize)) : Math.max(1, Math.ceil((filteredLoads?.length || 0) / pageSize));
+    const totalPages = totalCount ? Math.max(1, Math.ceil(totalCount / pageSize)) : Math.max(1, Math.ceil((filteredLoads?.length || 0) / pageSize));
 
     const handlePrev = () => {
       if (prevUrl) {
@@ -1460,7 +1460,22 @@ const LoadsPage = () => {
             <FilterListIcon />
           </IconButton>
           {permissions.load_create && (
-            <Button variant="contained" color="primary" onClick={handleCreateLoad}>
+            <Button variant="contained" onClick={handleCreateLoad}
+              sx={{
+    backgroundColor: 'white',
+    color: 'black',
+    border: '1px solid rgb(189, 189, 189)',  // kulrang border
+    height: '32px',
+    textTransform: 'none',
+    px: 2,
+    whiteSpace: 'nowrap',
+    '&:hover': {
+      backgroundColor: '#f5f5f5', 
+      border: '1px solid rgb(189, 189, 189)', 
+      color: 'black'
+    }
+  }}
+            >
               Create Load
             </Button>
           )}
@@ -1482,8 +1497,8 @@ const LoadsPage = () => {
         borderRadius: '12px',
         boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
       }}>
-        <Box sx={{ 
-          display: 'flex', 
+        <Box sx={{
+          display: 'flex',
           gap: 4,
           overflowX: 'auto',
           pb: 1,
@@ -1505,8 +1520,8 @@ const LoadsPage = () => {
             <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#374151', mb: 2 }}>
               Load Status
             </Typography>
-            <Box sx={{ 
-              display: 'flex', 
+            <Box sx={{
+              display: 'flex',
               gap: 1,
               flexWrap: { xs: 'nowrap', md: 'wrap' },
               minWidth: 'max-content'
@@ -1543,8 +1558,8 @@ const LoadsPage = () => {
             <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#374151', mb: 2 }}>
               Invoice Status
             </Typography>
-            <Box sx={{ 
-              display: 'flex', 
+            <Box sx={{
+              display: 'flex',
               gap: 1,
               flexWrap: { xs: 'nowrap', md: 'wrap' },
               minWidth: 'max-content'
@@ -1588,16 +1603,16 @@ const LoadsPage = () => {
               zIndex: 1000,
               borderRadius: '12px'
             }}>
-              <CircularProgress 
-                size={60} 
-                sx={{ 
+              <CircularProgress
+                size={60}
+                sx={{
                   color: '#3B82F6',
                   mb: 2
-                }} 
+                }}
               />
-              <Typography 
-                variant="h6" 
-                sx={{ 
+              <Typography
+                variant="h6"
+                sx={{
                   color: '#6B7280',
                   fontWeight: 500,
                   textAlign: 'center'
@@ -1605,9 +1620,9 @@ const LoadsPage = () => {
               >
                 Loading loads...
               </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
+              <Typography
+                variant="body2"
+                sx={{
                   color: '#9CA3AF',
                   mt: 1,
                   textAlign: 'center'
@@ -1708,7 +1723,7 @@ const LoadsPage = () => {
           />
         </Box>
       </Box>
-      
+
       <Popover
         open={Boolean(filterAnchorEl)}
         anchorEl={filterAnchorEl}

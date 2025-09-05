@@ -9,7 +9,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { 
+import {
   MdPerson,
   MdCheckCircle,
   MdBlock,
@@ -124,7 +124,7 @@ const DispatcherPage = () => {
 
     const filtered = dispatchers.filter(dispatcher => {
       if (searchCategory === "all") {
-        return Object.values(dispatcher).some(value => 
+        return Object.values(dispatcher).some(value =>
           String(value).toLowerCase().includes(searchTerm.toLowerCase())
         );
       } else {
@@ -152,7 +152,7 @@ const DispatcherPage = () => {
   const getStatusStyle = (status) => {
     const statusConfig = dispatcherStatuses.find(s => s.value.toLowerCase() === status?.toLowerCase());
     if (!statusConfig) return {};
-    
+
     return {
       backgroundColor: `${statusConfig.color}15`,
       color: statusConfig.color,
@@ -234,34 +234,36 @@ const DispatcherPage = () => {
       }
     },
     { field: 'mc_number', headerName: 'MC Number', width: 150 },
-    { field: 'employee_status', headerName: 'Status', width: 130, headerAlign: 'center', align: 'center', renderCell: (params) => {
-      const statusConfig = dispatcherStatuses.find(s => s.value.toLowerCase() === (params.value || '').toLowerCase());
-      return (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', paddingTop: '4px' }}>
-          <Chip
-            label={statusConfig?.label || params.value}
-            icon={statusConfig?.icon}
-            sx={{
-              ...getStatusStyle(params.value),
-              height: '20px',
-              minWidth: 'auto',
-              maxWidth: '100%',
-              '& .MuiChip-label': {
-                fontSize: '0.7rem',
-                padding: '0 4px',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              },
-              '& .MuiChip-icon': {
-                fontSize: '12px',
-                marginLeft: '2px'
-              }
-            }}
-          />
-        </Box>
-      );
-    }},
+    {
+      field: 'employee_status', headerName: 'Status', width: 130, headerAlign: 'center', align: 'center', renderCell: (params) => {
+        const statusConfig = dispatcherStatuses.find(s => s.value.toLowerCase() === (params.value || '').toLowerCase());
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', paddingTop: '4px' }}>
+            <Chip
+              label={statusConfig?.label || params.value}
+              icon={statusConfig?.icon}
+              sx={{
+                ...getStatusStyle(params.value),
+                height: '20px',
+                minWidth: 'auto',
+                maxWidth: '100%',
+                '& .MuiChip-label': {
+                  fontSize: '0.7rem',
+                  padding: '0 4px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                },
+                '& .MuiChip-icon': {
+                  fontSize: '12px',
+                  marginLeft: '2px'
+                }
+              }}
+            />
+          </Box>
+        );
+      }
+    },
     { field: 'position', headerName: 'Position', width: 150 },
     { field: 'company_name', headerName: 'Company Name', width: 150 },
     { field: 'office', headerName: 'Office', width: 150 },
@@ -282,10 +284,10 @@ const DispatcherPage = () => {
         <Typography variant="h5" gutterBottom sx={{ mb: 0 }}>
           Dispatchers
         </Typography>
-        <Box sx={{ 
-          display: 'flex', 
+        <Box sx={{
+          display: 'flex',
           width: '75%',
-          gap: 1, 
+          gap: 1,
           alignItems: 'center',
           backgroundColor: 'white',
           padding: '6px',
@@ -297,7 +299,7 @@ const DispatcherPage = () => {
             value={searchCategory}
             onChange={(e) => setSearchCategory(e.target.value)}
             variant="outlined"
-            sx={{ 
+            sx={{
               width: '150px',
               '& .MuiOutlinedInput-root': {
                 borderRadius: '8px',
@@ -335,9 +337,9 @@ const DispatcherPage = () => {
             }}
           />
 
-          <IconButton 
+          <IconButton
             onClick={handleFilterClick}
-            sx={{ 
+            sx={{
               backgroundColor: '#F9FAFB',
               borderRadius: '8px',
               height: '32px',
@@ -348,26 +350,34 @@ const DispatcherPage = () => {
             <FilterListIcon />
           </IconButton>
         </Box>
-        <Button 
+        <Button
           variant="contained" 
-          color="primary" 
+          // color="primary" 
           onClick={handleCreateDispatcher}
           sx={{
-            height: '32px',
-            textTransform: 'none',
-            px: 2,
-            whiteSpace: 'nowrap'
-          }}
+    backgroundColor: 'white',
+    color: 'black',
+    border: '1px solid rgb(189, 189, 189)',  // kulrang border
+    height: '32px',
+    textTransform: 'none',
+    px: 2,
+    whiteSpace: 'nowrap',
+    '&:hover': {
+      backgroundColor: '#f5f5f5', 
+      border: '1px solid rgb(189, 189, 189)', 
+      color: 'black'
+    }
+  }}
         >
           Create&nbsp;Dispatcher
         </Button>
       </Box>
 
       {/* Status Filter Buttons */}
-      <Box sx={{ 
-        display: 'flex', 
-        gap: 1, 
-        mb: 2, 
+      <Box sx={{
+        display: 'flex',
+        gap: 1,
+        mb: 2,
         flexWrap: 'wrap',
         backgroundColor: 'white',
         p: 2,
@@ -494,7 +504,7 @@ const DispatcherPage = () => {
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
             Filter by
           </Typography>
-          
+
           <TextField
             select
             fullWidth
