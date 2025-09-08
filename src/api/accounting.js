@@ -163,6 +163,66 @@ export const uploadPayReportPDF = async (payId, pdfBlob) => {
   }
 };
 
+// Update driver pay record with file upload
+export const updateDriverPay = async (payId, formData) => {
+  try {
+    const storedAccessToken = localStorage.getItem('accessToken');
+    if (!storedAccessToken) {
+      throw new Error('No access token found');
+    }
+
+    const response = await axios.patch(
+      `${API_URL}/driver/pay/driver/${payId}/`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${storedAccessToken}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error('Error updating driver pay:', error.message);
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+      console.error('Response status:', error.response.status);
+    }
+    throw error;
+  }
+};
+
+// Update only basic fields without files
+export const updateDriverPayBasicFields = async (payId, data) => {
+  try {
+    const storedAccessToken = localStorage.getItem('accessToken');
+    if (!storedAccessToken) {
+      throw new Error('No access token found');
+    }
+
+    const response = await axios.patch(
+      `${API_URL}/driver/pay/driver/${payId}/`,
+      data,
+      {
+        headers: {
+          Authorization: `Bearer ${storedAccessToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error('Error updating driver pay basic fields:', error.message);
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+      console.error('Response status:', error.response.status);
+    }
+    throw error;
+  }
+};
+
 export const downloadPayReportPDF = async (data) => {
   try {
     const storedAccessToken = localStorage.getItem('accessToken');

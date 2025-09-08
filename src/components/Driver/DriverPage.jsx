@@ -22,6 +22,8 @@ const DriverPage = () => {
   const [searchCategory, setSearchCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const tableRef = useRef(null);
   const navigate = useNavigate();
   const { isSidebarOpen } = useSidebar();
@@ -46,21 +48,26 @@ const DriverPage = () => {
   ];
 
   useEffect(() => {
-    const fetchDriversData = async () => {
-      const storedAccessToken = localStorage.getItem("accessToken");
-      if (storedAccessToken) {
-        try {
-          const data = await ApiService.getData(`/driver/`, storedAccessToken);
-          setDrivers(data);
-          setFilteredDrivers(data);
-        } catch (error) {
-          console.error("Error fetching drivers data:", error);
-        }
+  const fetchDriversData = async () => {
+    const storedAccessToken = localStorage.getItem("accessToken");
+    if (storedAccessToken) {
+      try {
+        const data = await ApiService.getData(`/driver/`, storedAccessToken);
+        setDrivers(data);
+        setFilteredDrivers(data);
+      } catch (error) {
+        console.error("Error fetching drivers data:", error);
+      } finally {
+        setLoading(false);  // ✅ API tugagach loader o‘chadi
       }
-    };
+    } else {
+      setLoading(false);
+    }
+  };
 
-    fetchDriversData();
-  }, []);
+  fetchDriversData();
+}, []);
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -462,6 +469,7 @@ const DriverPage = () => {
                 quickFilterProps: { debounceMs: 500 },
               },
             }}
+            loading={loading} 
             sx={{
               backgroundColor: 'white',
               borderRadius: '12px',

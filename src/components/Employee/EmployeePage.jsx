@@ -22,6 +22,8 @@ const EmployeePage = () => {
   const [searchCategory, setSearchCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const tableRef = useRef(null);
   const navigate = useNavigate();
   const { isSidebarOpen } = useSidebar();
@@ -45,18 +47,22 @@ const EmployeePage = () => {
     const fetchEmployeesData = async () => {
       const storedAccessToken = localStorage.getItem("accessToken");
       if (storedAccessToken) {
+        setLoading(true); // 🔹 So‘rov boshlanishida loading true
         try {
           const data = await ApiService.getData(`/employee/`, storedAccessToken);
           setEmployees(data);
           setFilteredEmployees(data);
         } catch (error) {
           console.error("Error fetching employees data:", error);
+        } finally {
+          setLoading(false); // 🔹 Yakunda false
         }
       }
     };
 
     fetchEmployeesData();
   }, []);
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -80,7 +86,7 @@ const EmployeePage = () => {
 
     const filtered = employees.filter(employee => {
       if (searchCategory === "all") {
-        return Object.values(employee).some(value => 
+        return Object.values(employee).some(value =>
           String(value).toLowerCase().includes(searchTerm.toLowerCase())
         );
       } else {
@@ -181,30 +187,32 @@ const EmployeePage = () => {
       }
     },
     { field: 'position', headerName: 'Position', width: 150 },
-    { field: 'employee_status', headerName: 'Status', width: 130, headerAlign: 'center', align: 'center', renderCell: (params) => {
-      const statusConfig = employeeStatuses.find(s => s.value === params.value);
-      return (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', paddingTop: '4px' }}>
-          <Chip
-            label={statusConfig?.label || params.value || 'N/A'}
-            sx={{
-              backgroundColor: `${statusConfig?.color}15` || '#64748B15',
-              color: statusConfig?.color || '#64748B',
-              height: '20px',
-              minWidth: 'auto',
-              maxWidth: '100%',
-              '& .MuiChip-label': {
-                fontSize: '0.7rem',
-                padding: '0 8px',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }
-            }}
-          />
-        </Box>
-      );
-    }},
+    {
+      field: 'employee_status', headerName: 'Status', width: 130, headerAlign: 'center', align: 'center', renderCell: (params) => {
+        const statusConfig = employeeStatuses.find(s => s.value === params.value);
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', paddingTop: '4px' }}>
+            <Chip
+              label={statusConfig?.label || params.value || 'N/A'}
+              sx={{
+                backgroundColor: `${statusConfig?.color}15` || '#64748B15',
+                color: statusConfig?.color || '#64748B',
+                height: '20px',
+                minWidth: 'auto',
+                maxWidth: '100%',
+                '& .MuiChip-label': {
+                  fontSize: '0.7rem',
+                  padding: '0 8px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }
+              }}
+            />
+          </Box>
+        );
+      }
+    },
     { field: 'user_first_name', headerName: 'First Name', width: 120, valueGetter: (params) => params.row.user?.first_name || '-' },
     { field: 'user_last_name', headerName: 'Last Name', width: 120, valueGetter: (params) => params.row.user?.last_name || '-' },
     { field: 'user_email', headerName: 'Email', width: 200, valueGetter: (params) => params.row.user?.email || '-' },
@@ -225,10 +233,10 @@ const EmployeePage = () => {
         <Typography variant="h5" gutterBottom sx={{ mb: 0 }}>
           Employees
         </Typography>
-        <Box sx={{ 
-          display: 'flex', 
+        <Box sx={{
+          display: 'flex',
           width: '50%',
-          gap: 1, 
+          gap: 1,
           alignItems: 'center',
           backgroundColor: 'white',
           padding: '6px',
@@ -240,7 +248,7 @@ const EmployeePage = () => {
             value={searchCategory}
             onChange={(e) => setSearchCategory(e.target.value)}
             variant="outlined"
-            sx={{ 
+            sx={{
               width: '150px',
               '& .MuiOutlinedInput-root': {
                 borderRadius: '8px',
@@ -278,9 +286,9 @@ const EmployeePage = () => {
             }}
           />
 
-          <IconButton 
-            onClick={() => {}}
-            sx={{ 
+          <IconButton
+            onClick={() => { }}
+            sx={{
               backgroundColor: '#F9FAFB',
               borderRadius: '8px',
               height: '32px',
@@ -291,34 +299,34 @@ const EmployeePage = () => {
             <FilterListIcon />
           </IconButton>
         </Box>
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           // color="primary" 
           onClick={handleCreateEmployee}
           sx={{
-    backgroundColor: 'white',
-    color: 'black',
-    border: '1px solid rgb(189, 189, 189)',  // kulrang border
-    height: '32px',
-    textTransform: 'none',
-    px: 2,
-    whiteSpace: 'nowrap',
-    '&:hover': {
-      backgroundColor: '#f5f5f5', 
-      border: '1px solid rgb(189, 189, 189)', 
-      color: 'black'
-    }
-  }}
+            backgroundColor: 'white',
+            color: 'black',
+            border: '1px solid rgb(189, 189, 189)',  // kulrang border
+            height: '32px',
+            textTransform: 'none',
+            px: 2,
+            whiteSpace: 'nowrap',
+            '&:hover': {
+              backgroundColor: '#f5f5f5',
+              border: '1px solid rgb(189, 189, 189)',
+              color: 'black'
+            }
+          }}
         >
           Create Employee
         </Button>
       </Box>
 
       {/* Status Filter Buttons */}
-      <Box sx={{ 
-        display: 'flex', 
-        gap: 1, 
-        mb: 2, 
+      <Box sx={{
+        display: 'flex',
+        gap: 1,
+        mb: 2,
         flexWrap: 'wrap',
         backgroundColor: 'white',
         p: 2,
@@ -360,6 +368,7 @@ const EmployeePage = () => {
                 quickFilterProps: { debounceMs: 500 },
               },
             }}
+            loading={loading}
             sx={{
               backgroundColor: 'white',
               borderRadius: '12px',

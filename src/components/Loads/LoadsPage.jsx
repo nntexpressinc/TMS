@@ -1,15 +1,14 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { Typography, Box, Button, TextField, MenuItem, InputAdornment, Chip, IconButton, Menu, Popover, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, createFilterOptions, FormControl, InputLabel, Select, Grid, Alert, Snackbar, CircularProgress } from "@mui/material";
-import { DataGrid, GridToolbar } from '@mui/x-data-grid';
+import { Typography, Box, Button, TextField, MenuItem, Chip, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, createFilterOptions, FormControl, InputLabel, Select, Grid, Alert, Snackbar, CircularProgress, InputAdornment } from "@mui/material";
+import { DataGrid } from '@mui/x-data-grid';
 import { ApiService } from "../../api/auth";
 import { useNavigate } from 'react-router-dom';
 import './LoadsPage.css';
 import { useSidebar } from "../SidebarContext";
 import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
+import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import AddIcon from '@mui/icons-material/Add';
 import BusinessIcon from '@mui/icons-material/Business';
 import {
   MdLocalShipping,
@@ -638,7 +637,6 @@ const LoadsPage = () => {
   const [searchCategory, setSearchCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [selectedInvoiceStatus, setSelectedInvoiceStatus] = useState(null);
-  const [filterAnchorEl, setFilterAnchorEl] = useState(null);
   const [selectedRow, setSelectedRow] = useState(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -687,14 +685,6 @@ const LoadsPage = () => {
     { value: 'PAID', label: 'Paid', color: '#10B981' },
     { value: 'UNPAID', label: 'Unpaid', color: '#EF4444' }
   ];
-
-  const handleFilterClick = (event) => {
-    setFilterAnchorEl(event.currentTarget);
-  };
-
-  const handleFilterClose = () => {
-    setFilterAnchorEl(null);
-  };
 
   const calculateTotals = () => {
     if (!filteredLoads || filteredLoads.length === 0) return { totalPay: 0, driverPay: 0, totalMiles: 0 };
@@ -909,6 +899,7 @@ const LoadsPage = () => {
 
     return `/load/?${qs.toString()}`;
   }, [pageSize, searchTerm, searchCategory, selectedStatus, selectedInvoiceStatus]);
+
   // Excel export handler
   const handleExportExcel = async () => {
     const qs = new URLSearchParams();
@@ -1396,16 +1387,16 @@ const LoadsPage = () => {
     <Box sx={{ height: '100%', width: '100%', transition: 'width 0.3s', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} ref={tableRef}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5" gutterBottom>
-          Loads
+          {/* Loads */}
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', width: '80%', gap: 2, backgroundColor: 'white', padding: '6px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', width: 'auto', gap: 2, backgroundColor: 'white', padding: '6px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
           <Button
             variant="outlined"
             color="success"
             onClick={handleExportExcel}
             sx={{ minWidth: 0, px: 2 }}
           >
-            Export to Excel
+            Excel
           </Button>
           <TextField
             select
@@ -1428,8 +1419,8 @@ const LoadsPage = () => {
             ))}
           </TextField>
           <TextField
-            fullWidth
             placeholder="Search loads..."
+            fullWidth
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             variant="outlined"
@@ -1448,18 +1439,8 @@ const LoadsPage = () => {
               }
             }}
           />
-          <IconButton
-            onClick={handleFilterClick}
-            sx={{
-              backgroundColor: '#F9FAFB',
-              borderRadius: '8px',
-              height: '32px',
-              width: '32px'
-            }}
-          >
-            <FilterListIcon />
-          </IconButton>
-          {permissions.load_create && (
+        </Box>
+         {permissions.load_create && (
             <Button variant="contained" onClick={handleCreateLoad}
               sx={{
     backgroundColor: 'white',
@@ -1479,7 +1460,6 @@ const LoadsPage = () => {
               Create Load
             </Button>
           )}
-        </Box>
       </Box>
 
       <CreateLoadModal
@@ -1518,7 +1498,7 @@ const LoadsPage = () => {
         }}>
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#374151', mb: 2 }}>
-              Load Status
+              {/* Load Status */}
             </Typography>
             <Box sx={{
               display: 'flex',
@@ -1556,7 +1536,7 @@ const LoadsPage = () => {
 
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#374151', mb: 2 }}>
-              Invoice Status
+              {/* Invoice Status */}
             </Typography>
             <Box sx={{
               display: 'flex',
@@ -1651,18 +1631,9 @@ const LoadsPage = () => {
             }}
             rowsPerPageOptions={[10, 20, 50, 100]}
             components={{
-              Footer: CustomFooter,
-              Toolbar: GridToolbar
-            }}
-            componentsProps={{
-              toolbar: {
-                showQuickFilter: true,
-                quickFilterProps: { debounceMs: 500 },
-              },
+              Footer: CustomFooter
             }}
             disableColumnMenu={false}
-            disableColumnSelector={false}
-            disableDensitySelector={false}
             disableSelectionOnClick
             columnBuffer={5}
             sx={{
@@ -1723,86 +1694,6 @@ const LoadsPage = () => {
           />
         </Box>
       </Box>
-
-      <Popover
-        open={Boolean(filterAnchorEl)}
-        anchorEl={filterAnchorEl}
-        onClose={handleFilterClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-        PaperProps={{
-          sx: {
-            width: '300px',
-            p: 2,
-            mt: 1,
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-            borderRadius: '8px'
-          }
-        }}
-      >
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-            Filter by
-          </Typography>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Column"
-            variant="outlined"
-          >
-            {columns.map((column) => (
-              <MenuItem key={column.field} value={column.field}>
-                {column.headerName}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Operator"
-            variant="outlined"
-          >
-            <MenuItem value="contains">Contains</MenuItem>
-            <MenuItem value="equals">Equals</MenuItem>
-            <MenuItem value="startsWith">Starts with</MenuItem>
-            <MenuItem value="endsWith">Ends with</MenuItem>
-            <MenuItem value="isEmpty">Is empty</MenuItem>
-            <MenuItem value="isNotEmpty">Is not empty</MenuItem>
-          </TextField>
-          <TextField
-            fullWidth
-            size="small"
-            label="Value"
-            variant="outlined"
-            placeholder="Filter value"
-          />
-          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 1 }}>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={handleFilterClose}
-              sx={{ color: '#6B7280' }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={handleFilterClose}
-            >
-              Apply Filter
-            </Button>
-          </Box>
-        </Box>
-      </Popover>
     </Box>
   );
 };

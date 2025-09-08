@@ -22,6 +22,8 @@ const CustomerBrokerPage = () => {
   const [searchCategory, setSearchCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [copiedContact, setCopiedContact] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const tableRef = useRef(null);
   const navigate = useNavigate();
   const { isSidebarOpen } = useSidebar();
@@ -51,21 +53,28 @@ const CustomerBrokerPage = () => {
   }, [searchCategory, searchCategories]);
 
   useEffect(() => {
-    const fetchCustomerBrokersData = async () => {
-      const storedAccessToken = localStorage.getItem("accessToken");
-      if (storedAccessToken) {
-        try {
-          const data = await ApiService.getData(ENDPOINTS.CUSTOMER_BROKER, storedAccessToken);
-          setCustomerBrokers(data);
-          setFilteredCustomerBrokers(data);
-        } catch (error) {
-          console.error("Error fetching customer brokers data:", error);
-        }
+  const fetchCustomerBrokersData = async () => {
+    const storedAccessToken = localStorage.getItem("accessToken");
+    if (storedAccessToken) {
+      setLoading(true); // 🔹 So‘rov boshlanishida loading true
+      try {
+        const data = await ApiService.getData(
+          ENDPOINTS.CUSTOMER_BROKER,
+          storedAccessToken
+        );
+        setCustomerBrokers(data);
+        setFilteredCustomerBrokers(data);
+      } catch (error) {
+        console.error("Error fetching customer brokers data:", error);
+      } finally {
+        setLoading(false); // 🔹 Yakunda false
       }
-    };
+    }
+  };
 
-    fetchCustomerBrokersData();
-  }, []);
+  fetchCustomerBrokersData();
+}, []);
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -466,6 +475,7 @@ const CustomerBrokerPage = () => {
                 quickFilterProps: { debounceMs: 500 },
               },
             }}
+            loading={loading}
             sx={{
               backgroundColor: 'white',
               borderRadius: '12px',

@@ -26,6 +26,8 @@ const DispatcherPage = () => {
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [filterAnchorEl, setFilterAnchorEl] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const tableRef = useRef(null);
   const navigate = useNavigate();
   const { isSidebarOpen } = useSidebar();
@@ -72,34 +74,40 @@ const DispatcherPage = () => {
   };
 
   useEffect(() => {
-    const fetchDispatchersData = async () => {
-      const storedAccessToken = localStorage.getItem("accessToken");
-      if (storedAccessToken) {
-        try {
-          const data = await ApiService.getData(`/dispatcher/`, storedAccessToken);
-          const users = await Promise.all(
-            data.map(async (dispatcher) => {
-              if (dispatcher.user && typeof dispatcher.user === 'number') {
-                try {
-                  const user = await ApiService.getData(`/auth/user/${dispatcher.user}/`);
-                  return { ...dispatcher, user };
-                } catch {
-                  return { ...dispatcher, user: null };
-                }
+  const fetchDispatchersData = async () => {
+    setLoading(true); // ✅ API chaqirishni boshlaganda spinner yoqiladi
+    const storedAccessToken = localStorage.getItem("accessToken");
+    if (storedAccessToken) {
+      try {
+        const data = await ApiService.getData(`/dispatcher/`, storedAccessToken);
+        const users = await Promise.all(
+          data.map(async (dispatcher) => {
+            if (dispatcher.user && typeof dispatcher.user === 'number') {
+              try {
+                const user = await ApiService.getData(`/auth/user/${dispatcher.user}/`);
+                return { ...dispatcher, user };
+              } catch {
+                return { ...dispatcher, user: null };
               }
-              return dispatcher;
-            })
-          );
-          setDispatchers(users);
-          setFilteredDispatchers(users);
-        } catch (error) {
-          console.error("Error fetching dispatchers data:", error);
-        }
+            }
+            return dispatcher;
+          })
+        );
+        setDispatchers(users);
+        setFilteredDispatchers(users);
+      } catch (error) {
+        console.error("Error fetching dispatchers data:", error);
+      } finally {
+        setLoading(false); // ✅ API chaqirig‘i tugagach loader o‘chadi
       }
-    };
+    } else {
+      setLoading(false); // token bo‘lmasa ham loader o‘chadi
+    }
+  };
 
-    fetchDispatchersData();
-  }, []);
+  fetchDispatchersData();
+}, []);
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -427,6 +435,7 @@ const DispatcherPage = () => {
                 quickFilterProps: { debounceMs: 500 },
               },
             }}
+            loading={loading}
             sx={{
               backgroundColor: 'white',
               borderRadius: '12px',

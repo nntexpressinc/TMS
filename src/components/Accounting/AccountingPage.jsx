@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Select from 'react-select';
-import { getDrivers, getDriverPayList, getDriverPayReport, uploadPayReportPDF } from '../../api/accounting';
+import { getDrivers, getDriverPayList, getDriverPayReport, uploadPayReportPDF, updateDriverPay, updateDriverPayBasicFields } from '../../api/accounting';
 import { getAllLoads } from '../../api/loads';
 import { pdf } from '@react-pdf/renderer';
 import PayReportPDF from './PayReportPDF';
@@ -110,7 +110,36 @@ const AccountingPage = () => {
   // Handle file upload for file/cd_file
   const handleFileChange = (e, field) => {
     if (!editData) return;
-    setEditData({ ...editData, [field]: e.target.files[0] });
+    
+    const file = e.target.files[0];
+    if (file) {
+      // File size validation (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setError(t('File size must be less than 10MB'));
+        return;
+      }
+      
+      // File type validation
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/png',
+        'image/jpeg',
+        'image/jpg'
+      ];
+      
+      if (!allowedTypes.includes(file.type)) {
+        setError(t('Invalid file type. Please select PDF, DOC, DOCX, PNG, JPG, or JPEG files only.'));
+        return;
+      }
+      
+      console.log(`Selecting ${field}:`, file.name, 'Size:', file.size, 'Type:', file.type);
+      setEditData({ ...editData, [field]: file });
+      
+      // Clear any previous error
+      setError('');
+    }
   };
 
   // Download file helper
@@ -124,31 +153,74 @@ const AccountingPage = () => {
     try {
       setLoading(true);
       setError('');
-      const formData = new FormData();
-      // Only send changed fields
-      formData.append('notes', editData.notes || '');
-      formData.append('invoice_number', editData.invoice_number || '');
-      formData.append('weekly_number', editData.weekly_number || '');
-      if (editData.file instanceof File) formData.append('file', editData.file);
-      if (editData.cd_file instanceof File) formData.append('cd_file', editData.cd_file);
-      // Add new fields if needed
-      if (editData.total_miles !== undefined) formData.append('total_miles', editData.total_miles);
-      if (editData.miles_rate !== undefined) formData.append('miles_rate', editData.miles_rate);
-      if (editData.company_driver_pay !== undefined) formData.append('company_driver_pay', editData.company_driver_pay);
-      // PUT request
-      const storedAccessToken = localStorage.getItem('accessToken');
-      await fetch(`${API_URL}/api/driver/pay/driver/${editData.id}/`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${storedAccessToken}`
-        },
-        body: formData
-      });
+      
+      // Check if we have files to upload
+      const hasFileUpload = (editData.file instanceof File) || (editData.cd_file instanceof File);
+      
+      if (hasFileUpload) {
+        // Use FormData for file uploads
+        const formData = new FormData();
+        formData.append('notes', editData.notes || '');
+        formData.append('invoice_number', editData.invoice_number || '');
+        formData.append('weekly_number', editData.weekly_number || '');
+        
+        if (editData.file instanceof File) {
+          formData.append('file', editData.file);
+          console.log('Uploading new file:', editData.file.name);
+        }
+        
+        if (editData.cd_file instanceof File) {
+          formData.append('cd_file', editData.cd_file);
+          console.log('Uploading new cd_file:', editData.cd_file.name);
+        }
+        
+        // Debug: Log all form data entries
+        console.log('FormData entries:');
+        for (let [key, value] of formData.entries()) {
+          console.log(key, value instanceof File ? `File: ${value.name}` : value);
+        }
+        
+        const result = await updateDriverPay(editData.id, formData);
+        console.log('File upload successful:', result);
+      } else {
+        // Use JSON for basic field updates only
+        const updateData = {
+          notes: editData.notes || '',
+          invoice_number: editData.invoice_number || '',
+          weekly_number: editData.weekly_number || '',
+        };
+        
+        console.log('Updating basic fields:', updateData);
+        const result = await updateDriverPayBasicFields(editData.id, updateData);
+        console.log('Basic fields update successful:', result);
+      }
+      
+      // Show success message
+      alert(t('Changes saved successfully!'));
+      
       setShowEditModal(false);
       setEditData(null);
       fetchDriverPayList();
     } catch (err) {
-      setError(t('Failed to save changes: ') + (err.message || ''));
+      console.error('Save error:', err);
+      
+      // Show more detailed error message
+      let errorMessage = t('Failed to save changes: ');
+      if (err.response && err.response.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage += err.response.data;
+        } else if (err.response.data.message) {
+          errorMessage += err.response.data.message;
+        } else if (err.response.data.error) {
+          errorMessage += err.response.data.error;
+        } else {
+          errorMessage += JSON.stringify(err.response.data);
+        }
+      } else {
+        errorMessage += (err.message || 'Unknown error');
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -644,10 +716,59 @@ const AccountingPage = () => {
               {/* File upload/download */}
               <div style={{ marginBottom: 6 }}>
                 <label style={{ color: '#4a5568', fontWeight: 500, marginBottom: 2, display: 'block' }}>{t('File')}</label>
-                {editData.file && typeof editData.file === 'string' && (
-                  <button type="button" onClick={() => handleDownloadFile(editData.file)} style={{ marginRight: 10, background: '#4d9ef0', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 10px', fontSize: 13, cursor: 'pointer' }}>{t('Download')}</button>
-                )}
-                <input type="file" onChange={e => handleFileChange(e, 'file')} style={{ marginTop: 4 }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {editData.file && typeof editData.file === 'string' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 13, color: '#6b7280' }}>Current file:</span>
+                      <button 
+                        type="button" 
+                        onClick={() => handleDownloadFile(editData.file)} 
+                        style={{ 
+                          background: '#10b981', 
+                          color: '#fff', 
+                          border: 'none', 
+                          borderRadius: 4, 
+                          padding: '4px 10px', 
+                          fontSize: 13, 
+                          cursor: 'pointer',
+                          fontWeight: 500
+                        }}
+                      >
+                        {t('Download Current File')}
+                      </button>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <input 
+                      type="file" 
+                      onChange={e => handleFileChange(e, 'file')} 
+                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                      style={{ 
+                        padding: '6px 8px',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 4,
+                        fontSize: 13,
+                        background: '#f9fafb'
+                      }} 
+                    />
+                    {editData.file instanceof File && (
+                      <div style={{ 
+                        fontSize: 12, 
+                        color: '#10b981', 
+                        fontWeight: 500,
+                        padding: '4px 8px',
+                        background: '#f0fdf4',
+                        borderRadius: 4,
+                        border: '1px solid #bbf7d0'
+                      }}>
+                        ✓ New file selected: {editData.file.name}
+                      </div>
+                    )}
+                    <small style={{ fontSize: 11, color: '#6b7280' }}>
+                      Supported formats: PDF, DOC, DOCX, PNG, JPG, JPEG
+                    </small>
+                  </div>
+                </div>
               </div>
               {/* <div style={{ marginBottom: 6 }}>
                 <label style={{ color: '#4a5568', fontWeight: 500, marginBottom: 2, display: 'block' }}>{t('CD File')}</label>
@@ -656,10 +777,54 @@ const AccountingPage = () => {
                 )}
                 <input type="file" onChange={e => handleFileChange(e, 'cd_file')} style={{ marginTop: 4 }} />
               </div> */}
-              {error && <div className="error-message">{error}</div>}
+              {error && (
+                <div style={{
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: 6,
+                  padding: '8px 12px',
+                  marginBottom: 10,
+                  fontSize: 13,
+                  color: '#dc2626',
+                  fontWeight: 500
+                }}>
+                  {error}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 10, marginTop: 10, justifyContent: 'flex-end' }}>
-                <button className="btn btn-primary" onClick={handleSaveEdit} disabled={loading}>{t('Save')}</button>
-                <button className="btn btn-secondary" onClick={handleCloseModal}>{t('Cancel')}</button>
+                <button 
+                  className="btn btn-primary" 
+                  onClick={handleSaveEdit} 
+                  disabled={loading}
+                  style={{
+                    background: loading ? '#9ca3af' : '#2563eb',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '8px 16px',
+                    fontSize: 14,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    fontWeight: 500
+                  }}
+                >
+                  {loading ? t('Saving...') : t('Save')}
+                </button>
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={handleCloseModal}
+                  style={{
+                    background: '#f3f4f6',
+                    color: '#374151',
+                    border: '1px solid #d1d5db',
+                    borderRadius: 6,
+                    padding: '8px 16px',
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    fontWeight: 500
+                  }}
+                >
+                  {t('Cancel')}
+                </button>
               </div>
             </div>
           </div>
