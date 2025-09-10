@@ -5,7 +5,10 @@ import toast from 'react-hot-toast';
 import { createInvoice } from '../../../api/accounting';
 import Select from 'react-select';
 import { getAllLoads } from '../../../api/loads';
+import { getUninvoicedCompletedLoads } from '../../../api/loads';
 import './InvoicesPage.css';
+const API_URL = 'https://nnt.nntexpressinc.com/api';
+
 
 const InvoiceCreatePage = () => {
   const { t } = useTranslation();
@@ -23,6 +26,11 @@ const InvoiceCreatePage = () => {
   const [loadsPage, setLoadsPage] = useState(1);
   const [loadsPageSize, setLoadsPageSize] = useState(25);
   const [loadsTotalPages, setLoadsTotalPages] = useState(1);
+  const [loads, setLoads] = useState([]);
+  const [loadsCount, setLoadsCount] = useState(0);
+  const [nextPage, setNextPage] = useState(null);
+  const [prevPage, setPrevPage] = useState(null);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,7 +39,6 @@ const InvoiceCreatePage = () => {
     try {
       const payload = {
         invoice_date: formData.invoice_date ? new Date(formData.invoice_date).toISOString() : null,
-        status: formData.status,
         notes: formData.notes || '',
         loads: selectedLoads.map(s => s.value)
       };
@@ -56,35 +63,43 @@ const InvoiceCreatePage = () => {
   };
 
   useEffect(() => {
-    let mounted = true;
     const fetchLoads = async () => {
+      if (!formData.invoice_date) return;
+
       try {
         setLoadsLoading(true);
-        const data = await getAllLoads({
-          page: loadsPage,
-          page_size: loadsPageSize,
-          load_status: 'COMPLETED'   // ✅ filter only completed loads
-        });
-        if (!mounted) return;
-        const arr = Array.isArray(data) ? data : (data.results || []);
-        if (data && typeof data.count === 'number') {
-          setLoadsTotalPages(Math.max(1, Math.ceil(data.count / loadsPageSize)));
-        }
-        const opts = arr.map(l => ({
-          value: Number(l.id),
-          label: `Load #${l.load_id || l.load_number || l.id}`
-        }));
-        setLoadOptions(opts);
-      } catch (err) {
-        console.error('Failed to fetch loads page:', err);
-        setLoadOptions([]);
+        const date = formData.invoice_date.split("T")[0];
+        const data = await getUninvoicedCompletedLoads(date, loadsPage, loadsPageSize);
+
+        setLoads(data.results);
+        setLoadsCount(data.count);
+        setLoadsTotalPages(Math.ceil(data.count / loadsPageSize));
+        setNextPage(data.next);
+        setPrevPage(data.previous);
+
+        // 🔥 Select uchun variantlar tayyorlash
+        setLoadOptions(
+          data.results.map((load) => ({
+            value: load.id,
+            label: (
+              <span>
+                <span style={{ color: "blue", fontWeight: "bold" }}> Load ID:</span> {load.load_id}{" "}
+                <span style={{ color: "green", fontWeight: "bold" }}>|  Load Status:</span> {load.load_status}{" "}
+                <span style={{ color: "orange", fontWeight: "bold" }}>|  Invoice Status:</span> {load.invoice_status}
+              </span>
+            ),
+          }))
+        );
+
+      } catch (error) {
+        console.error("Error fetching loads:", error);
       } finally {
         setLoadsLoading(false);
       }
     };
+
     fetchLoads();
-    return () => { mounted = false; };
-  }, [loadsPage, loadsPageSize]);
+  }, [formData.invoice_date, loadsPage, loadsPageSize]);
 
 
   const handleLoadsChange = (selected) => {
@@ -100,18 +115,22 @@ const InvoiceCreatePage = () => {
       <div className="form-section">
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>{t("Invoice Date")}:</label>
+            <label style={{ display: "block", fontWeight: "600", marginBottom: "6px" }}>
+              {t("Invoice Date")}
+            </label>
             <input
-              type="datetime-local"
+              type="date"
               name="invoice_date"
               value={formData.invoice_date}
               onChange={handleInputChange}
               required
               className="form-control"
+              style={{ maxWidth: "250px" }}
             />
           </div>
 
-          <div className="form-group">
+
+          {/* <div className="form-group">
             <label>{t("Status")}:</label>
             <select
               name="status"
@@ -125,7 +144,7 @@ const InvoiceCreatePage = () => {
               <option value="COMPLETED">{t("Completed")}</option>
               <option value="CANCELLED">{t("Cancelled")}</option>
             </select>
-          </div>
+          </div> */}
 
           <div className="form-group">
             <label>{t("Notes")}:</label>

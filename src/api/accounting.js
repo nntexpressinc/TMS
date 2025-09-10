@@ -459,3 +459,31 @@ export const deleteInvoice = async (id) => {
   }
 };
 
+// api/index.js yoki api/loads.js ichiga qo‘shing
+export const getUninvoicedCompletedLoads = async (delivery_date, page = 1, page_size = 10) => {
+  try {
+    const storedAccessToken = localStorage.getItem("accessToken");
+    if (!storedAccessToken) {
+      throw new Error("No access token found");
+    }
+
+    const queryParams = new URLSearchParams();
+    if (delivery_date) queryParams.append("delivery_date", delivery_date);
+    queryParams.append("page", page);
+    queryParams.append("page_size", page_size);
+
+    const url = `${API_URL}/load/uninvoiced-completed/?${queryParams.toString()}`;
+    console.log("Fetching uninvoiced loads:", url);
+
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${storedAccessToken}`,
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching uninvoiced completed loads:", error.message);
+    throw error;
+  }
+};

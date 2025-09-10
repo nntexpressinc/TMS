@@ -28,3 +28,20 @@ export const getAllLoads = async (params = {}) => {
   // ApiService.getData will prefix BASE_URL and add auth header
   return await ApiService.getData(endpoint);
 };
+// api/loads.js
+
+export const getUninvoicedCompletedLoads = async (delivery_date, page = 1, page_size = 10) => {
+  try {
+    const queryParams = new URLSearchParams();
+    if (delivery_date) queryParams.append("delivery_date", delivery_date);
+    if (page) queryParams.append("page", page);
+    if (page_size) queryParams.append("page_size", page_size);
+
+    const endpoint = `/load/uninvoiced-completed/?${queryParams.toString()}`;
+
+    return await ApiService.getData(endpoint);
+  } catch (error) {
+    console.error("Error fetching uninvoiced completed loads:", error.message);
+    throw error;
+  }
+};
