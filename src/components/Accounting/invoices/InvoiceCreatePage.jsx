@@ -81,15 +81,17 @@ const InvoiceCreatePage = () => {
         setLoadOptions(
           data.results.map((load) => ({
             value: load.id,
+            load_id: load.load_id, // 🔥 qidirishda ishlatish uchun
             label: (
               <span>
-                <span style={{ color: "blue", fontWeight: "bold" }}> Load ID:</span> {load.load_id}{" "}
-                <span style={{ color: "green", fontWeight: "bold" }}>|  Load Status:</span> {load.load_status}{" "}
-                <span style={{ color: "orange", fontWeight: "bold" }}>|  Invoice Status:</span> {load.invoice_status}
+                <span style={{ color: "blue", fontWeight: "bold" }}>Load ID:</span> {load.load_id}{" "}
+                <span style={{ color: "green", fontWeight: "bold" }}>| Load Status:</span> {load.load_status}{" "}
+                <span style={{ color: "orange", fontWeight: "bold" }}>| Invoice Status:</span> {load.invoice_status}
               </span>
             ),
           }))
         );
+
 
       } catch (error) {
         console.error("Error fetching loads:", error);
@@ -188,7 +190,11 @@ const InvoiceCreatePage = () => {
                   overflowY: 'auto'
                 })
               }}
+              filterOption={(option, inputValue) =>
+                option.data.load_id.toLowerCase().includes(inputValue.toLowerCase())
+              }
             />
+
           </div>
 
           <div className="button-group">
