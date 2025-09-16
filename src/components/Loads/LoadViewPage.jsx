@@ -5444,7 +5444,7 @@ const LoadViewPage = () => {
                         bgcolor: loadStatusOptions.find(opt => opt.value === (load?.load_status || 'OPEN'))?.color || 'grey.400'
                       }} />
                       <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.7rem' }}>
-                        {loadStatusOptions.find(opt => opt.value === (load?.load_status || 'OPEN'))?.shortLabel || 'Status'}
+                        {loadStatusOptions.find(opt => opt.value === (load?.load_status || 'OPEN'))?.label}
                       </Typography>
                     </Button>
                   </Tooltip>
@@ -5472,7 +5472,7 @@ const LoadViewPage = () => {
                         bgcolor: invoiceStatusOptions.find(opt => opt.value === (load?.invoice_status || 'NOT_DETERMINED'))?.color || 'grey.400'
                       }} />
                       <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.7rem' }}>
-                        {invoiceStatusOptions.find(opt => opt.value === (load?.invoice_status || 'NOT_DETERMINED'))?.shortLabel || 'Invoice'}
+                        {invoiceStatusOptions.find(opt => opt.value === (load?.invoice_status || 'NOT_DETERMINED'))?.label}
                       </Typography>
                     </Button>
                   </Tooltip>
