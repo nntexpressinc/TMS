@@ -37,6 +37,7 @@ const AccountingPage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchTimeout = useRef(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Modal state for view/edit
   const [showEditModal, setShowEditModal] = useState(false);
@@ -81,8 +82,25 @@ const AccountingPage = () => {
   }, []);
 
   useEffect(() => {
+    const fetchDriverPayList = async () => {
+      try {
+        setLoading(true);
+        const params = {};
+        if (searchQuery.trim()) {
+          params.search = searchQuery.trim();
+        }
+        const data = await getDriverPayList(params);
+        setDriverPayList(ensureArray(data));
+      } catch (err) {
+        setError(t('Failed to fetch driver pay list'));
+        setDriverPayList([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchDriverPayList();
-  }, []);
+  }, [searchQuery, refreshTrigger]);
 
   // Debounced search
   useEffect(() => {
@@ -154,11 +172,9 @@ const AccountingPage = () => {
       setLoading(true);
       setError('');
       
-      // Check if we have files to upload
       const hasFileUpload = (editData.file instanceof File) || (editData.cd_file instanceof File);
-      
+
       if (hasFileUpload) {
-        // Use FormData for file uploads
         const formData = new FormData();
         formData.append('notes', editData.notes || '');
         formData.append('invoice_number', editData.invoice_number || '');
@@ -166,61 +182,29 @@ const AccountingPage = () => {
         
         if (editData.file instanceof File) {
           formData.append('file', editData.file);
-          console.log('Uploading new file:', editData.file.name);
         }
         
         if (editData.cd_file instanceof File) {
           formData.append('cd_file', editData.cd_file);
-          console.log('Uploading new cd_file:', editData.cd_file.name);
         }
         
-        // Debug: Log all form data entries
-        console.log('FormData entries:');
-        for (let [key, value] of formData.entries()) {
-          console.log(key, value instanceof File ? `File: ${value.name}` : value);
-        }
-        
-        const result = await updateDriverPay(editData.id, formData);
-        console.log('File upload successful:', result);
+        await updateDriverPay(editData.id, formData);
       } else {
-        // Use JSON for basic field updates only
         const updateData = {
           notes: editData.notes || '',
           invoice_number: editData.invoice_number || '',
           weekly_number: editData.weekly_number || '',
         };
         
-        console.log('Updating basic fields:', updateData);
-        const result = await updateDriverPayBasicFields(editData.id, updateData);
-        console.log('Basic fields update successful:', result);
+        await updateDriverPayBasicFields(editData.id, updateData);
       }
       
-      // Show success message
-      alert(t('Changes saved successfully!'));
-      
+      // Trigger refresh by incrementing refreshTrigger
+      setRefreshTrigger(prev => prev + 1);
       setShowEditModal(false);
       setEditData(null);
-      fetchDriverPayList();
     } catch (err) {
-      console.error('Save error:', err);
-      
-      // Show more detailed error message
-      let errorMessage = t('Failed to save changes: ');
-      if (err.response && err.response.data) {
-        if (typeof err.response.data === 'string') {
-          errorMessage += err.response.data;
-        } else if (err.response.data.message) {
-          errorMessage += err.response.data.message;
-        } else if (err.response.data.error) {
-          errorMessage += err.response.data.error;
-        } else {
-          errorMessage += JSON.stringify(err.response.data);
-        }
-      } else {
-        errorMessage += (err.message || 'Unknown error');
-      }
-      
-      setError(errorMessage);
+      setError(t('Failed to save changes'));
     } finally {
       setLoading(false);
     }

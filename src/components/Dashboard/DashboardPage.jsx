@@ -1,51 +1,87 @@
 import React, { useEffect, useState } from "react";
-import { 
-  Typography, 
-  Box, 
+import {
+  Typography,
+  Box,
   Grid,
   Paper,
-  IconButton,
-  Button,
   Chip,
-  LinearProgress,
   CircularProgress,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel
+  Collapse,
+  TextField,
+  Stack,
+  Button
 } from "@mui/material";
-import { ApiService } from "../../api/auth";
-import { useNavigate } from "react-router-dom";
 
+// Material UI Icons
 import {
-  BarChart,
-  Bar,
+  LocalShipping,
+  Person,
+  DirectionsCar,
+  Business,
+  TrendingUp,
+  CalendarToday,
+  Groups
+} from "@mui/icons-material";
+
+// Recharts components
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
+  Legend,
   PieChart,
   Pie,
   Cell,
+  BarChart,
+  Bar,
   LineChart,
-  Line,
-  Legend,
-  AreaChart,
-  Area
-} from 'recharts';
-import {
-  LocalShipping,
-  Person,
-  Business,
-  DirectionsCar,
-  Group,
-  Timeline,
-  ArrowForward,
-  TrendingUp,
-  CalendarMonth
-} from '@mui/icons-material';
+  Line
+} from "recharts";
 
+// Using TextField with date type instead of MUI DatePicker to avoid dependency conflicts
+
+import { ApiService } from "../../api/auth";
+import { useNavigate } from "react-router-dom";
+import { format } from 'date-fns';
+import { getTeamStatistics } from '../../api/statistics';
+
+// StatCard component definition
+const StatCard = ({ title, total, active, icon, color, onClick }) => (
+  <Paper
+    sx={{
+      p: 3,
+      borderRadius: 4,
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      '&:hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: '0 8px 25px rgba(0,0,0,0.1)'
+      }
+    }}
+    onClick={onClick}
+  >
+    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ color, mr: 2 }}>
+        {icon}
+      </Box>
+      <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+        {title}
+      </Typography>
+    </Box>
+    <Typography variant="h4" sx={{ color: 'text.primary', mb: 1 }}>
+      {total}
+    </Typography>
+    <Typography variant="body2" color="text.secondary">
+      Active: {active}
+    </Typography>
+  </Paper>
+);
+
+// Utility functions
 window.isNumber = window.isNumber || ((value) => typeof value === 'number' && !isNaN(value));
 
 const formatLoadStatusData = (loadStatuses) => {
@@ -87,9 +123,61 @@ const formatTopBrokersData = (topBrokers) => {
     .slice(0, 5);
 };
 
+const formatTeamPerformanceData = (teams) => {
+  return teams.map(team => ({
+    ...team,
+    totalPerMile: Number(team.total_per_mile) || 0,
+    averagePerMile: Number(team.average_per_mile) || 0,
+    loadCount: Number(team.load_count) || 0,
+    performancePercentage: Number(team.performance_percentage) || 0,
+    dispatchers: team.dispatchers.map(dispatcher => ({
+      ...dispatcher,
+      totalPerMile: Number(dispatcher.total_per_mile) || 0,
+      averagePerMile: Number(dispatcher.average_per_mile) || 0,
+      loadCount: Number(dispatcher.load_count) || 0,
+      performancePercentage: Number(dispatcher.performance_percentage) || 0
+    }))
+  }))
+    .sort((a, b) => b.performancePercentage - a.performancePercentage);
+};
+
+const getPerformanceColor = (rating) => {
+  switch (rating.toLowerCase()) {
+    case 'excellent':
+      return '#10B981';
+    case 'above average':
+      return '#3B82F6';
+    case 'average':
+      return '#F59E0B';
+    case 'below average':
+      return '#EF4444';
+    case 'poor':
+      return '#6B7280';
+    default:
+      return '#6B7280';
+  }
+};
+
 const DashboardPage = () => {
+  // State hooks inside the component
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('month');
+  const [dateRange, setDateRange] = useState({
+    startDate: new Date(),
+    endDate: new Date()
+  });
+  const [expandedTeam, setExpandedTeam] = useState(null);
+  const [teamStats, setTeamStats] = useState({
+    globalStats: {
+      totalPerMile: 0,
+      averagePerMile: 0,
+      totalLoads: 0
+    },
+    teams: []
+  });
+  const [loadStatusData, setLoadStatusData] = useState([]);
+  const [loadTrendData, setLoadTrendData] = useState([]);
+  const [driverPerformanceData, setDriverPerformanceData] = useState([]);
+  const [topBrokersData, setTopBrokersData] = useState([]);
   const [stats, setStats] = useState({
     loads: { total: 0, active: 0 },
     dispatchers: { total: 0, active: 0 },
@@ -98,24 +186,36 @@ const DashboardPage = () => {
     trailers: { total: 0, active: 0 },
     brokers: { total: 0, active: 0 }
   });
-  const [revenueData, setRevenueData] = useState([]);
-  const [loadStatusData, setLoadStatusData] = useState([]);
-  const [loadTrendData, setLoadTrendData] = useState([]);
-  const [driverPerformanceData, setDriverPerformanceData] = useState([]);
-  const [topBrokersData, setTopBrokersData] = useState([]);
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Remove API calls and use static data
-    setStats({
-      loads: { total: 150, active: 45, revenue: 125000, averageRate: 2.5 },
-      dispatchers: { total: 12, active: 8 },
-      drivers: { total: 25, active: 18, efficiency: 85 },
-      trucks: { total: 30, active: 22, utilization: 75 },
-      trailers: { total: 35, active: 28, utilization: 80 },
-      brokers: { total: 50, active: 35, topPerformer: "ABC Logistics" }
-    });
+    const fetchData = async () => {
+      try {
+        const params = {
+          date_from: format(dateRange.startDate, 'yyyy-MM-dd'),
+          date_to: format(dateRange.endDate, 'yyyy-MM-dd')
+        };
 
+        const teamStatsData = await getTeamStatistics(params);
+        setTeamStats({
+          globalStats: {
+            totalPerMile: teamStatsData.global_stats.total_per_mile,
+            averagePerMile: teamStatsData.global_stats.average_per_mile,
+            totalLoads: teamStatsData.global_stats.total_loads
+          },
+          teams: formatTeamPerformanceData(teamStatsData.teams)
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+
+    // Mock data - replace with actual API calls
     setLoadStatusData([
       { name: 'COVERED', value: 45, color: '#10B981' },
       { name: 'DELIVERED', value: 60, color: '#6366F1' },
@@ -151,108 +251,290 @@ const DashboardPage = () => {
     ]);
 
     setLoading(false);
-  }, [timeRange]);
+  }, [dateRange]);
 
-  const StatCard = ({ title, total, active, icon, color, onClick }) => {
-    // Safely format numbers
-    const formatNumber = (num) => {
-      if (typeof num !== 'number' && typeof num !== 'string') return '0';
-      const number = Number(num);
-      if (isNaN(number)) return '0';
-      return number.toLocaleString();
-    };
-
-    const activePercentage = total > 0 ? Math.round((active/total) * 100) : 0;
-
-    return (
-      <Paper
-        sx={{
-          p: 3,
-          borderRadius: 4,
-          bgcolor: 'background.paper',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-          cursor: 'pointer',
-          transition: 'transform 0.2s',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '0 8px 12px -1px rgba(0, 0, 0, 0.15)'
-          }
-        }}
-        onClick={onClick}
-      >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <IconButton sx={{ bgcolor: `${color}15`, color: color }}>
-            {icon}
-          </IconButton>
-          <ArrowForward sx={{ color: 'text.secondary' }} />
-        </Box>
-        <Typography variant="h4" sx={{ mb: 1, fontWeight: 'bold' }}>
-          {formatNumber(total)}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {title}
-        </Typography>
-        <Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              Active
-            </Typography>
-            <Typography variant="body2" color="text.primary">
-              {formatNumber(active)} ({activePercentage}%)
-            </Typography>
-          </Box>
-          <LinearProgress 
-            variant="determinate" 
-            value={activePercentage}
-            sx={{ 
-              height: 6, 
-              borderRadius: 3,
-              bgcolor: `${color}15`,
-              '& .MuiLinearProgress-bar': {
-                bgcolor: color
-              }
-            }} 
-          />
-        </Box>
-      </Paper>
-    );
+  const formatNumber = (num) => {
+    if (typeof num !== 'number' && typeof num !== 'string') return '0';
+    const number = Number(num);
+    if (isNaN(number)) return '0';
+    return number.toLocaleString();
   };
 
   if (loading) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '100vh' 
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh'
       }}>
         <CircularProgress />
       </Box>
     );
   }
 
+  const handleTeamClick = (teamId) => {
+    setExpandedTeam(expandedTeam === teamId ? null : teamId);
+  };
+
+  const CircularPerformance = ({ value, rating }) => {
+    return (
+      <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+        {/* Background circle */}
+        <CircularProgress
+          variant="determinate"
+          value={100}
+          size={60}
+          thickness={4}
+          sx={{ color: '#E5E7EB' }}
+        />
+        {/* Foreground progress */}
+        <CircularProgress
+          variant="determinate"
+          value={value}
+          size={60}
+          thickness={4}
+          sx={{
+            color: getPerformanceColor(rating),
+            position: 'absolute',
+            left: 0
+          }}
+        />
+        {/* Percentage text */}
+        <Box
+          sx={{
+            top: 0,
+            left: 0,
+            bottom: 0,
+            right: 0,
+            position: 'absolute',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Typography variant="caption" component="div" sx={{ fontWeight: 'bold' }}>
+            {`${Math.round(value)}%`}
+          </Typography>
+        </Box>
+      </Box>
+    );
+  };
+
   return (
     <Box sx={{ p: 3, bgcolor: '#F3F4F6', minHeight: '100vh' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-          Dashboard Overview
-        </Typography>
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel>Time Range</InputLabel>
-          <Select
-            value={timeRange}
-            label="Time Range"
-            onChange={(e) => setTimeRange(e.target.value)}
-            startAdornment={
-              <CalendarMonth sx={{ color: 'text.secondary', mr: 1 }} />
-            }
-          >
-            <MenuItem value="week">Last Week</MenuItem>
-            <MenuItem value="month">Last Month</MenuItem>
-            <MenuItem value="year">Last Year</MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
+      <Paper sx={{ p: 3, borderRadius: 4, mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField
+              label="Start Date"
+              type="date"
+              size="small"
+              value={dateRange.startDate.toISOString().split('T')[0]}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setDateRange(prev => ({ ...prev, startDate: new Date(e.target.value) }));
+                }
+              }}
+              InputLabelProps={{
+                shrink: true,
+              }}
+            />
+            <TextField
+              label="End Date"
+              type="date"
+              size="small"
+              value={dateRange.endDate.toISOString().split('T')[0]}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setDateRange(prev => ({ ...prev, endDate: new Date(e.target.value) }));
+                }
+              }}
+              InputLabelProps={{
+                shrink: true,
+              }}
+            />
+          </Box>
+        </Box>
+
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          {/* Global Statistics Cards */}
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 3, borderRadius: 4, bgcolor: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Typography variant="h4" sx={{ color: '#0EA5E9', fontWeight: 'bold', textAlign: 'center' }}>
+                ${teamStats.globalStats.totalPerMile.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </Typography>
+              <Typography variant="body1" sx={{ color: '#6B7280', textAlign: 'center', mt: 1 }}>
+                Total Revenue Per Mile
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 3, borderRadius: 4, bgcolor: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Typography variant="h4" sx={{ color: '#10B981', fontWeight: 'bold', textAlign: 'center' }}>
+                ${teamStats.globalStats.averagePerMile.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </Typography>
+              <Typography variant="body1" sx={{ color: '#6B7280', textAlign: 'center', mt: 1 }}>
+                Average Revenue Per Mile
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 3, borderRadius: 4, bgcolor: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Typography variant="h4" sx={{ color: '#6366F1', fontWeight: 'bold', textAlign: 'center' }}>
+                {teamStats.globalStats.totalLoads.toLocaleString()}
+              </Typography>
+              <Typography variant="body1" sx={{ color: '#6B7280', textAlign: 'center', mt: 1 }}>
+                Total Loads
+              </Typography>
+            </Paper>
+          </Grid>
+
+          {/* Teams Table Section */}
+          <Grid item xs={12}>
+            <Paper sx={{ p: 3, borderRadius: 4, bgcolor: '#F8FAFC' }}>
+              <Typography variant="h6" sx={{ mb: 3, color: '#1F2937', fontWeight: 'bold' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Groups sx={{ color: '#6366F1' }} />
+                  Team Performance
+                </Box>
+              </Typography>
+              <Box sx={{ width: '100%', overflow: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #E5E7EB' }}>Team</th>
+                      <th style={{ padding: '12px', textAlign: 'right', borderBottom: '2px solid #E5E7EB' }}>Loads</th>
+                      <th style={{ padding: '12px', textAlign: 'right', borderBottom: '2px solid #E5E7EB' }}>Rev/Mile</th>
+                      <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #E5E7EB' }}>Performance</th>
+                      <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #E5E7EB' }}>Rating</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teamStats.teams.map((team) => (
+                      <React.Fragment key={team.team_id}>
+                        <tr
+                          onClick={() => handleTeamClick(team.team_id)}
+                          style={{ 
+                            cursor: 'pointer', 
+                            backgroundColor: expandedTeam === team.team_id ? '#E5E7EB' : 'transparent',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              backgroundColor: '#F1F5F9'
+                            }
+                          }}
+                        >
+                          <td style={{ 
+                            padding: '16px', 
+                            textAlign: 'left', 
+                            borderBottom: '1px solid #E5E7EB',
+                            fontWeight: 'bold',
+                            color: '#1F2937'
+                          }}>
+                            {team.team_name}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'right', borderBottom: '1px solid #E5E7EB' }}>
+                            {team.loadCount.toLocaleString()}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'right', borderBottom: '1px solid #E5E7EB' }}>
+                            ${team.averagePerMile.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', borderBottom: '1px solid #E5E7EB' }}>
+                            <CircularPerformance value={team.performancePercentage} rating={team.performance_rating} />
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', borderBottom: '1px solid #E5E7EB' }}>
+                            <Chip
+                              label={team.performance_rating}
+                              size="small"
+                              sx={{
+                                bgcolor: `${getPerformanceColor(team.performance_rating)}15`,
+                                color: getPerformanceColor(team.performance_rating),
+                                fontWeight: 500
+                              }}
+                            />
+                          </td>
+                        </tr>
+                        <tr>
+                          <td colSpan="5" style={{ padding: 0 }}>
+                            <Collapse in={expandedTeam === team.team_id}>
+                              <Box sx={{ 
+                                p: 3, 
+                                bgcolor: '#EEF2FF',
+                                borderLeft: '4px solid #6366F1',
+                                margin: '8px 16px',
+                                borderRadius: '0 8px 8px 0',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                              }}>
+                                <Typography variant="subtitle2" sx={{ 
+                                  mb: 2,
+                                  color: '#4F46E5',
+                                  fontWeight: 'bold',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1
+                                }}>
+                                  <Person sx={{ fontSize: 20 }} />
+                                  Dispatcher Performance
+                                </Typography>
+                                <table style={{ 
+                                  width: '100%', 
+                                  borderCollapse: 'collapse',
+                                  backgroundColor: 'white',
+                                  borderRadius: '8px',
+                                  overflow: 'hidden'
+                                }}>
+                                  <thead>
+                                    <tr>
+                                      <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #E5E7EB' }}>Name</th>
+                                      <th style={{ padding: '8px', textAlign: 'right', borderBottom: '1px solid #E5E7EB' }}>Loads</th>
+                                      <th style={{ padding: '8px', textAlign: 'right', borderBottom: '1px solid #E5E7EB' }}>Rev/Mile</th>
+                                      <th style={{ padding: '8px', textAlign: 'center', borderBottom: '1px solid #E5E7EB' }}>Performance</th>
+                                      <th style={{ padding: '8px', textAlign: 'center', borderBottom: '1px solid #E5E7EB' }}>Rating</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {team.dispatchers.map((dispatcher) => (
+                                      <tr key={dispatcher.id}>
+                                        <td style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #E5E7EB' }}>
+                                          {dispatcher.dispatcher_name}
+                                        </td>
+                                        <td style={{ padding: '8px', textAlign: 'right', borderBottom: '1px solid #E5E7EB' }}>
+                                          {dispatcher.loadCount.toLocaleString()}
+                                        </td>
+                                        <td style={{ padding: '8px', textAlign: 'right', borderBottom: '1px solid #E5E7EB' }}>
+                                          ${dispatcher.averagePerMile.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </td>
+                                        <td style={{ padding: '8px', textAlign: 'center', borderBottom: '1px solid #E5E7EB' }}>
+                                          <CircularPerformance value={dispatcher.performancePercentage} rating={dispatcher.performance_rating} />
+                                        </td>
+                                        <td style={{ padding: '8px', textAlign: 'center', borderBottom: '1px solid #E5E7EB' }}>
+                                          <Chip
+                                            label={dispatcher.performance_rating}
+                                            size="small"
+                                            sx={{
+                                              bgcolor: `${getPerformanceColor(dispatcher.performance_rating)}15`,
+                                              color: getPerformanceColor(dispatcher.performance_rating),
+                                              fontWeight: 500
+                                            }}
+                                          />
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </Box>
+                            </Collapse>
+                          </td>
+                        </tr>
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Paper>
 
       <Grid container spacing={3}>
         {/* Stats Cards */}
@@ -339,23 +621,23 @@ const DashboardPage = () => {
                   <AreaChart data={loadTrendData}>
                     <defs>
                       <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366F1" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#6366F1" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="colorActive" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="colorDelivered" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
-                    <Tooltip 
-                      contentStyle={{ 
+                    <Tooltip
+                      contentStyle={{
                         backgroundColor: '#ffffff',
                         border: 'none',
                         borderRadius: '8px',
@@ -363,28 +645,28 @@ const DashboardPage = () => {
                       }}
                     />
                     <Legend />
-                    <Area 
-                      type="monotone" 
-                      dataKey="total" 
-                      stroke="#6366F1" 
-                      fillOpacity={1} 
-                      fill="url(#colorTotal)" 
+                    <Area
+                      type="monotone"
+                      dataKey="total"
+                      stroke="#6366F1"
+                      fillOpacity={1}
+                      fill="url(#colorTotal)"
                       name="Total Loads"
                     />
-                    <Area 
-                      type="monotone" 
-                      dataKey="active" 
-                      stroke="#10B981" 
-                      fillOpacity={1} 
-                      fill="url(#colorActive)" 
+                    <Area
+                      type="monotone"
+                      dataKey="active"
+                      stroke="#10B981"
+                      fillOpacity={1}
+                      fill="url(#colorActive)"
                       name="Active Loads"
                     />
-                    <Area 
-                      type="monotone" 
-                      dataKey="delivered" 
-                      stroke="#F59E0B" 
-                      fillOpacity={1} 
-                      fill="url(#colorDelivered)" 
+                    <Area
+                      type="monotone"
+                      dataKey="delivered"
+                      stroke="#F59E0B"
+                      fillOpacity={1}
+                      fill="url(#colorDelivered)"
                       name="Delivered"
                     />
                   </AreaChart>
@@ -399,11 +681,11 @@ const DashboardPage = () => {
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
                 Load Status Distribution
               </Typography>
-              <Box sx={{ 
-                height: 'calc(100% - 60px)', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                justifyContent: 'space-between' 
+              <Box sx={{
+                height: 'calc(100% - 60px)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
               }}>
                 <Box sx={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center' }}>
                   <ResponsiveContainer width="100%" height="80%">
@@ -421,9 +703,9 @@ const DashboardPage = () => {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip 
+                      <Tooltip
                         formatter={(value, name) => [`${value} loads`, name]}
-                        contentStyle={{ 
+                        contentStyle={{
                           backgroundColor: '#ffffff',
                           border: 'none',
                           borderRadius: '8px',
@@ -433,10 +715,10 @@ const DashboardPage = () => {
                     </PieChart>
                   </ResponsiveContainer>
                 </Box>
-                <Box sx={{ 
-                  display: 'flex', 
-                  gap: 1, 
-                  flexWrap: 'wrap', 
+                <Box sx={{
+                  display: 'flex',
+                  gap: 1,
+                  flexWrap: 'wrap',
                   justifyContent: 'center',
                   mt: 2
                 }}>
@@ -469,8 +751,8 @@ const DashboardPage = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip 
-                      contentStyle={{ 
+                    <Tooltip
+                      contentStyle={{
                         backgroundColor: '#ffffff',
                         border: 'none',
                         borderRadius: '8px',
@@ -499,9 +781,9 @@ const DashboardPage = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip 
-                      formatter={(value) => `$${value.toLocaleString()}`}
-                      contentStyle={{ 
+                    <Tooltip
+                      formatter={(value) => `${value.toLocaleString()}`}
+                      contentStyle={{
                         backgroundColor: '#ffffff',
                         border: 'none',
                         borderRadius: '8px',
@@ -509,10 +791,10 @@ const DashboardPage = () => {
                       }}
                     />
                     <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stroke="#EC4899" 
+                    <Line
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#EC4899"
                       strokeWidth={2}
                       dot={{ fill: '#EC4899', strokeWidth: 2 }}
                     />
@@ -521,6 +803,11 @@ const DashboardPage = () => {
               </Box>
             </Paper>
           </Grid>
+
+          {/* Team Performance Section */}
+          
+            
+          
         </Grid>
       </Grid>
     </Box>
