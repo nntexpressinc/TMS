@@ -207,7 +207,7 @@ const InvoiceCreatePage = () => {
             </button>
             <button
               type="submit"
-              className="submit-button"
+              className="cancel-button"
               disabled={loading}
             >
               {loading ? t("Creating...") : t("Create Invoice")}

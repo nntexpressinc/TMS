@@ -5,6 +5,7 @@ import { FaPlus } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { getInvoices } from '../../api/accounting';
 import './invoices/InvoicesPage.css';
+import { Button } from '@mui/material';
 
 const InvoicesPage = () => {
   const { t } = useTranslation();
@@ -63,12 +64,24 @@ const InvoicesPage = () => {
     <div className="accounting-container">
       <div className="header-section">
         <h2>{t('Invoices')}</h2>
-        <button
-          className="add-button"
-          onClick={() => navigate('/invoices/create')}
+        <Button variant="contained" onClick={() => navigate('/invoices/create')}
+          sx={{
+            backgroundColor: 'white',
+            color: 'black',
+            border: '1px solid rgb(189, 189, 189)',  // kulrang border
+            height: '32px',
+            textTransform: 'none',
+            px: 2,
+            whiteSpace: 'nowrap',
+            '&:hover': {
+              backgroundColor: '#f5f5f5',
+              border: '1px solid rgb(189, 189, 189)',
+              color: 'black'
+            }
+          }}
         >
-          <FaPlus /> {t('Create New Invoice')}
-        </button>
+          Create Invoice
+        </Button>
       </div>
 
       <div className="search-section">
@@ -112,11 +125,10 @@ const InvoicesPage = () => {
                   <th>{t('Notes')}</th>
                   <th>{t('Status')}</th>
                   <th>{t('ZIP File')}</th>
-                  <th>{t('Created Date')}</th>
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((invoice) => (
+                {invoices?.slice()?.reverse()?.map((invoice) => (
                   <tr key={invoice.id}>
                     <td>{invoice.id}</td>
                     <td>
@@ -129,12 +141,11 @@ const InvoicesPage = () => {
                     </td>
                     <td>
                       <div
-                        className={`load-chips ${
-                          Array.isArray(invoice.loads) &&
-                          invoice.loads.length > 12
+                        className={`load-chips ${Array.isArray(invoice.loads) &&
+                            invoice.loads.length > 12
                             ? 'scrollable'
                             : ''
-                        }`}
+                          }`}
                       >
                         {Array.isArray(invoice.loads) && invoice.loads.length > 0 ? (
                           invoice.loads.map((loadId) => (
@@ -161,9 +172,8 @@ const InvoicesPage = () => {
                     </td>
                     <td>
                       <span
-                        className={`status-badge ${
-                          (invoice.status || '').toLowerCase()
-                        }`}
+                        className={`status-badge ${(invoice.status || '').toLowerCase()
+                          }`}
                       >
                         {invoice.status}
                       </span>
@@ -181,11 +191,6 @@ const InvoicesPage = () => {
                       ) : (
                         <span>-</span>
                       )}
-                    </td>
-                    <td>
-                      {invoice.created_date
-                        ? new Date(invoice.created_date).toLocaleString()
-                        : '-'}
                     </td>
                   </tr>
                 ))}
@@ -210,9 +215,8 @@ const InvoicesPage = () => {
                     <button
                       key={page}
                       onClick={() => handlePageChange(page)}
-                      className={`page-button ${
-                        currentPage === page ? 'active' : ''
-                      }`}
+                      className={`page-button ${currentPage === page ? 'active' : ''
+                        }`}
                     >
                       {page}
                     </button>

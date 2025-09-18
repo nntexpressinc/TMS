@@ -193,20 +193,22 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             if (item.isDropdown) {
               return (
                 <div key={item.id} className="sidebar-dropdown">
-                  <div 
-                    className={`sidebar-item ${item.isOpen ? 'active' : ''}`}
-                    onClick={item.toggleDropdown}
-                  >
-                    <div className="item-content">
-                      <span className="item-icon">{item.icon}</span>
-                      {isOpen && (
-                        <>
-                          <span className="item-title">{item.title}</span>
-                          {item.isOpen ? <MdExpandLess /> : <MdExpandMore />}
-                        </>
-                      )}
+                  {isOpen && (
+                    <div
+                      className={`sidebar-item ${item.isOpen ? 'active' : ''}`}
+                      onClick={item.toggleDropdown}
+                    >
+                      <div className="item-content">
+                        <span className="item-icon">{item.icon}</span>
+                        {isOpen && (
+                          <>
+                            <span className="item-title">{item.title}</span>
+                            {item.isOpen ? <MdExpandLess /> : <MdExpandMore />}
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                   {item.isOpen && isOpen && (
                     <div className="dropdown-items">
                       {item.items.map((subItem) => (
@@ -214,6 +216,20 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                           key={subItem.id}
                           to={subItem.link}
                           className={`dropdown-item ${pathname === subItem.link ? 'active' : ''}`}
+                        >
+                          <span className="item-icon">{subItem.icon}</span>
+                          <span className="item-title">{subItem.title}</span>
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                  {!isOpen && (
+                    <div className="p-1 flex flex-col items-center" onClick={item.toggleDropdown} title={item.title}>
+                      {item.items.map((subItem) => (
+                        <NavLink
+                          key={subItem.id}
+                          to={subItem.link}
+                          className={`dropdown-item-open ${pathname === subItem.link ? 'active' : ''}`}
                         >
                           <span className="item-icon">{subItem.icon}</span>
                           <span className="item-title">{subItem.title}</span>

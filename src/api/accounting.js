@@ -53,6 +53,17 @@ const isCacheValid = (cacheEntry) => {
   return Date.now() - cacheEntry.timestamp < CACHE_TTL;
 };
 
+// Helper function to invalidate driver pay caches
+const invalidateDriverPayCaches = () => {
+  const keysToDelete = [];
+  for (const key of cache.keys()) {
+    if (key.startsWith('driver_pay')) {
+      keysToDelete.push(key);
+    }
+  }
+  keysToDelete.forEach(key => cache.delete(key));
+};
+
 // Yangi: Driver pay list olish
 export const getDriverPayList = async (params = {}) => {
   try {
@@ -128,6 +139,10 @@ export const getDriverPayReport = async (data) => {
     );
 
     console.log('getDriverPayReport response:', response.data);
+
+    // Invalidate cache after create
+    invalidateDriverPayCaches();
+
     return response.data;
   } catch (error) {
     console.error('Error generating driver pay report:', error.message);
@@ -156,6 +171,9 @@ export const uploadPayReportPDF = async (payId, pdfBlob) => {
       }
     );
 
+    // Invalidate cache after upload
+    invalidateDriverPayCaches();
+
     return response.data;
   } catch (error) {
     console.error('Error uploading PDF:', error.message);
@@ -181,6 +199,9 @@ export const updateDriverPay = async (payId, formData) => {
         },
       }
     );
+
+    // Invalidate cache after update
+    invalidateDriverPayCaches();
 
     return response.data;
   } catch (error) {
@@ -211,6 +232,9 @@ export const updateDriverPayBasicFields = async (payId, data) => {
         },
       }
     );
+
+    // Invalidate cache after update
+    invalidateDriverPayCaches();
 
     return response.data;
   } catch (error) {
