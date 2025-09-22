@@ -128,18 +128,18 @@ const DriverViewPage = () => {
   const [selectedIftaRecord, setSelectedIftaRecord] = useState(null);
 
   const payColumns = [
-    { 
-      field: 'index', 
-      headerName: 'No.', 
+    {
+      field: 'index',
+      headerName: 'No.',
       width: 70,
       valueGetter: (params) => {
         const rowIndex = filteredPayData.findIndex(row => row.id === params.row.id);
         return rowIndex + 1;
       }
     },
-    { 
-      field: 'pay_type', 
-      headerName: 'Payment Type', 
+    {
+      field: 'pay_type',
+      headerName: 'Payment Type',
       width: 130,
       valueGetter: (params) => {
         const types = {
@@ -150,39 +150,39 @@ const DriverViewPage = () => {
         return types[params.row.pay_type] || params.row.pay_type;
       }
     },
-    { 
-      field: 'currency', 
-      headerName: 'Currency', 
+    {
+      field: 'currency',
+      headerName: 'Currency',
       width: 100,
       valueGetter: (params) => 'USD'
     },
-    { 
-      field: 'standart', 
-      headerName: 'Standard', 
+    {
+      field: 'standart',
+      headerName: 'Standard',
       width: 100,
       valueGetter: (params) => params.row.standart || '-'
     },
-    { 
-      field: 'additional_charges', 
-      headerName: 'Additional Charges', 
+    {
+      field: 'additional_charges',
+      headerName: 'Additional Charges',
       width: 150,
       valueGetter: (params) => params.row.additional_charges || '-'
     },
-    { 
-      field: 'picks_per', 
-      headerName: 'Picks Per', 
+    {
+      field: 'picks_per',
+      headerName: 'Picks Per',
       width: 100,
       valueGetter: (params) => params.row.picks_per || '-'
     },
-    { 
-      field: 'drops_per', 
-      headerName: 'Drops Per', 
+    {
+      field: 'drops_per',
+      headerName: 'Drops Per',
       width: 100,
       valueGetter: (params) => params.row.drops_per || '-'
     },
-    { 
-      field: 'wait_time', 
-      headerName: 'Wait Time', 
+    {
+      field: 'wait_time',
+      headerName: 'Wait Time',
       width: 120,
       valueGetter: (params) => params.row.wait_time || '-'
     },
@@ -198,7 +198,7 @@ const DriverViewPage = () => {
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete">
-            <IconButton 
+            <IconButton
               onClick={() => {
                 setSelectedItem(params.row);
                 setItemType('pay');
@@ -214,9 +214,9 @@ const DriverViewPage = () => {
   ];
 
   const expenseColumns = [
-    { 
-      field: 'index', 
-      headerName: 'No.', 
+    {
+      field: 'index',
+      headerName: 'No.',
       width: 70,
       valueGetter: (params) => {
         const rowIndex = filteredExpenseData.findIndex(row => row.id === params.row.id);
@@ -227,9 +227,9 @@ const DriverViewPage = () => {
     { field: 'amount', headerName: 'Amount', width: 100 },
     { field: 'transaction_type', headerName: 'Type', width: 80 },
     { field: 'expense_date', headerName: 'Date', width: 120 },
-    { 
-      field: 'created_at', 
-      headerName: 'Created At', 
+    {
+      field: 'created_at',
+      headerName: 'Created At',
       width: 180,
       valueGetter: (params) => {
         if (!params.row.created_at) return '-';
@@ -253,7 +253,7 @@ const DriverViewPage = () => {
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete">
-            <IconButton 
+            <IconButton
               onClick={() => {
                 setSelectedItem(params.row);
                 setItemType('expense');
@@ -269,87 +269,87 @@ const DriverViewPage = () => {
   ];
 
   const iftaColumns = [
-    { 
-      field: 'index', 
-      headerName: 'No.', 
+    {
+      field: 'index',
+      headerName: 'No.',
       width: 70,
       valueGetter: (params) => {
         const rowIndex = iftaData.findIndex(row => row.id === params.row.id);
         return rowIndex + 1;
       }
     },
-    { 
-      field: 'quarter', 
-      headerName: 'Quarter', 
+    {
+      field: 'quarter',
+      headerName: 'Quarter',
       width: 120,
       valueGetter: (params) => params.row.quarter || '-'
     },
-    { 
-      field: 'state', 
-      headerName: 'State', 
+    {
+      field: 'state',
+      headerName: 'State',
       width: 100,
       valueGetter: (params) => getStateFullName(params.row.state) || '-'
     },
-    { 
-      field: 'total_miles', 
-      headerName: 'Total Miles', 
+    {
+      field: 'total_miles',
+      headerName: 'Total Miles',
       width: 130,
       valueGetter: (params) => {
         const miles = parseFloat(params.row.total_miles);
         return isNaN(miles) ? '-' : miles.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
       }
     },
-    { 
-      field: 'taxible_gallon', 
-      headerName: 'Taxable Gallons', 
+    {
+      field: 'taxible_gallon',
+      headerName: 'Taxable Gallons',
       width: 140,
       valueGetter: (params) => {
         const gallons = parseFloat(params.row.taxible_gallon);
         return isNaN(gallons) ? '-' : gallons.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
       }
     },
-    { 
-      field: 'tax_paid_gallon', 
-      headerName: 'Tax Paid Gallons', 
+    {
+      field: 'tax_paid_gallon',
+      headerName: 'Tax Paid Gallons',
       width: 150,
       valueGetter: (params) => {
         const gallons = parseFloat(params.row.tax_paid_gallon);
         return isNaN(gallons) ? '-' : gallons.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
       }
     },
-    { 
-      field: 'net_taxible_gallon', 
-      headerName: 'Net Taxable Gallons', 
+    {
+      field: 'net_taxible_gallon',
+      headerName: 'Net Taxable Gallons',
       width: 160,
       valueGetter: (params) => {
         const gallons = parseFloat(params.row.net_taxible_gallon);
         return isNaN(gallons) ? '-' : gallons.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
       }
     },
-    { 
-      field: 'tax', 
-      headerName: 'Tax Amount', 
+    {
+      field: 'tax',
+      headerName: 'Tax Amount',
       width: 130,
       valueGetter: (params) => {
         const tax = parseFloat(params.row.tax);
         return isNaN(tax) ? '-' : `$${tax.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       }
     },
-    { 
-      field: 'invoice_number', 
-      headerName: 'Invoice Number', 
+    {
+      field: 'invoice_number',
+      headerName: 'Invoice Number',
       width: 140,
       valueGetter: (params) => params.row.invoice_number || '-'
     },
-    { 
-      field: 'weekly_number', 
-      headerName: 'Weekly Number', 
+    {
+      field: 'weekly_number',
+      headerName: 'Weekly Number',
       width: 130,
       valueGetter: (params) => params.row.weekly_number || '-'
     },
-    { 
-      field: 'created_at', 
-      headerName: 'Created At', 
+    {
+      field: 'created_at',
+      headerName: 'Created At',
       width: 180,
       valueGetter: (params) => {
         if (!params.row.created_at) return '-';
@@ -373,7 +373,7 @@ const DriverViewPage = () => {
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete">
-            <IconButton 
+            <IconButton
               onClick={() => handleDeleteIftaRecord(params.row)}
             >
               <DeleteIcon />
@@ -394,7 +394,7 @@ const DriverViewPage = () => {
           getIftaRecords(id),
           ApiService.getData(`/auth/role/`)
         ]);
-        
+
         setDriverData(driver);
         setRoles(rolesData);
 
@@ -537,7 +537,7 @@ const DriverViewPage = () => {
 
   const renderValue = (value, type = 'text') => {
     if (value === null || value === undefined || value === '') return '-';
-    
+
     switch (type) {
       case 'date':
         return new Date(value).toLocaleDateString();
@@ -598,7 +598,7 @@ const DriverViewPage = () => {
   const userSections = [
     {
       title: 'Personal Information',
-     
+
       fields: [
         { label: 'Email', value: driverData?.user?.email, type: 'email' },
         { label: 'First Name', value: driverData?.user?.first_name },
@@ -609,7 +609,7 @@ const DriverViewPage = () => {
     },
     {
       title: 'Address Information',
-    
+
       fields: [
         { label: 'Address', value: driverData?.user?.address },
         { label: 'City', value: driverData?.user?.city },
@@ -620,7 +620,7 @@ const DriverViewPage = () => {
     },
     {
       title: 'Additional Information',
-     
+
       fields: [
         { label: 'Ext', value: driverData?.user?.ext },
         { label: 'Fax', value: driverData?.user?.fax },
@@ -633,7 +633,7 @@ const DriverViewPage = () => {
   const driverSections = [
     {
       title: 'Driver License Information',
-     
+
       fields: [
         { label: 'Driver License ID', value: driverData?.driver_license_id },
         { label: 'DL Class', value: driverData?.dl_class },
@@ -644,7 +644,7 @@ const DriverViewPage = () => {
     },
     {
       title: 'Employment Details',
-     
+
       fields: [
         { label: 'Employment Status', value: driverData?.employment_status },
         { label: 'Driver Status', value: driverData?.driver_status },
@@ -655,7 +655,7 @@ const DriverViewPage = () => {
     },
     {
       title: 'Contact & Communication',
-     
+
       fields: [
         { label: 'Telegram', value: driverData?.telegram_username },
         { label: 'Notes', value: driverData?.notes },
@@ -677,9 +677,9 @@ const DriverViewPage = () => {
 
   return (
     <Box sx={{ p: 3, maxWidth: 1400, margin: '0 auto', backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
-      <Snackbar 
-        open={!!error} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
         onClose={() => setError(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
@@ -691,9 +691,9 @@ const DriverViewPage = () => {
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Tooltip title="Back to Drivers">
-            <IconButton 
+            <IconButton
               onClick={() => navigate('/driver')}
-              sx={{ 
+              sx={{
                 backgroundColor: 'white',
                 '&:hover': { backgroundColor: '#f0f0f0' }
               }}
@@ -735,10 +735,11 @@ const DriverViewPage = () => {
           <Tab label="User Information" icon={<MdPerson />} iconPosition="start" />
           <Tab label="Driver Information" icon={<MdDirectionsCar />} iconPosition="start" />
           <Tab label="Payments" icon={<MdPayment />} iconPosition="start" />
-          <Tab label="Expenses" icon={<MdReceipt />} iconPosition="start" />
+          <Tab label="Income" icon={<MdReceipt />} iconPosition="start" />
+          <Tab label="Expense" icon={<MdReceipt />} iconPosition="start" />
           <Tab label="IFTA" icon={<MdAssessment />} iconPosition="start" />
         </Tabs>
-        
+
         {tabValue === 0 && driverData && driverData.user && (
           <Box sx={{ p: 3 }}>
             <Grid container spacing={3}>
@@ -823,9 +824,9 @@ const DriverViewPage = () => {
                 >
                   Create Payment
                 </Button>
-                <Button 
-                  size="small" 
-                  variant="outlined" 
+                <Button
+                  size="small"
+                  variant="outlined"
                   onClick={() => exportToExcel(filteredPayData, 'payments.xlsx')}
                 >
                   Excel
@@ -856,12 +857,14 @@ const DriverViewPage = () => {
           </Box>
         )}
 
+
+        {/* Income Tab */}
         {tabValue === 3 && (
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Typography variant="h5" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <MdReceipt />
-                Expenses
+                Income
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
@@ -870,12 +873,12 @@ const DriverViewPage = () => {
                   onClick={handleCreateExpense}
                   size="small"
                 >
-                  Create Expense
+                  Create Income
                 </Button>
-                <Button 
-                  size="small" 
-                  variant="outlined" 
-                  onClick={() => exportToExcel(filteredExpenseData, 'expenses.xlsx')}
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => exportToExcel(filteredExpenseData.filter(e => e.transaction_type === '+'), 'income.xlsx')}
                 >
                   Excel
                 </Button>
@@ -883,7 +886,7 @@ const DriverViewPage = () => {
             </Box>
             <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 2 }}>
               <DataGrid
-                rows={filteredExpenseData}
+                rows={filteredExpenseData.filter(e => e.transaction_type === '+')}
                 columns={expenseColumns}
                 pageSize={5}
                 rowsPerPageOptions={[5, 10, 20]}
@@ -905,7 +908,56 @@ const DriverViewPage = () => {
           </Box>
         )}
 
-{tabValue === 4 && (
+        {/* Expense Tab */}
+        {tabValue === 4 && (
+          <Box sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h5" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <MdReceipt />
+                Expense
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleCreateExpense}
+                  size="small"
+                >
+                  Create Expense
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => exportToExcel(filteredExpenseData.filter(e => e.transaction_type === '-'), 'expenses.xlsx')}
+                >
+                  Excel
+                </Button>
+              </Box>
+            </Box>
+            <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 2 }}>
+              <DataGrid
+                rows={filteredExpenseData.filter(e => e.transaction_type === '-')}
+                columns={expenseColumns}
+                pageSize={5}
+                rowsPerPageOptions={[5, 10, 20]}
+                autoHeight
+                sx={{
+                  borderRadius: 2,
+                  border: 'none',
+                  background: 'transparent',
+                  '& .MuiDataGrid-cell': {
+                    borderBottom: '1px solid #f0f0f0',
+                  },
+                  '& .MuiDataGrid-columnHeaders': {
+                    backgroundColor: '#f8f9fa',
+                    borderBottom: '2px solid #e0e0e0',
+                  },
+                }}
+              />
+            </Card>
+          </Box>
+        )}
+        {tabValue === 5 && (
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Typography variant="h5" sx={{ fontWeight: 600 }}>IFTA Records</Typography>
@@ -1014,6 +1066,8 @@ const DriverViewPage = () => {
             )}
           </Box>
         )}
+
+
       </Paper>
 
       <Dialog

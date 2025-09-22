@@ -250,14 +250,6 @@ const AccountingPage = () => {
       setError(t('Please select a driver'));
       return false;
     }
-    if (!invoiceNumber) {
-      setError(t('Please enter an invoice number'));
-      return false;
-    }
-    if (!weeklyNumber) {
-      setError(t('Please enter a weekly number'));
-      return false;
-    }
     setError('');
     return true;
   };
@@ -437,7 +429,7 @@ const AccountingPage = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by invoice number, weekly number, or driver name"
+                  placeholder="Search by statement number"
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -595,7 +587,7 @@ const AccountingPage = () => {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="invoiceNumber">{t('Invoice Number')}</label>
+                  <label htmlFor="invoiceNumber">{t('Statement Number')}</label>
                   <input
                     type="text"
                     id="invoiceNumber"
@@ -604,7 +596,7 @@ const AccountingPage = () => {
                     required
                   />
                 </div>
-                <div className="form-group">
+                {/* <div className="form-group">
                   <label htmlFor="weeklyNumber">{t('Weekly Number')}</label>
                   <input
                     type="text"
@@ -613,7 +605,7 @@ const AccountingPage = () => {
                     onChange={(e) => setWeeklyNumber(e.target.value)}
                     required
                   />
-                </div>
+                </div> */}
                 <div className="form-group">
                   <label htmlFor="notes">{t('Notes')}</label>
                   <textarea
@@ -681,7 +673,7 @@ const AccountingPage = () => {
                 <span style={{ color: '#2c3e50' }}>{editData.pay_from} - {editData.pay_to}</span>
               </div>
               <div style={{ marginBottom: 6 }}>
-                <label style={{ color: '#4a5568', fontWeight: 500, marginBottom: 2, display: 'block' }}>{t('Invoice Number')}</label>
+                <label style={{ color: '#4a5568', fontWeight: 500, marginBottom: 2, display: 'block' }}>{t('Statement Number')}</label>
                 <input
                   type="text"
                   value={editData.invoice_number || ''}
