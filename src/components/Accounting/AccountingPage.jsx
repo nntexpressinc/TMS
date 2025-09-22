@@ -217,18 +217,28 @@ const AccountingPage = () => {
 
   // Front-end search filter for the table
   const filteredDriverPayList = useMemo(() => {
-    if (!searchQuery.trim()) return driverPayList;
-    const query = searchQuery.trim().toLowerCase();
-    return driverPayList.filter(pay => {
-      const invoice = (pay.invoice_number || '').toLowerCase();
-      const weekly = (pay.weekly_number || '').toLowerCase();
-      const driverName = ((pay.driver?.user?.first_name || '') + ' ' + (pay.driver?.user?.last_name || '')).toLowerCase();
-      return (
-        invoice.includes(query) ||
-        weekly.includes(query) ||
-        driverName.includes(query)
-      );
-    });
+    // First, create a copy of the list for sorting
+    let filtered = [...driverPayList];
+
+    // Apply search filter if there's a query
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
+      filtered = filtered.filter(pay => {
+        const invoice = (pay.invoice_number || '').toLowerCase();
+        const weekly = (pay.weekly_number || '').toLowerCase();
+        const driverName = ((pay.driver?.user?.first_name || '') + ' ' + (pay.driver?.user?.last_name || '')).toLowerCase();
+        return (
+          invoice.includes(query) ||
+          weekly.includes(query) ||
+          driverName.includes(query)
+        );
+      });
+    }
+
+    // Sort by created_at in descending order (newest first)
+    return filtered.sort((a, b) =>
+      new Date(b.created_at) - new Date(a.created_at)
+    );
   }, [searchQuery, driverPayList]);
 
   const validateFields = () => {
@@ -470,7 +480,9 @@ const AccountingPage = () => {
                       <tr className="pay-list-row" key={pay.id} style={{ borderBottom: '1px solid #f1f1f1' }}>
                         <td style={{ padding: '10px 8px' }}>{pay.invoice_number || 'N/A'}</td>
                         <td style={{ padding: '10px 8px' }}>{pay.weekly_number || 'N/A'}</td>
-                        <td style={{ padding: '10px 8px' }}>{pay.driver || ""}</td>
+                        <td style={{ padding: '10px 8px' }}>{pay.driver?.user
+                          ? `${pay.driver.user.first_name} ${pay.driver.user.last_name}`
+                          : "N/A"}</td>
                         <td style={{ padding: '10px 8px' }}>
                           {pay.pay_from && pay.pay_to
                             ? `${moment(pay.pay_from).format('MM/DD/YYYY')} - ${moment(pay.pay_to).format('MM/DD/YYYY')}`
@@ -615,7 +627,7 @@ const AccountingPage = () => {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="loadDriverPay">Load Driver Pay (select, optional)</label>
+                  {/* <label htmlFor="loadDriverPay">Load Driver Pay (select, optional)</label>
                   <Select
                     isMulti
                     options={loads.map(load => ({
@@ -636,31 +648,10 @@ const AccountingPage = () => {
                     classNamePrefix="select"
                     placeholder="Select loads..."
                   />
-                  <small>You can select multiple loads</small>
+                  <small>You can select multiple loads</small> */}
                 </div>
                 <div className="form-group">
-                  <label htmlFor="loadCompanyDriverPay">Load Company Driver Pay (select, optional)</label>
-                  <Select
-                    isMulti
-                    options={loads.map(load => ({
-                      value: load.id,
-                      label: `Load #${load.load_id || load.id} | Reference: ${load.reference_id || '-'}`,
-                    }))}
-                    value={loadCompanyDriverPay.map(id => {
-                      const found = loads.find(load => load.id === id);
-                      return found
-                        ? {
-                          value: found.id,
-                          label: `Load #${found.load_id || found.id} | Reference: ${found.reference_id || '-'}`,
-                        }
-                        : { value: id, label: `Load #${id}` };
-                    })}
-                    onChange={handleLoadCompanyDriverPayChange}
-                    className="modern-multi-select"
-                    classNamePrefix="select"
-                    placeholder="Select loads..."
-                  />
-                  <small>You can select multiple loads</small>
+
                 </div>
               </div>
               {error && <div className="error-message">{error}</div>}
