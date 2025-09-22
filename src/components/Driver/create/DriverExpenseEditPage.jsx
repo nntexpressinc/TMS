@@ -31,6 +31,8 @@ const DriverExpenseEditPage = () => {
     description: '',
     amount: '',
     expense_date: new Date().toISOString().split('T')[0],
+    from_date: '',
+    to_date: '',
     driver: parseInt(id, 10)
   });
 
@@ -41,18 +43,17 @@ const DriverExpenseEditPage = () => {
           ApiService.getData(ENDPOINTS.DRIVER_DETAIL(id)),
           ApiService.getData(ENDPOINTS.DRIVER_EXPENSE_DETAIL(expenseId))
         ]);
-        
         setDriverData(driver);
         setExpenseData(expense);
-        
         setFormData({
           transaction_type: expense.transaction_type || '+',
           description: expense.description || '',
           amount: expense.amount || '',
           expense_date: expense.expense_date || new Date().toISOString().split('T')[0],
+          from_date: expense.from_date || '',
+          to_date: expense.to_date || '',
           driver: parseInt(id, 10)
         });
-        
         setLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -60,7 +61,6 @@ const DriverExpenseEditPage = () => {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [id, expenseId]);
 
@@ -75,13 +75,11 @@ const DriverExpenseEditPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-
     try {
       const submitData = {
         ...formData,
         amount: parseFloat(formData.amount) || 0
       };
-
       await ApiService.putData(ENDPOINTS.DRIVER_EXPENSE_DETAIL(expenseId), submitData);
       toast.success('Expense updated successfully');
       navigate(`/driver/${id}`);
@@ -111,7 +109,6 @@ const DriverExpenseEditPage = () => {
           Edit Expense for {driverData?.user?.first_name} {driverData?.user?.last_name}
         </Typography>
       </Box>
-
       <Paper elevation={3} sx={{ p: 4, borderRadius: 3, boxShadow: 4, border: '1px solid #e0e0e0' }}>
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
@@ -129,7 +126,6 @@ const DriverExpenseEditPage = () => {
                 </Select>
               </FormControl>
             </Grid>
-
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -146,7 +142,6 @@ const DriverExpenseEditPage = () => {
                 required
               />
             </Grid>
-
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -155,13 +150,32 @@ const DriverExpenseEditPage = () => {
                 type="date"
                 value={formData.expense_date}
                 onChange={handleInputChange}
-                InputLabelProps={{
-                  shrink: true,
-                }}
+                InputLabelProps={{ shrink: true }}
                 required
               />
             </Grid>
-
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="From Date"
+                name="from_date"
+                type="date"
+                value={formData.from_date}
+                onChange={handleInputChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="To Date"
+                name="to_date"
+                type="date"
+                value={formData.to_date}
+                onChange={handleInputChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -176,7 +190,6 @@ const DriverExpenseEditPage = () => {
               />
             </Grid>
           </Grid>
-
           <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
             <Button
               type="submit"

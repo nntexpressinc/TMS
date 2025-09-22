@@ -225,22 +225,9 @@ const DriverViewPage = () => {
     },
     { field: 'description', headerName: 'Description', width: 200 },
     { field: 'amount', headerName: 'Amount', width: 100 },
-    { field: 'transaction_type', headerName: 'Type', width: 80 },
     { field: 'expense_date', headerName: 'Date', width: 120 },
-    {
-      field: 'created_at',
-      headerName: 'Created At',
-      width: 180,
-      valueGetter: (params) => {
-        if (!params.row.created_at) return '-';
-        const date = new Date(params.row.created_at);
-        return date.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        });
-      }
-    },
+    { field: 'from_date', headerName: 'From Date', width: 120 },
+    { field: 'to_date', headerName: 'To Date', width: 120 },
     {
       field: 'actions',
       headerName: 'Actions',
@@ -735,8 +722,8 @@ const DriverViewPage = () => {
           <Tab label="User Information" icon={<MdPerson />} iconPosition="start" />
           <Tab label="Driver Information" icon={<MdDirectionsCar />} iconPosition="start" />
           <Tab label="Payments" icon={<MdPayment />} iconPosition="start" />
-          <Tab label="Income" icon={<MdReceipt />} iconPosition="start" />
-          <Tab label="Expense" icon={<MdReceipt />} iconPosition="start" />
+          <Tab label="ADDITION" icon={<MdReceipt />} iconPosition="start" />
+          <Tab label="DEDUCTION" icon={<MdReceipt />} iconPosition="start" />
           <Tab label="IFTA" icon={<MdAssessment />} iconPosition="start" />
         </Tabs>
 
@@ -864,7 +851,7 @@ const DriverViewPage = () => {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Typography variant="h5" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <MdReceipt />
-                Income
+                ADDITION
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
@@ -873,12 +860,12 @@ const DriverViewPage = () => {
                   onClick={handleCreateExpense}
                   size="small"
                 >
-                  Create Income
+                  Create ADDITION
                 </Button>
                 <Button
                   size="small"
                   variant="outlined"
-                  onClick={() => exportToExcel(filteredExpenseData.filter(e => e.transaction_type === '+'), 'income.xlsx')}
+                  onClick={() => exportToExcel(filteredExpenseData.filter(e => e.transaction_type === '+'), 'addition.xlsx')}
                 >
                   Excel
                 </Button>
@@ -914,7 +901,7 @@ const DriverViewPage = () => {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Typography variant="h5" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <MdReceipt />
-                Expense
+                Deduction
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
@@ -923,12 +910,12 @@ const DriverViewPage = () => {
                   onClick={handleCreateExpense}
                   size="small"
                 >
-                  Create Expense
+                  Create Deduction
                 </Button>
                 <Button
                   size="small"
                   variant="outlined"
-                  onClick={() => exportToExcel(filteredExpenseData.filter(e => e.transaction_type === '-'), 'expenses.xlsx')}
+                  onClick={() => exportToExcel(filteredExpenseData.filter(e => e.transaction_type === '-'), 'deductions.xlsx')}
                 >
                   Excel
                 </Button>

@@ -29,6 +29,8 @@ const DriverExpenseCreatePage = () => {
     description: '',
     amount: '',
     expense_date: new Date().toISOString().split('T')[0],
+    from_date: '',
+    to_date: '',
     driver: parseInt(id, 10)
   });
 
@@ -42,7 +44,6 @@ const DriverExpenseCreatePage = () => {
         toast.error('Error loading driver data');
       }
     };
-
     fetchDriverData();
   }, [id]);
 
@@ -85,7 +86,6 @@ const DriverExpenseCreatePage = () => {
           Create Expense for {driverData?.user?.first_name} {driverData?.user?.last_name}
         </Typography>
       </Box>
-
       <Paper elevation={3} sx={{ p: 4, borderRadius: 3, boxShadow: 4, border: '1px solid #e0e0e0' }}>
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
@@ -103,7 +103,6 @@ const DriverExpenseCreatePage = () => {
                 </Select>
               </FormControl>
             </Grid>
-
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -120,7 +119,6 @@ const DriverExpenseCreatePage = () => {
                 required
               />
             </Grid>
-
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -135,7 +133,28 @@ const DriverExpenseCreatePage = () => {
                 required
               />
             </Grid>
-
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="From Date"
+                name="from_date"
+                type="date"
+                value={formData.from_date}
+                onChange={handleInputChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="To Date"
+                name="to_date"
+                type="date"
+                value={formData.to_date}
+                onChange={handleInputChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -150,7 +169,6 @@ const DriverExpenseCreatePage = () => {
               />
             </Grid>
           </Grid>
-
           <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
             <Button
               type="submit"
