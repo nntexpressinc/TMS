@@ -480,9 +480,7 @@ const AccountingPage = () => {
                       <tr className="pay-list-row" key={pay.id} style={{ borderBottom: '1px solid #f1f1f1' }}>
                         <td style={{ padding: '10px 8px' }}>{pay.invoice_number || 'N/A'}</td>
                         <td style={{ padding: '10px 8px' }}>{pay.weekly_number || 'N/A'}</td>
-                        <td style={{ padding: '10px 8px' }}>{pay.driver?.user
-                          ? `${pay.driver.user.first_name} ${pay.driver.user.last_name}`
-                          : "N/A"}</td>
+                        <td style={{ padding: '10px 8px' }}>{pay.driver || ""}</td>
                         <td style={{ padding: '10px 8px' }}>
                           {pay.pay_from && pay.pay_to
                             ? `${moment(pay.pay_from).format('MM/DD/YYYY')} - ${moment(pay.pay_to).format('MM/DD/YYYY')}`
