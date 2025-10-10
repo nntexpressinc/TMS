@@ -1,835 +1,976 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import Select from 'react-select';
-import { getDrivers, getDriverPayList, getDriverPayReport, uploadPayReportPDF, updateDriverPay, updateDriverPayBasicFields } from '../../api/accounting';
-import { getAllLoads } from '../../api/loads';
-import { pdf } from '@react-pdf/renderer';
-import PayReportPDF from './PayReportPDF';
-import CompanyDriverPDF from './CompanyDriverPDF';
+import { getDriversSummary, getDriverCompletedLoads, postPaystubAction } from '../../api/paySystem';
+import { testApiConnection } from '../../api/testConnection';
 import './AccountingPage.css';
-import moment from 'moment';
-import { Button, CircularProgress } from '@mui/material';
 
-const API_URL = 'https://nnt.nntexpressinc.com';
+const STORAGE_KEY = 'driverPayPageState';
 
-const ensureArray = (data) => {
-  if (!data) return [];
-  if (Array.isArray(data)) return data;
-  if (typeof data === 'object') return [data];
-  return [];
+const ensureArray = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  return [value];
 };
+
+const getDriverName = (driver) => {
+  if (!driver) return 'Unknown Driver';
+  
+  // Try different name fields in order of preference
+  if (driver.display_name) return driver.display_name;
+  if (driver.full_name) return driver.full_name;
+  if (driver.name) return driver.name;
+  
+  // Handle the API response format with first_name and last_name
+  if (driver.first_name || driver.last_name) {
+    const first = driver.first_name || '';
+    const last = driver.last_name || '';
+    const combined = `${first} ${last}`.trim();
+    if (combined) return combined;
+  }
+  
+  // Try to build name from nested user object
+  const firstSources = [driver?.user?.first_name, driver?.profile?.first_name];
+  const lastSources = [driver?.user?.last_name, driver?.profile?.last_name];
+  
+  const first = firstSources.find(name => name && name.trim()) || '';
+  const last = lastSources.find(name => name && name.trim()) || '';
+  
+  const combined = `${first} ${last}`.trim();
+  if (combined) return combined;
+  
+  // Try username
+  if (driver?.user?.username) return driver.user.username;
+  if (driver.username) return driver.username;
+  
+  // Fall back to ID
+  const id = driver.id ?? driver.driver_id ?? driver?.user_id ?? 'N/A';
+  return `Driver #${id}`;
+};
+
+const normalizeDriver = (driver) => {
+  if (!driver) return null;
+  
+  // Try to get a valid ID from various possible fields
+  const id = driver.id ?? driver.driver_id ?? driver?.user_id ?? driver?.user?.id;
+  if (!id) {
+    console.warn('Driver missing ID:', driver);
+    return null;
+  }
+  
+  // Determine if this is an owner operator based on the driver_type field
+  const is_owner = driver.driver_type === 'OWNER_OPERATOR' ||
+                  (driver.is_owner ?? 
+                  driver?.driver_type === 'owner' ?? 
+                  driver?.type === 'owner' ??
+                  driver?.is_owner_operator ??
+                  false);
+  
+  return {
+    ...driver,
+    id,
+    is_owner,
+    displayName: getDriverName(driver),
+  };
+};
+
+const partitionDrivers = (payload) => {
+  console.log('Partitioning drivers from payload:', payload);
+  
+  if (!payload) {
+    return { company: [], owner: [] };
+  }
+
+  const company = [];
+  const owner = [];
+
+  const tryAppend = (list) => {
+    ensureArray(list).forEach((item) => {
+      const driver = normalizeDriver(item);
+      if (driver) {
+        // Use driver_type field to determine if it's a company driver or owner operator
+        if (driver.driver_type === 'COMPANY_DRIVER') {
+          company.push(driver);
+        } else if (driver.driver_type === 'OWNER_OPERATOR') {
+          owner.push(driver);
+        } else {
+          // Fallback to is_owner logic for compatibility
+          if (driver.is_owner) {
+            owner.push(driver);
+          } else {
+            company.push(driver);
+          }
+        }
+      }
+    });
+  };
+
+  // If payload is an array, treat it as a list of drivers
+  if (Array.isArray(payload)) {
+    tryAppend(payload);
+  } else {
+    // Try different possible structures
+    tryAppend(payload.company_drivers);
+    tryAppend(payload.owner_drivers);
+    tryAppend(payload.results);
+    tryAppend(payload.drivers);
+    
+    // If no specific structure found, try all values
+    if (!company.length && !owner.length && typeof payload === 'object') {
+      Object.values(payload).forEach((value) => {
+        if (Array.isArray(value)) {
+          tryAppend(value);
+        }
+      });
+    }
+  }
+
+  const dedupe = (list) => {
+    const seen = new Set();
+    return list.filter((driver) => {
+      if (seen.has(driver.id)) return false;
+      seen.add(driver.id);
+      return true;
+    });
+  };
+
+  const result = {
+    company: dedupe(company),
+    owner: dedupe(owner),
+  };
+  
+  console.log('Partitioned drivers result:', result);
+  return result;
+};
+
+const getRowId = (item) => item?.id ?? item?.load_id ?? item?.uuid ?? item?.pk ?? item?.statement_id;
+
+const formatCurrency = (value) => {
+  const num = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]+/g, '')) : Number(value);
+  if (Number.isNaN(num) || !Number.isFinite(num)) {
+    return '$0.00';
+  }
+  return `$${num.toFixed(2)}`;
+};
+
+const formatMiles = (value) => {
+  if (value === null || value === undefined || value === '') return '--';
+  const miles = Number(value);
+  if (Number.isNaN(miles)) return String(value);
+  return `${miles.toFixed(0)} mi`;
+};
+
+const formatDateInput = (value) => (value ? value.slice(0, 10) : '');
 
 const AccountingPage = () => {
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(false);
-  const [reportData, setReportData] = useState(null);
-  const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
-  const [selectedDriver, setSelectedDriver] = useState('');
-  const [notes, setNotes] = useState('');
-  const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [weeklyNumber, setWeeklyNumber] = useState('');
-  const [loadDriverPay, setLoadDriverPay] = useState([]);
-  const [loadCompanyDriverPay, setLoadCompanyDriverPay] = useState([]);
-  const [drivers, setDrivers] = useState([]);
-  const [loads, setLoads] = useState([]);
-  const [error, setError] = useState('');
-  const [driverPayList, setDriverPayList] = useState([]);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const searchTimeout = useRef(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0); // Changed to number for consistent incrementing
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editData, setEditData] = useState(null);
 
-  // Define fetchDriverPayList function
-  const fetchDriverPayList = async () => {
-    try {
-      setLoading(true);
-      const params = {};
-      if (searchQuery.trim()) {
-        params.search = searchQuery.trim();
-      }
-      const data = await getDriverPayList(params);
-      const driverPayData = ensureArray(data);
-      setDriverPayList(driverPayData);
-      console.log('Fetched driver pay list:', driverPayData); // Debug log
-    } catch (err) {
-      console.error('Error fetching driver pay list:', err);
-      setError(t('Failed to fetch driver pay list'));
-      setDriverPayList([]);
-    } finally {
-      setLoading(false);
-    }
+  console.log('AccountingPage render started');
+
+  const [summary, setSummary] = useState({ company: [], owner: [] });
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState('');
+
+  const [sidebarView, setSidebarView] = useState('company');
+  const [driverSearch, setDriverSearch] = useState('');
+
+  const [selectedDriverId, setSelectedDriverId] = useState(null);
+  const [selectedDriverMeta, setSelectedDriverMeta] = useState(null);
+
+  // Set default date range to current week
+  const getDefaultDateRange = () => {
+    const today = new Date();
+    const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
+    const lastDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 6));
+    
+    return {
+      from: firstDayOfWeek.toISOString().split('T')[0],
+      to: lastDayOfWeek.toISOString().split('T')[0]
+    };
   };
 
-  useEffect(() => {
-    let isMounted = true;
+  const [dateRange, setDateRange] = useState(getDefaultDateRange());
+  const [driverData, setDriverData] = useState({ loads: [], driver: null });
+  const [driverLoading, setDriverLoading] = useState(false);
+  const [driverError, setDriverError] = useState('');
 
-    const fetchDrivers = async () => {
-      try {
-        const data = await getDrivers();
-        if (isMounted) {
-          setDrivers(ensureArray(data));
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(t('Failed to fetch drivers'));
-          setDrivers([]);
-        }
-      }
-    };
+  const [expandedLoads, setExpandedLoads] = useState([]);
+  const [selectedLoadIds, setSelectedLoadIds] = useState([]);
 
-    const fetchLoads = async () => {
-      try {
-        const data = await getAllLoads();
-        if (isMounted) {
-          setLoads(ensureArray(data));
-        }
-      } catch (err) {
-        if (isMounted) {
-          setLoads([]);
-        }
-      }
-    };
+  const [statementNotes, setStatementNotes] = useState('');
+  const [fuelAdvance, setFuelAdvance] = useState('');
+  const [otherDeductions, setOtherDeductions] = useState('');
 
-    fetchDrivers();
-    fetchLoads();
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [lastStub, setLastStub] = useState(null);
 
-    return () => {
-      isMounted = false;
-    };
+  const [persistedHydrated, setPersistedHydrated] = useState(false);
+  
+  // Debug state
+  const [debugMode, setDebugMode] = useState(false);
+  const [debugInfo, setDebugInfo] = useState(null);
+  
+  // Use refs to track fetch state and prevent duplicate calls
+  const fetchingDriverRef = useRef(false);
+  const lastFetchParamsRef = useRef(null);
+
+  const filteredDrivers = useMemo(() => {
+    const list = sidebarView === 'owner' ? summary.owner : summary.company;
+    if (!driverSearch.trim()) return list;
+    const term = driverSearch.trim().toLowerCase();
+    return list.filter((driver) => getDriverName(driver).toLowerCase().includes(term));
+  }, [sidebarView, summary.owner, summary.company, driverSearch]);
+
+  const persistState = useCallback((state) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (err) {
+      console.warn('Could not persist driver pay state', err);
+    }
   }, []);
 
-  // Effect for fetching driver pay list when searchQuery or refreshTrigger changes
-  useEffect(() => {
-    fetchDriverPayList();
-  }, [searchQuery, refreshTrigger]);
-
-  // Debounced search effect
-  useEffect(() => {
-    if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => {
-      // No need to call fetchDriverPayList here since it's handled by the above useEffect
-    }, 500);
-    return () => clearTimeout(searchTimeout.current);
-  }, [searchQuery]);
-
-  // Open modal for view/edit
-  const handleViewEdit = (pay) => {
-    setEditData(pay);
-    setShowEditModal(true);
-    setError('');
-  };
-
-  // Close modal
-  const handleCloseModal = () => {
-    setShowEditModal(false);
-    setEditData(null);
-    setError('');
-  };
-
-  // Handle file upload for file/cd_file
-  const handleFileChange = (e, field) => {
-    if (!editData) return;
-
-    const file = e.target.files[0];
-    if (file) {
-      // File size validation (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        setError(t('File size must be less than 10MB'));
-        return;
-      }
-
-      // File type validation
-      const allowedTypes = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'image/png',
-        'image/jpeg',
-        'image/jpg',
-      ];
-
-      if (!allowedTypes.includes(file.type)) {
-        setError(t('Invalid file type. Please select PDF, DOC, DOCX, PNG, JPG, or JPEG files only.'));
-        return;
-      }
-
-      console.log(`Selecting ${field}:`, file.name, 'Size:', file.size, 'Type:', file.type);
-      setEditData({ ...editData, [field]: file });
-      setError('');
-    }
-  };
-
-  // Download file helper
-  const handleDownloadFile = (url) => {
-    if (!url) return;
-    window.open(getFullPdfUrl(url), '_blank');
-  };
-
-  // Save edited data (PUT request with file/cd_file if changed)
-  const handleSaveEdit = async () => {
+  const restorePersistedState = useCallback(() => {
     try {
-      setLoading(true);
-      setError('');
-
-      const hasFileUpload = (editData.file instanceof File) || (editData.cd_file instanceof File);
-      console.log('Has file upload:', hasFileUpload);
-
-      if (hasFileUpload) {
-        const formData = new FormData();
-        formData.append('notes', editData.notes || '');
-        formData.append('invoice_number', editData.invoice_number || '');
-        formData.append('weekly_number', editData.weekly_number || '');
-
-        if (editData.file instanceof File) {
-          formData.append('file', editData.file);
-        }
-
-        if (editData.cd_file instanceof File) {
-          formData.append('cd_file', editData.cd_file);
-        }
-
-        const res = await updateDriverPay(editData.id, formData);
-        console.log('Update response (with file):', res);
-      } else {
-        const updateData = {
-          notes: editData.notes || '',
-          invoice_number: editData.invoice_number || '',
-          weekly_number: editData.weekly_number || '',
-        };
-
-        const res = await updateDriverPayBasicFields(editData.id, updateData);
-        console.log('Update response (basic fields):', res);
-      }
-
-      // Increment refreshTrigger to force data refresh
-      setRefreshTrigger(prev => prev + 1);
-      setShowEditModal(false);
-      setEditData(null);
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
     } catch (err) {
-      console.error('Error saving changes:', err);
-      setError(t('Failed to save changes'));
-    } finally {
-      setLoading(false);
+      console.warn('Failed to parse persisted driver pay state', err);
+      return null;
     }
-  };
+  }, []);
 
-  // Front-end search filter for the table
-  const filteredDriverPayList = useMemo(() => {
-    // First, create a copy of the list for sorting
-    let filtered = [...driverPayList];
+  const handleLoadSelectChange = useCallback((loadId, checked) => {
+    setSelectedLoadIds((prev) => {
+      if (checked) {
+        return prev.includes(loadId) ? prev : [...prev, loadId];
+      } else {
+        return prev.filter((id) => id !== loadId);
+      }
+    });
+  }, []);
 
-    // Apply search filter if there's a query
-    if (searchQuery.trim()) {
-      const query = searchQuery.trim().toLowerCase();
-      filtered = filtered.filter(pay => {
-        const invoice = (pay.invoice_number || '').toLowerCase();
-        const weekly = (pay.weekly_number || '').toLowerCase();
-        const driverName = ((pay.driver?.user?.first_name || '') + ' ' + (pay.driver?.user?.last_name || '')).toLowerCase();
-        return (
-          invoice.includes(query) ||
-          weekly.includes(query) ||
-          driverName.includes(query)
-        );
+  const toggleLoadStops = useCallback((rowId) => {
+    setExpandedLoads((prev) =>
+      prev.includes(rowId) ? prev.filter((id) => id !== rowId) : [...prev, rowId]
+    );
+  }, []);
+
+  const hydrateDriverData = useCallback((data, driverId) => {
+    console.log('Hydrating driver data:', data);
+    
+    if (!data || typeof data !== 'object') {
+      console.warn('Invalid data received for hydration:', data);
+      return;
+    }
+    
+    const loads = ensureArray(data?.loads).filter(Boolean);
+
+    // Update driver data
+    setDriverData({
+      loads,
+      driver: data.driver || { id: driverId },
+    });
+    
+    // Auto-select all loads by default
+    const defaultLoadIds = loads.map((load) => getRowId(load)).filter(Boolean);
+    setSelectedLoadIds(defaultLoadIds);
+    
+    // Set form data from response only if they exist
+    if (data.statement_notes !== undefined) {
+      setStatementNotes(data.statement_notes || '');
+    }
+    if (data.fuel_advance !== undefined) {
+      setFuelAdvance(data.fuel_advance ? String(data.fuel_advance) : '');
+    }
+    if (data.other_deductions !== undefined) {
+      setOtherDeductions(data.other_deductions ? String(data.other_deductions) : '');
+    }
+    
+    console.log('Driver data hydrated successfully:', { 
+      loads: loads.length, 
+      selectedLoadIds: defaultLoadIds.length
+    });
+  }, []);
+
+  const fetchDriversSummary = useCallback(async () => {
+    setSummaryLoading(true);
+    setSummaryError('');
+    try {
+      const response = await getDriversSummary();
+      console.log('Drivers summary response:', response);
+      
+      const normalized = partitionDrivers(response);
+      setSummary(normalized);
+      
+    } catch (error) {
+      console.error('Error in fetchDriversSummary:', error);
+      const message =
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        error?.message ||
+        t('Unable to load driver summary');
+      setSummaryError(message);
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [t]);
+
+  // Handle state restoration when summary data is loaded
+  useEffect(() => {
+    if (summary.company.length > 0 || summary.owner.length > 0) {
+      if (!persistedHydrated) {
+        const saved = restorePersistedState();
+        const fullList = [...summary.company, ...summary.owner];
+
+        if (saved && saved.driverId) {
+          const found = fullList.find((driver) => driver.id === saved.driverId);
+          if (found) {
+            setSidebarView(found.is_owner ? 'owner' : 'company');
+            setSelectedDriverId(found.id);
+            setSelectedDriverMeta(found);
+            if (saved.from && saved.to) {
+              setDateRange({
+                from: saved.from,
+                to: saved.to,
+              });
+            }
+          }
+        }
+
+        const shouldForceCompany = summary.company.length > 0 && summary.owner.length === 0;
+        const shouldForceOwner = summary.owner.length > 0 && summary.company.length === 0;
+
+        setSidebarView((prev) => {
+          if (shouldForceCompany) return 'company';
+          if (shouldForceOwner) return 'owner';
+          return prev || 'company';
+        });
+
+        setPersistedHydrated(true);
+      }
+    }
+  }, [summary.company.length, summary.owner.length, persistedHydrated]);
+
+  const fetchDriverDetails = useCallback(
+    async (driverId, fromDate, toDate) => {
+      if (!driverId || !fromDate || !toDate) {
+        console.warn('fetchDriverDetails called without required params:', { driverId, fromDate, toDate });
+        return;
+      }
+      
+      // Check if we're already fetching or if params haven't changed
+      const currentParams = `${driverId}-${fromDate}-${toDate}`;
+      if (fetchingDriverRef.current || lastFetchParamsRef.current === currentParams) {
+        console.log('Skipping duplicate fetch for params:', currentParams);
+        return;
+      }
+      
+      fetchingDriverRef.current = true;
+      lastFetchParamsRef.current = currentParams;
+      
+      setDriverLoading(true);
+      setDriverError('');
+      
+      try {
+        const params = {
+          from_date: fromDate,
+          to_date: toDate
+        };
+        
+        console.log('Fetching driver completed loads with params:', { driverId, params });
+        
+        const response = await getDriverCompletedLoads(driverId, params);
+        console.log('Driver completed loads response:', response);
+        
+        // Handle response - check if response is array or object with loads
+        let loadsData = [];
+        if (Array.isArray(response)) {
+          loadsData = response;
+        } else if (response && response.loads) {
+          loadsData = response.loads;
+        } else if (response) {
+          loadsData = ensureArray(response);
+        }
+        
+        // Always hydrate with consistent structure
+        const dataToHydrate = {
+          loads: loadsData,
+          driver: { id: driverId },
+          ...response
+        };
+        
+        hydrateDriverData(dataToHydrate, driverId);
+        
+      } catch (error) {
+        console.error('Error in fetchDriverDetails:', error);
+        const message =
+          error?.response?.data?.detail ||
+          error?.response?.data?.message ||
+          error?.message ||
+          'Unable to load driver pay data';
+        setDriverError(message);
+        
+        // Set empty data structure on error
+        setDriverData({ loads: [], driver: { id: driverId } });
+        setSelectedLoadIds([]);
+      } finally {
+        setDriverLoading(false);
+        fetchingDriverRef.current = false;
+      }
+    },
+    []
+  );
+
+  // Initial load of drivers summary
+  useEffect(() => {
+    fetchDriversSummary();
+  }, []); // Run only once on mount
+
+  // Fetch driver details when driver or date range changes
+  useEffect(() => {
+    if (selectedDriverId && dateRange.from && dateRange.to) {
+      // Add a small delay to prevent rapid successive calls
+      const timeoutId = setTimeout(() => {
+        fetchDriverDetails(selectedDriverId, dateRange.from, dateRange.to);
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [selectedDriverId, dateRange.from, dateRange.to]);
+
+  // Persist state changes
+  useEffect(() => {
+    if (selectedDriverId && dateRange.from && dateRange.to) {
+      persistState({
+        driverId: selectedDriverId,
+        from: dateRange.from,
+        to: dateRange.to,
       });
     }
+  }, [selectedDriverId, dateRange.from, dateRange.to]);
 
-    // Sort by created_at in descending order (newest first)
-    return filtered.sort((a, b) =>
-      new Date(b.created_at) - new Date(a.created_at)
-    );
-  }, [searchQuery, driverPayList]);
+  const handleDriverSelect = useCallback(
+    (driver) => {
+      console.log('Driver selected:', driver);
+      
+      if (selectedDriverId !== driver.id) {
+        // Clear the last fetch params to allow refetch
+        lastFetchParamsRef.current = null;
+        
+        setSelectedDriverId(driver.id);
+        setSelectedDriverMeta(driver);
+        setDriverError('');
+        setLastStub(null);
+        
+        // Clear existing data to show loading state
+        setDriverData({ loads: [], driver: null });
+        setSelectedLoadIds([]);
+      }
+    },
+    [selectedDriverId]
+  );
 
-  const validateFields = () => {
-    if (!dateRange.startDate || !dateRange.endDate) {
-      setError(t('Please select a valid date range'));
-      return false;
-    }
-    if (!selectedDriver) {
-      setError(t('Please select a driver'));
-      return false;
-    }
-    setError('');
-    return true;
+  const handleDateChange = useCallback((key, value) => {
+    // Clear the last fetch params to allow refetch
+    lastFetchParamsRef.current = null;
+    
+    setDateRange((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+    setLastStub(null);
+  }, []);
+
+  const handleSelectAllLoads = useCallback(
+    (checked) => {
+      if (!checked) {
+        setSelectedLoadIds([]);
+        return;
+      }
+      const ids = driverData.loads.map((load) => getRowId(load)).filter(Boolean);
+      setSelectedLoadIds(ids);
+    },
+    [driverData.loads]
+  );
+
+  const parseNumberInput = (value) => {
+    if (value === '' || value === null || value === undefined) return null;
+    const num = parseFloat(value);
+    if (Number.isNaN(num)) return null;
+    return num;
   };
 
-  const generateReport = async (e) => {
-    e.preventDefault();
-    if (!validateFields()) return;
-
+  const runDebugTest = async () => {
     try {
-      setLoading(true);
-      const requestData = {
-        pay_from: dateRange.startDate,
-        pay_to: dateRange.endDate,
-        driver: Number(selectedDriver),
-        notes: notes || '',
-        invoice_number: invoiceNumber,
-        weekly_number: weeklyNumber,
-        load_driver_pay: Array.isArray(loadDriverPay) ? loadDriverPay : [],
-        load_company_driver_pay: Array.isArray(loadCompanyDriverPay) ? loadCompanyDriverPay : [],
+      console.log('Running debug test...');
+      const results = await testApiConnection();
+      setDebugInfo(results);
+      console.log('Debug test results:', results);
+    } catch (error) {
+      console.error('Debug test failed:', error);
+      setDebugInfo({ error: error.message });
+    }
+  };
+
+  const handleStubAction = async (type) => {
+    if (!selectedDriverId) {
+      setActionError(t('Please select a driver before continuing'));
+      return;
+    }
+
+    if (!selectedLoadIds.length) {
+      setActionError(t('Please select at least one load'));
+      return;
+    }
+
+    if (dateRange.from && !dateRange.to) {
+      setActionError(t('Please select an end date to finish the range'));
+      return;
+    }
+
+    if (dateRange.to && !dateRange.from) {
+      setActionError(t('Please select a start date to finish the range'));
+      return;
+    }
+
+    setActionLoading(true);
+    setActionError('');
+    try {
+      const payload = {
+        type,
+        driver_id: selectedDriverId,
+        load_ids: selectedLoadIds,
+        notes: statementNotes,
+        from_date: dateRange.from || undefined,
+        to_date: dateRange.to || undefined,
+        fuel_advance: parseNumberInput(fuelAdvance),
+        other_deductions: parseNumberInput(otherDeductions),
       };
 
-      console.log('Sending report request with data:', {
-        ...requestData,
-        load_driver_pay_length: requestData.load_driver_pay.length,
-        load_company_driver_pay_length: requestData.load_company_driver_pay.length,
+      console.log('Posting paystub action with payload:', payload);
+
+      const response = await postPaystubAction(payload);
+      console.log('Paystub action response:', response);
+      
+      setLastStub({
+        ...response,
+        driver_id: selectedDriverId,
+        type,
       });
 
-      const response = await getDriverPayReport(requestData);
-      console.log('Report data received:', response);
-      setReportData(response);
-      setError('');
-
-      await generateAndUploadPDF(response);
-    } catch (err) {
-      console.error('Error fetching report:', err);
-      setError(t('Failed to generate report'));
+      if (type === 'preview' && response?.view_url) {
+        window.open(response.view_url, '_blank', 'noopener');
+      }
+    } catch (error) {
+      console.error('Error in handleStubAction:', error);
+      const responseData = error?.response?.data;
+      const serverErrors =
+        responseData && typeof responseData === 'object'
+          ? Object.entries(responseData)
+              .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+              .join(' | ')
+          : null;
+      const message =
+        serverErrors ||
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        error?.message ||
+        t('Unable to process paystub request');
+      setActionError(message);
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
-  const generateAndUploadPDF = async (reportData) => {
-    try {
-      // Generate and download Driver Pay PDF
-      const driverPayBlob = await pdf(<PayReportPDF reportData={reportData} />).toBlob();
-      const driverPayUrl = window.URL.createObjectURL(driverPayBlob);
-      const driverPayLink = document.createElement('a');
-      driverPayLink.href = driverPayUrl;
-      driverPayLink.download = `driver-pay-report-${moment().format('YYYY-MM-DD')}.pdf`;
-      document.body.appendChild(driverPayLink);
-      driverPayLink.click();
-      document.body.removeChild(driverPayLink);
-      window.URL.revokeObjectURL(driverPayUrl);
+  const loadsSelectedCount = selectedLoadIds.length;
+  const allLoadsSelected =
+    driverData.loads.length > 0 && loadsSelectedCount === driverData.loads.length;
 
-      // Upload driver pay PDF to server if pay_id exists
-      if (reportData.pay_id) {
-        await uploadPayReportPDF(reportData.pay_id, driverPayBlob);
-        console.log('Driver Pay PDF successfully uploaded to server');
-      }
-
-      // Generate and download Company Driver PDF if data exists
-      if (reportData.company_driver_data) {
-        const companyDriverBlob = await pdf(
-          <CompanyDriverPDF
-            data={reportData.company_driver_data}
-            driver={reportData.driver}
-            search_from={reportData.driver?.search_from}
-            search_to={reportData.driver?.search_to}
-          />
-        ).toBlob();
-        const companyDriverUrl = window.URL.createObjectURL(companyDriverBlob);
-        const companyDriverLink = document.createElement('a');
-        companyDriverLink.href = companyDriverUrl;
-        companyDriverLink.download = `company-driver-report-${moment().format('YYYY-MM-DD')}.pdf`;
-        document.body.appendChild(companyDriverLink);
-        companyDriverLink.click();
-        document.body.removeChild(companyDriverLink);
-        window.URL.revokeObjectURL(companyDriverUrl);
-        console.log('Company Driver PDF generated and downloaded');
-      }
-
-      // Reset form and update list
-      setRefreshTrigger(prev => prev + 1);
-      setShowCreateForm(false);
-      setReportData(null);
-      setInvoiceNumber('');
-      setWeeklyNumber('');
-      setNotes('');
-      setSelectedDriver('');
-      setDateRange({ startDate: '', endDate: '' });
-    } catch (err) {
-      console.error('PDF generation/upload error:', err);
-      setError(t('Failed to generate/upload PDF: ') + err.message);
+  const renderStops = (stops) => {
+    const list = ensureArray(stops).filter(Boolean);
+    if (!list.length) {
+      return <div className="stops-empty">{t('No stops returned')}</div>;
     }
-  };
-
-  const downloadPDF = async () => {
-    try {
-      if (!reportData) {
-        throw new Error('No report data available');
-      }
-      const blob = await pdf(<PayReportPDF reportData={reportData} />).toBlob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `driver-pay-report-${moment().format('YYYY-MM-DD')}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('PDF generation error:', err);
-      setError(t('Failed to generate PDF: ') + err.message);
-    }
-  };
-
-  const getFullPdfUrl = (fileUrl) => {
-    if (!fileUrl) return null;
-    if (fileUrl.startsWith('http')) return fileUrl;
-    return `${API_URL}${fileUrl}`;
-  };
-
-  const formatAmount = (amount) => {
-    if (amount === null || amount === undefined) return '$0.00';
-    let num = amount;
-    if (typeof num === 'string') {
-      num = num.replace('$', '');
-      num = parseFloat(num);
-    }
-    if (isNaN(num)) return '$0.00';
-    return '$' + num.toFixed(2);
-  };
-
-  const handleLoadDriverPayChange = (selectedOptions) => {
-    const selectedIds = selectedOptions ? selectedOptions.map(option => option.value) : [];
-    console.log('Selected driver pay loads:', selectedIds);
-    setLoadDriverPay(selectedIds);
-  };
-
-  const handleLoadCompanyDriverPayChange = (selectedOptions) => {
-    const selectedIds = selectedOptions ? selectedOptions.map(option => option.value) : [];
-    console.log('Selected company driver pay loads:', selectedIds);
-    setLoadCompanyDriverPay(selectedIds);
+    return (
+      <div className="stops-list">
+        {list.map((stop, index) => (
+          <div key={index} className="stop-row">
+            <div className="stop-row__title">
+              {stop.type || stop.stop_type || t('Stop')} {stop.sequence || index + 1}
+            </div>
+            <div className="stop-row__meta">
+              {stop.location_name || stop.customer || ''}
+              {(stop.city || stop.state) && (
+                <span>
+                  {' '}
+                  • {stop.city || ''}
+                  {stop.state ? `, ${stop.state}` : ''}
+                </span>
+              )}
+            </div>
+            {stop.date && <div className="stop-row__date">{stop.date}</div>}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
-    <div className="accounting-page">
-      {!showCreateForm ? (
-        <div className="list-section">
-          <div className="section-header-flex">
-            <h2 className="section-title">Driver Pay Reports</h2>
-            <Button variant="contained" onClick={() => setShowCreateForm(true)}
-              sx={{
-                backgroundColor: 'white',
-                color: 'black',
-                border: '1px solid rgb(189, 189, 189)',  // kulrang border
-                height: '32px',
-                textTransform: 'none',
-                px: 2,
-                whiteSpace: 'nowrap',
-                '&:hover': {
-                  backgroundColor: '#f5f5f5',
-                  border: '1px solid rgb(189, 189, 189)',
-                  color: 'black'
-                }
-              }}
-            >
-              Create Driver Report
-            </Button>
-          </div>
-
-          <div className="search-section" style={{ marginBottom: 18 }}>
-            <div className="search-row-flex" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div className="form-group" style={{ width: '100%' }}>
-                <label style={{ fontWeight: 500, color: '#2c3e50', marginBottom: 4 }}>Search</label>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by statement number"
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: 8,
-                    fontSize: 15,
-                    background: '#f9fafb',
-                    outline: 'none',
-                    marginTop: 2,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="table-section">
-            <div className="table-container" style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 12px 0 rgba(0,0,0,0.04)' }}>
-              <table className="pay-list-table" style={{ width: '100%', borderCollapse: 'collapse', background: '#fff' }}>
-                <thead style={{ background: '#f3f4f6' }}>
-                  <tr>
-                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>Invoice #</th>
-                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>Weekly #</th>
-                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>Driver</th>
-                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>Pay Period</th>
-                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>Amount</th>
-                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>Created At</th>
-                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>File</th>
-                    <th style={{ padding: '12px 8px', fontWeight: 600, color: '#374151' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan="8" className="text-center" style={{ textAlign: 'center', padding: 24 }}>
-                        Loading...
-                      </td>
-                    </tr>
-                  ) : filteredDriverPayList.length > 0 ? (
-                    filteredDriverPayList.map((pay) => (
-                      <tr className="pay-list-row" key={pay.id} style={{ borderBottom: '1px solid #f1f1f1' }}>
-                        <td style={{ padding: '10px 8px' }}>{pay.invoice_number || 'N/A'}</td>
-                        <td style={{ padding: '10px 8px' }}>{pay.weekly_number || 'N/A'}</td>
-                        <td style={{ padding: '10px 8px' }}>{pay.driver || ""}</td>
-                        <td style={{ padding: '10px 8px' }}>
-                          {pay.pay_from && pay.pay_to
-                            ? `${moment(pay.pay_from).format('MM/DD/YYYY')} - ${moment(pay.pay_to).format('MM/DD/YYYY')}`
-                            : 'N/A'}
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>{formatAmount(pay.amount)}</td>
-                        <td style={{ padding: '10px 8px' }}>
-                          {pay.created_at ? moment(pay.created_at).format('MM/DD/YYYY HH:mm') : 'N/A'}
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>
-                          {pay.file ? (
-                            <a
-                              href={getFullPdfUrl(pay.file)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="file-link"
-                              style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}
-                            >
-                              View File
-                            </a>
-                          ) : (
-                            <span className="no-file" style={{ color: '#b91c1c' }}>No file</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>
-                          <button
-                            className="btn btn-sm btn-primary"
-                            style={{
-                              background: '#2563eb',
-                              color: '#fff',
-                              border: 'none',
-                              borderRadius: 6,
-                              padding: '6px 16px',
-                              fontSize: 14,
-                              cursor: 'pointer',
-                              fontWeight: 500,
-                            }}
-                            onClick={() => handleViewEdit(pay)}
-                          >
-                            Edit
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="8" className="text-center" style={{ textAlign: 'center', padding: 24 }}>
-                        No driver pay reports found
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="create-form-section">
-          <div className="section-header-flex">
-            <h2 className="section-title">Create Driver Pay Report</h2>
+    <div className="driver-pay-page">
+      <div className="driver-pay-page__sidebar">
+        <div className="sidebar-header">
+          <h1>{t('Driver Pay')}</h1>
+          <div className="sidebar-toggle">
             <button
-              className="cancel-button flex justify-center items-center"
-              onClick={() => {
-                setShowCreateForm(false);
-                setReportData(null);
-                setError('');
-              }}
+              className={sidebarView === 'company' ? 'active' : ''}
+              onClick={() => setSidebarView('company')}
             >
-              <span className="btn-icon">←</span> Back
+              {t('Company Drivers')}
+            </button>
+            <button
+              className={sidebarView === 'owner' ? 'active' : ''}
+              onClick={() => setSidebarView('owner')}
+            >
+              {t('Owner Operators')}
             </button>
           </div>
-
-          <div className="search-section">
-            <form onSubmit={generateReport} className="search-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="startDate">{t('Start Date')}</label>
-                  <input
-                    type="date"
-                    id="startDate"
-                    value={dateRange.startDate}
-                    onChange={(e) => setDateRange((prev) => ({ ...prev, startDate: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="endDate">{t('End Date')}</label>
-                  <input
-                    type="date"
-                    id="endDate"
-                    value={dateRange.endDate}
-                    onChange={(e) => setDateRange((prev) => ({ ...prev, endDate: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="driver">{t('Driver')}</label>
-                  <select
-                    id="driver"
-                    value={selectedDriver}
-                    onChange={(e) => setSelectedDriver(e.target.value)}
-                    required
-                  >
-                    <option value="">{t('Select Driver')}</option>
-                    {drivers.map((driver) => (
-                      <option key={driver.id} value={driver.id}>
-                        {driver.user?.first_name} {driver.user?.last_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="invoiceNumber">{t('Statement Number')}</label>
-                  <input
-                    type="text"
-                    id="invoiceNumber"
-                    value={invoiceNumber}
-                    onChange={(e) => setInvoiceNumber(e.target.value)}
-                    required
-                  />
-                </div>
-                {/* <div className="form-group">
-                  <label htmlFor="weeklyNumber">{t('Weekly Number')}</label>
-                  <input
-                    type="text"
-                    id="weeklyNumber"
-                    value={weeklyNumber}
-                    onChange={(e) => setWeeklyNumber(e.target.value)}
-                    required
-                  />
-                </div> */}
-                <div className="form-group">
-                  <label htmlFor="notes">{t('Notes')}</label>
-                  <textarea
-                    id="notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  {/* <label htmlFor="loadDriverPay">Load Driver Pay (select, optional)</label>
-                  <Select
-                    isMulti
-                    options={loads.map(load => ({
-                      value: load.id,
-                      label: `Load #${load.load_id || load.id} | Reference: ${load.reference_id || '-'}`,
-                    }))}
-                    value={loadDriverPay.map(id => {
-                      const found = loads.find(load => load.id === id);
-                      return found
-                        ? {
-                          value: found.id,
-                          label: `Load #${found.load_id || found.id} | Reference: ${found.reference_id || '-'}`,
-                        }
-                        : { value: id, label: `Load #${id}` };
-                    })}
-                    onChange={handleLoadDriverPayChange}
-                    className="modern-multi-select"
-                    classNamePrefix="select"
-                    placeholder="Select loads..."
-                  />
-                  <small>You can select multiple loads</small> */}
-                </div>
-                <div className="form-group">
-
-                </div>
-              </div>
-              {error && <div className="error-message">{error}</div>}
-              <div className="form-actions">
-                <button type="submit" className="cancel-button flex justify-center items-center" disabled={loading}>
-                  {t('Generate Report')}
-                </button>
-              </div>
-            </form>
-          </div>
+          <input
+            type="search"
+            className="sidebar-search"
+            placeholder={t('Search drivers')}
+            value={driverSearch}
+            onChange={(e) => setDriverSearch(e.target.value)}
+            disabled={summaryLoading}
+          />
         </div>
-      )}
-      {showEditModal && editData && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.18)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="modal-content" style={{ background: '#fff', padding: '28px 22px', borderRadius: 14, minWidth: 340, maxWidth: 420, width: '100%', position: 'relative', boxShadow: '0 4px 32px 0 rgba(0,0,0,0.10)' }}>
-            <h3 style={{ marginBottom: 18, fontWeight: 600, fontSize: 20, color: '#2c3e50', textAlign: 'center' }}>{t('View/Edit Driver Pay Report')}</h3>
-            <button onClick={handleCloseModal} style={{ position: 'absolute', top: 10, right: 14, fontSize: 22, border: 'none', background: 'none', cursor: 'pointer', color: '#aaa' }}>
-              &times;
+        <div className="sidebar-list">
+          {summaryLoading && <div className="sidebar-status">{t('Loading drivers...')}</div>}
+          {summaryError && <div className="sidebar-error">{summaryError}</div>}
+          {!summaryLoading && !summaryError && filteredDrivers.length === 0 && (
+            <div className="sidebar-status">{t('No drivers found')}</div>
+          )}
+          {!summaryLoading && !summaryError && filteredDrivers.map((driver) => (
+            <button
+              key={driver.id}
+              className={`driver-pill ${
+                selectedDriverId === driver.id ? 'driver-pill--active' : ''
+              }`}
+              onClick={() => handleDriverSelect(driver)}
+            >
+              <span className="driver-pill__name">{getDriverName(driver)}</span>
+              {driver.unit_number && (
+                <span className="driver-pill__meta">{driver.unit_number}</span>
+              )}
             </button>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ color: '#4a5568', fontWeight: 500 }}>{t('Driver')}:</span>
-                <span style={{ color: '#2c3e50', fontWeight: 500 }}>
-                  {editData.driver?.user?.first_name} {editData.driver?.user?.last_name}
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <span style={{ color: '#4a5568', fontWeight: 500 }}>{t('Pay Period')}:</span>
-                <span style={{ color: '#2c3e50' }}>{editData.pay_from} - {editData.pay_to}</span>
-              </div>
-              <div style={{ marginBottom: 6 }}>
-                <label style={{ color: '#4a5568', fontWeight: 500, marginBottom: 2, display: 'block' }}>{t('Statement Number')}</label>
-                <input
-                  type="text"
-                  value={editData.invoice_number || ''}
-                  onChange={e => setEditData({ ...editData, invoice_number: e.target.value })}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 14 }}
-                />
-              </div>
-              <div style={{ marginBottom: 6 }}>
-                <label style={{ color: '#4a5568', fontWeight: 500, marginBottom: 2, display: 'block' }}>{t('Weekly Number')}</label>
-                <input
-                  type="text"
-                  value={editData.weekly_number || ''}
-                  onChange={e => setEditData({ ...editData, weekly_number: e.target.value })}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 14 }}
-                />
-              </div>
-              <div style={{ marginBottom: 6 }}>
-                <label style={{ color: '#4a5568', fontWeight: 500, marginBottom: 2, display: 'block' }}>{t('Notes')}</label>
-                <textarea
-                  value={editData.notes || ''}
-                  onChange={e => setEditData({ ...editData, notes: e.target.value })}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 14, minHeight: 48 }}
-                />
-              </div>
-              {editData.company_driver_data && (
-                <div style={{ background: '#f7fafc', padding: 10, borderRadius: 8, margin: '8px 0' }}>
-                  <b style={{ color: '#2c3e50', fontWeight: 600 }}>{t('Company Driver Data')}</b>
-                  <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <div>
-                      <b style={{ color: '#4a5568', fontWeight: 500 }}>{t('Total Miles')}:</b>{' '}
-                      <span style={{ color: '#2c3e50' }}>{editData.company_driver_data.total_miles}</span>
-                    </div>
-                    <div>
-                      <b style={{ color: '#4a5568', fontWeight: 500 }}>{t('Miles Rate')}:</b>{' '}
-                      <span style={{ color: '#2c3e50' }}>{editData.company_driver_data.miles_rate}</span>
-                    </div>
-                    <div>
-                      <b style={{ color: '#4a5568', fontWeight: 500 }}>{t('Company Driver Pay')}:</b>{' '}
-                      <span style={{ color: '#2c3e50' }}>{editData.company_driver_data.company_driver_pay}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div style={{ marginBottom: 6 }}>
-                <label style={{ color: '#4a5568', fontWeight: 500, marginBottom: 2, display: 'block' }}>{t('File')}</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {editData.file && typeof editData.file === 'string' && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 13, color: '#6b7280' }}>Current file:</span>
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadFile(editData.file)}
-                        style={{
-                          background: '#10b981',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: 4,
-                          padding: '4px 10px',
-                          fontSize: 13,
-                          cursor: 'pointer',
-                          fontWeight: 500,
-                        }}
-                      >
-                        {t('Download Current File')}
-                      </button>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <input
-                      type="file"
-                      onChange={e => handleFileChange(e, 'file')}
-                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                      style={{
-                        padding: '6px 8px',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 4,
-                        fontSize: 13,
-                        background: '#f9fafb',
-                      }}
-                    />
-                    {editData.file instanceof File && (
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: '#10b981',
-                          fontWeight: 500,
-                          padding: '4px 8px',
-                          background: '#f0fdf4',
-                          borderRadius: 4,
-                          border: '1px solid #bbf7d0',
-                        }}
-                      >
-                        ✓ New file selected: {editData.file.name}
-                      </div>
-                    )}
-                    <small style={{ fontSize: 11, color: '#6b7280' }}>
-                      Supported formats: PDF, DOC, DOCX, PNG, JPG, JPEG
-                    </small>
-                  </div>
-                </div>
-              </div>
-              {error && (
-                <div
-                  style={{
-                    backgroundColor: '#fef2f2',
-                    border: '1px solid #fecaca',
-                    borderRadius: 6,
-                    padding: '8px 12px',
-                    marginBottom: 10,
-                    fontSize: 13,
-                    color: '#dc2626',
-                    fontWeight: 500,
-                  }}
-                >
-                  {error}
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: 10, marginTop: 10, justifyContent: 'flex-end' }}>
-                <button
-                  className="btn btn-primary"
-                  onClick={handleSaveEdit}
-                  disabled={loading}
-                  style={{
-                    background: loading ? '#9ca3af' : '#2563eb',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 6,
-                    padding: '8px 16px',
-                    fontSize: 14,
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    fontWeight: 500,
-                  }}
-                >
-                  {loading ? t('Saving...') : t('Save')}
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={handleCloseModal}
-                  style={{
-                    background: '#f3f4f6',
-                    color: '#374151',
-                    border: '1px solid #d1d5db',
-                    borderRadius: 6,
-                    padding: '8px 16px',
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                  }}
-                >
-                  {t('Cancel')}
-                </button>
-              </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="driver-pay-page__main">
+        <div className="main-header">
+          <div>
+            <div className="main-header__eyebrow">{t('Selected Driver')}</div>
+            <div className="main-header__title">
+              {selectedDriverMeta ? getDriverName(selectedDriverMeta) : t('Pick a driver')}
+            </div>
+          </div>
+          <div className="date-range">
+            <div className="date-field">
+              <label htmlFor="from-date">{t('From')}</label>
+              <input
+                id="from-date"
+                type="date"
+                value={formatDateInput(dateRange.from)}
+                onChange={(e) => handleDateChange('from', e.target.value)}
+              />
+            </div>
+            <div className="date-field">
+              <label htmlFor="to-date">{t('To')}</label>
+              <input
+                id="to-date"
+                type="date"
+                value={formatDateInput(dateRange.to)}
+                onChange={(e) => handleDateChange('to', e.target.value)}
+              />
             </div>
           </div>
         </div>
-      )}
+
+        {driverError && <div className="inline-error">{driverError}</div>}
+
+        {/* Debug Panel */}
+        <div className="debug-panel">
+          <div style={{ marginBottom: '10px' }}>
+            <button onClick={() => setDebugMode(!debugMode)}>
+              {debugMode ? 'Hide Debug' : 'Show Debug'}
+            </button>
+            {debugMode && (
+              <button onClick={runDebugTest}>
+                Test API Connection
+              </button>
+            )}
+          </div>
+          {debugMode && (
+            <div>
+              <div><strong>Selected Driver ID:</strong> {selectedDriverId || 'None'}</div>
+              <div><strong>Selected Driver Meta:</strong> {selectedDriverMeta ? getDriverName(selectedDriverMeta) : 'None'}</div>
+              <div><strong>Date Range:</strong> {dateRange.from || 'Not set'} to {dateRange.to || 'Not set'}</div>
+              <div><strong>Summary Status:</strong> Loading: {summaryLoading ? 'Yes' : 'No'}, Error: {summaryError || 'None'}</div>
+              <div><strong>Driver Data Status:</strong> Loading: {driverLoading ? 'Yes' : 'No'}, Loads: {driverData.loads.length}</div>
+              <div><strong>Filtered Drivers Count:</strong> Company: {summary.company.length}, Owner: {summary.owner.length}, Current View: {filteredDrivers.length}</div>
+              <div><strong>Persisted Hydrated:</strong> {persistedHydrated ? 'Yes' : 'No'}</div>
+              <div><strong>Fetching Driver:</strong> {fetchingDriverRef.current ? 'Yes' : 'No'}</div>
+              <div><strong>Last Fetch Params:</strong> {lastFetchParamsRef.current || 'None'}</div>
+              {debugInfo && (
+                <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f5f5f5' }}>
+                  <strong>API Test Results:</strong>
+                  <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="data-panels">
+          <section className={`data-panel ${driverLoading ? 'loading' : ''}`}>
+            {driverLoading && (
+              <div className="loading-overlay">
+                <div className="loading-spinner"></div>
+              </div>
+            )}
+            <div className="panel-header">
+              <div>
+                <h2>{t('Loads')}</h2>
+                <p>
+                  {loadsSelectedCount}/{driverData.loads.length} {t('selected')}
+                </p>
+              </div>
+              <div className="panel-header__action">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={allLoadsSelected}
+                    onChange={(e) => handleSelectAllLoads(e.target.checked)}
+                  />
+                  <span>{t('Select all')}</span>
+                </label>
+              </div>
+            </div>
+            {!driverLoading && driverData.loads.length === 0 && (
+              <div className="panel-status">{t('No loads to display')}</div>
+            )}
+            {driverData.loads.length > 0 && (
+              <div className="table-wrapper">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th />
+                      <th>{t('Load #')}</th>
+                      <th>{t('Customer')}</th>
+                      <th>{t('Pickup')}</th>
+                      <th>{t('Delivery')}</th>
+                      <th>{t('Pay')}</th>
+                      <th>{t('Miles')}</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {driverData.loads.map((load) => {
+                      const rowId = getRowId(load);
+                      const expanded = expandedLoads.includes(rowId);
+                      const hasOtherPays = ensureArray(load.other_pays).length > 0;
+                      const hasStops = ensureArray(load.stops).length > 0;
+                      const hasExpandableContent = hasOtherPays || hasStops;
+                      
+                      return (
+                        <React.Fragment key={rowId}>
+                          <tr>
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={selectedLoadIds.includes(rowId)}
+                                onChange={(e) => handleLoadSelectChange(rowId, e.target.checked)}
+                              />
+                            </td>
+                            <td>{load.load_id || load.reference || rowId}</td>
+                            <td>{load.customer_broker_name || load.customer || load.customer_name || '--'}</td>
+                            <td>
+                              {load.pickup_location ||
+                                load.pickup_city ||
+                                load.pickup_state ||
+                                (load.pickup_date ? new Date(load.pickup_date).toLocaleDateString() : '--')}
+                            </td>
+                            <td>
+                              {load.delivery_location ||
+                                load.delivery_city ||
+                                load.delivery_state ||
+                                (load.delivery_date ? new Date(load.delivery_date).toLocaleDateString() : '--')}
+                            </td>
+                            <td>{formatCurrency(load.driver_pay ?? load.pay_total ?? load.pay)}</td>
+                            <td>{formatMiles(load.total_miles ?? load.miles)}</td>
+                            <td>
+                              {hasExpandableContent && (
+                                <button
+                                  className="link-button"
+                                  onClick={() => toggleLoadStops(rowId)}
+                                >
+                                  {expanded ? t('Hide details') : t('View details')}
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                          {expanded && hasExpandableContent && (
+                            <tr className="stops-row">
+                              <td />
+                              <td colSpan={7}>
+                                <div className="load-details-content">
+                                  {hasOtherPays && (
+                                    <div className="load-details-section other-pays-section">
+                                      <strong className="load-details-section-title">
+                                        {t('Other Pays')}
+                                      </strong>
+                                      <div className="other-pays-list">
+                                        {ensureArray(load.other_pays).map((otherPay, index) => (
+                                          <div key={index} className="other-pay-item">
+                                            <div className="other-pay-header">
+                                              <span className="other-pay-type">
+                                                {otherPay.type || otherPay.pay_type || 'Other Pay'}
+                                              </span>
+                                              <span className="other-pay-amount">
+                                                {formatCurrency(otherPay.amount || otherPay.pay_amount)}
+                                              </span>
+                                            </div>
+                                            {(otherPay.note || otherPay.description) && (
+                                              <div className="other-pay-note">
+                                                {otherPay.note || otherPay.description}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {hasStops && (
+                                    <div className="load-details-section">
+                                      {hasOtherPays && <div className="section-divider" />}
+                                      <strong className="load-details-section-title">
+                                        {t('Stops')}
+                                      </strong>
+                                      {renderStops(load.stops)}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+
+        <section className="form-panel">
+          <h2>{t('Statement Details')}</h2>
+          <div className="form-grid">
+            <div className="form-field">
+              <label htmlFor="statement-notes">{t('Statement Notes')}</label>
+              <textarea
+                id="statement-notes"
+                rows={4}
+                value={statementNotes}
+                onChange={(e) => setStatementNotes(e.target.value)}
+                placeholder={t('Enter statement notes')}
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="fuel-advance">{t('Fuel Advance')}</label>
+              <input
+                id="fuel-advance"
+                type="number"
+                value={fuelAdvance}
+                onChange={(e) => setFuelAdvance(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="other-deductions">{t('Other Deductions')}</label>
+              <input
+                id="other-deductions"
+                type="number"
+                value={otherDeductions}
+                onChange={(e) => setOtherDeductions(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+        </section>
+
+        {actionError && <div className="inline-error">{actionError}</div>}
+
+        <div className="action-bar">
+          <button
+            className="ghost-button"
+            onClick={() => handleStubAction('preview')}
+            disabled={actionLoading}
+          >
+            {actionLoading ? t('Preparing preview...') : t('Preview Stub')}
+          </button>
+          <button
+            className="primary-button"
+            onClick={() => handleStubAction('generate')}
+            disabled={actionLoading}
+          >
+            {actionLoading ? t('Generating stub...') : t('Generate Stub')}
+          </button>
+        </div>
+
+        {lastStub && (
+          <section className="result-panel">
+            <h3>{t('Latest Paystub')}</h3>
+            <div className="result-grid">
+              <div className="result-item">
+                <span className="result-label">{t('Type')}</span>
+                <span className="result-value">{lastStub.type}</span>
+              </div>
+              {lastStub.statement_id && (
+                <div className="result-item">
+                  <span className="result-label">{t('Statement ID')}</span>
+                  <span className="result-value">{lastStub.statement_id}</span>
+                </div>
+              )}
+              {lastStub.view_url && (
+                <div className="result-item">
+                  <span className="result-label">{t('View')}</span>
+                  <button
+                    className="link-button"
+                    onClick={() => window.open(lastStub.view_url, '_blank', 'noopener')}
+                  >
+                    {t('View Paystub')}
+                  </button>
+                </div>
+              )}
+              {lastStub.download_url && (
+                <div className="result-item">
+                  <span className="result-label">{t('Download')}</span>
+                  <a
+                    className="link-button"
+                    href={lastStub.download_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t('Download Paystub')}
+                  </a>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 };
