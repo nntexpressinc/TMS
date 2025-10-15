@@ -300,6 +300,27 @@
   margin-bottom: 12px;
 }
 
+.stops-row .other-pays-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.stops-row .other-pays-select-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.stops-row .other-pays-select-all input {
+  margin: 0;
+  cursor: pointer;
+}
+
 .stops-row .other-pays-title {
   font-size: 13px;
   color: #374151;
@@ -326,6 +347,17 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.stops-row .other-pay-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stops-row .other-pay-checkbox {
+  margin: 0;
+  cursor: pointer;
 }
 
 .stops-row .other-pay-type {
@@ -403,6 +435,59 @@
 .stops-empty {
   font-size: 12px;
   color: #6b7280;
+}
+
+.lane-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lane-pickup,
+.lane-delivery {
+  font-size: 13px;
+  color: #374151;
+}
+
+.lane-arrow {
+  font-size: 16px;
+  font-weight: bold;
+  color: #2563eb;
+  margin: 0 4px;
+}
+
+.pay-plan-section {
+  margin-bottom: 12px;
+}
+
+.pay-plan-details {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pay-plan-item {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  font-size: 12px;
+  flex: 1;
+  min-width: 150px;
+}
+
+.pay-plan-label {
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 2px;
+}
+
+.pay-plan-value {
+  font-weight: 600;
+  color: #1f2937;
 }
 
 .form-panel {
@@ -520,36 +605,25 @@
   color: #111827;
 }
 
-.debug-panel {
-  margin-bottom: 20px;
-  padding: 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #f9fafb;
+.result-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.result-actions .link-button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  text-decoration: none;
   font-size: 12px;
+  font-weight: 500;
+  transition: background-color 0.15s ease;
 }
 
-.debug-panel button {
-  padding: 5px 10px;
-  font-size: 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  background: #ffffff;
-  cursor: pointer;
-  margin-right: 8px;
-}
-
-.debug-panel button:hover {
-  background: #f3f4f6;
-}
-
-.debug-panel pre {
-  background: #f3f4f6;
-  padding: 8px;
-  border-radius: 4px;
-  overflow-x: auto;
-  max-height: 200px;
-  font-size: 11px;
+.result-actions .link-button:hover {
+  background: #1d4ed8;
 }
 
 @media (max-width: 960px) {

@@ -144,6 +144,8 @@ const partitionDrivers = (payload) => {
 
 const getRowId = (item) => item?.id ?? item?.load_id ?? item?.uuid ?? item?.pk ?? item?.statement_id;
 
+const getOtherPayId = (otherPay) => otherPay?.id ?? otherPay?.other_pay_id ?? otherPay?.uuid ?? otherPay?.pk;
+
 const formatCurrency = (value) => {
   const num = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]+/g, '')) : Number(value);
   if (Number.isNaN(num) || !Number.isFinite(num)) {
@@ -160,6 +162,25 @@ const formatMiles = (value) => {
 };
 
 const formatDateInput = (value) => (value ? value.slice(0, 10) : '');
+
+const formatLane = (load) => {
+  const pickup = load.pickup_location || load.pickup_city || load.pickup_state || 'Unknown';
+  const delivery = load.delivery_location || load.delivery_city || load.delivery_state || 'Unknown';
+  return (
+    <span className="lane-display">
+      <span className="lane-pickup">{pickup}</span>
+      <span className="lane-arrow">→</span>
+      <span className="lane-delivery">{delivery}</span>
+    </span>
+  );
+};
+
+const getLoadStatusStyle = (status) => {
+  if (status === 'COMPLETED') {
+    return { color: '#059669', fontWeight: '600' }; // Green color for completed
+  }
+  return {};
+};
 
 const AccountingPage = () => {
   const { t } = useTranslation();
@@ -195,6 +216,7 @@ const AccountingPage = () => {
 
   const [expandedLoads, setExpandedLoads] = useState([]);
   const [selectedLoadIds, setSelectedLoadIds] = useState([]);
+  const [selectedOtherPayIds, setSelectedOtherPayIds] = useState([]);
 
   const [statementNotes, setStatementNotes] = useState('');
   const [fuelAdvance, setFuelAdvance] = useState('');
@@ -206,13 +228,9 @@ const AccountingPage = () => {
 
   const [persistedHydrated, setPersistedHydrated] = useState(false);
   
-  // Debug state
-  const [debugMode, setDebugMode] = useState(false);
-  const [debugInfo, setDebugInfo] = useState(null);
-  
-  // Use refs to track fetch state and prevent duplicate calls
+  // CRITICAL: Use refs to prevent infinite loops
   const fetchingDriverRef = useRef(false);
-  const lastFetchParamsRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
   const filteredDrivers = useMemo(() => {
     const list = sidebarView === 'owner' ? summary.owner : summary.company;
@@ -250,6 +268,16 @@ const AccountingPage = () => {
     });
   }, []);
 
+  const handleOtherPaySelectChange = useCallback((otherPayId, checked) => {
+    setSelectedOtherPayIds((prev) => {
+      if (checked) {
+        return prev.includes(otherPayId) ? prev : [...prev, otherPayId];
+      } else {
+        return prev.filter((id) => id !== otherPayId);
+      }
+    });
+  }, []);
+
   const toggleLoadStops = useCallback((rowId) => {
     setExpandedLoads((prev) =>
       prev.includes(rowId) ? prev.filter((id) => id !== rowId) : [...prev, rowId]
@@ -257,7 +285,11 @@ const AccountingPage = () => {
   }, []);
 
   const hydrateDriverData = useCallback((data, driverId) => {
-    console.log('Hydrating driver data:', data);
+    console.log('=== HYDRATING DRIVER DATA ===');
+    console.log('Input data:', data);
+    console.log('Input data type:', typeof data);
+    console.log('Is array:', Array.isArray(data));
+    console.log('Driver ID:', driverId);
     
     if (!data || typeof data !== 'object') {
       console.warn('Invalid data received for hydration:', data);
@@ -265,16 +297,29 @@ const AccountingPage = () => {
     }
     
     const loads = ensureArray(data?.loads).filter(Boolean);
+    console.log('Extracted loads:', loads);
+    console.log('Loads count:', loads.length);
+    
+    if (loads.length > 0) {
+      console.log('First load sample:', loads[0]);
+    }
 
     // Update driver data
-    setDriverData({
+    const newDriverData = {
       loads,
       driver: data.driver || { id: driverId },
-    });
+    };
+    
+    console.log('Setting driver data to:', newDriverData);
+    setDriverData(newDriverData);
     
     // Auto-select all loads by default
     const defaultLoadIds = loads.map((load) => getRowId(load)).filter(Boolean);
+    console.log('Default load IDs:', defaultLoadIds);
     setSelectedLoadIds(defaultLoadIds);
+    
+    // Don't auto-select other pays - let user choose
+    setSelectedOtherPayIds([]);
     
     // Set form data from response only if they exist
     if (data.statement_notes !== undefined) {
@@ -287,10 +332,8 @@ const AccountingPage = () => {
       setOtherDeductions(data.other_deductions ? String(data.other_deductions) : '');
     }
     
-    console.log('Driver data hydrated successfully:', { 
-      loads: loads.length, 
-      selectedLoadIds: defaultLoadIds.length
-    });
+    console.log('=== HYDRATION COMPLETE ===');
+    console.log('Final state - Loads:', loads.length, 'Selected:', defaultLoadIds.length);
   }, []);
 
   const fetchDriversSummary = useCallback(async () => {
@@ -315,6 +358,96 @@ const AccountingPage = () => {
       setSummaryLoading(false);
     }
   }, [t]);
+
+  // FIXED: Fetch driver details function that prevents duplicate calls
+  const fetchDriverDetails = useCallback(
+    async (driverId, fromDate, toDate) => {
+      if (!driverId || !fromDate || !toDate) {
+        console.warn('fetchDriverDetails called without required params:', { driverId, fromDate, toDate });
+        return;
+      }
+      
+      // Prevent concurrent fetches
+      if (fetchingDriverRef.current) {
+        console.log('Already fetching, aborting previous request');
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+      }
+      
+      fetchingDriverRef.current = true;
+      abortControllerRef.current = new AbortController();
+      
+      setDriverLoading(true);
+      setDriverError('');
+      
+      try {
+        const params = {
+          from_date: fromDate,
+          to_date: toDate
+        };
+        
+        console.log('Fetching driver completed loads with params:', { driverId, params });
+        
+        const response = await getDriverCompletedLoads(driverId, params);
+        console.log('Driver completed loads response:', response);
+        console.log('Response type:', Array.isArray(response) ? 'Array' : typeof response);
+        console.log('Response length:', Array.isArray(response) ? response.length : 'N/A');
+        
+        // Handle response - the API returns an array directly
+        let loadsData = [];
+        
+        if (Array.isArray(response)) {
+          // API returns array directly
+          loadsData = response;
+          console.log('Extracted loads from array:', loadsData.length);
+        } else if (response && Array.isArray(response.loads)) {
+          // Wrapped in loads property
+          loadsData = response.loads;
+          console.log('Extracted loads from response.loads:', loadsData.length);
+        } else if (response && typeof response === 'object') {
+          // Single object or other structure
+          loadsData = ensureArray(response);
+          console.log('Wrapped response in array:', loadsData.length);
+        }
+        
+        console.log('Final loads data:', loadsData);
+        
+        // Always hydrate with consistent structure
+        const dataToHydrate = {
+          loads: loadsData,
+          driver: { id: driverId }
+        };
+        
+        hydrateDriverData(dataToHydrate, driverId);
+        
+      } catch (error) {
+        // Ignore abort errors
+        if (error.name === 'AbortError') {
+          console.log('Fetch aborted');
+          return;
+        }
+        
+        console.error('Error in fetchDriverDetails:', error);
+        const message =
+          error?.response?.data?.detail ||
+          error?.response?.data?.message ||
+          error?.message ||
+          'Unable to load driver pay data';
+        setDriverError(message);
+        
+        // Set empty data structure on error
+        setDriverData({ loads: [], driver: { id: driverId } });
+        setSelectedLoadIds([]);
+        setSelectedOtherPayIds([]);
+      } finally {
+        setDriverLoading(false);
+        fetchingDriverRef.current = false;
+        abortControllerRef.current = null;
+      }
+    },
+    [hydrateDriverData]
+  );
 
   // Handle state restoration when summary data is loaded
   useEffect(() => {
@@ -350,114 +483,80 @@ const AccountingPage = () => {
         setPersistedHydrated(true);
       }
     }
-  }, [summary.company.length, summary.owner.length, persistedHydrated]);
+  }, [summary.company.length, summary.owner.length, persistedHydrated, restorePersistedState]);
 
-  const fetchDriverDetails = useCallback(
-    async (driverId, fromDate, toDate) => {
-      if (!driverId || !fromDate || !toDate) {
-        console.warn('fetchDriverDetails called without required params:', { driverId, fromDate, toDate });
-        return;
-      }
-      
-      // Check if we're already fetching or if params haven't changed
-      const currentParams = `${driverId}-${fromDate}-${toDate}`;
-      if (fetchingDriverRef.current || lastFetchParamsRef.current === currentParams) {
-        console.log('Skipping duplicate fetch for params:', currentParams);
-        return;
-      }
-      
-      fetchingDriverRef.current = true;
-      lastFetchParamsRef.current = currentParams;
-      
-      setDriverLoading(true);
-      setDriverError('');
-      
-      try {
-        const params = {
-          from_date: fromDate,
-          to_date: toDate
-        };
-        
-        console.log('Fetching driver completed loads with params:', { driverId, params });
-        
-        const response = await getDriverCompletedLoads(driverId, params);
-        console.log('Driver completed loads response:', response);
-        
-        // Handle response - check if response is array or object with loads
-        let loadsData = [];
-        if (Array.isArray(response)) {
-          loadsData = response;
-        } else if (response && response.loads) {
-          loadsData = response.loads;
-        } else if (response) {
-          loadsData = ensureArray(response);
-        }
-        
-        // Always hydrate with consistent structure
-        const dataToHydrate = {
-          loads: loadsData,
-          driver: { id: driverId },
-          ...response
-        };
-        
-        hydrateDriverData(dataToHydrate, driverId);
-        
-      } catch (error) {
-        console.error('Error in fetchDriverDetails:', error);
-        const message =
-          error?.response?.data?.detail ||
-          error?.response?.data?.message ||
-          error?.message ||
-          'Unable to load driver pay data';
-        setDriverError(message);
-        
-        // Set empty data structure on error
-        setDriverData({ loads: [], driver: { id: driverId } });
-        setSelectedLoadIds([]);
-      } finally {
-        setDriverLoading(false);
-        fetchingDriverRef.current = false;
-      }
-    },
-    []
-  );
-
-  // Initial load of drivers summary
+  // Initial load of drivers summary - ONLY ONCE
   useEffect(() => {
     fetchDriversSummary();
-  }, []); // Run only once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - run only once on mount
 
-  // Fetch driver details when driver or date range changes
+  // FIXED: Fetch driver details when driver or date range changes
+  // Using a more controlled approach with cleanup
+  useEffect(() => {
+    if (!selectedDriverId || !dateRange.from || !dateRange.to) {
+      console.log('Skipping fetch - missing params:', { 
+        selectedDriverId, 
+        from: dateRange.from, 
+        to: dateRange.to 
+      });
+      return;
+    }
+
+    console.log('Driver or date changed, scheduling fetch:', { 
+      selectedDriverId, 
+      from: dateRange.from, 
+      to: dateRange.to 
+    });
+    
+    // Debounce the fetch to prevent rapid successive calls
+    const timeoutId = setTimeout(() => {
+      fetchDriverDetails(selectedDriverId, dateRange.from, dateRange.to);
+    }, 300); // Increased debounce time to 300ms
+    
+    return () => {
+      console.log('Cleaning up: clearing timeout and aborting any pending fetch');
+      clearTimeout(timeoutId);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [selectedDriverId, dateRange.from, dateRange.to, fetchDriverDetails]);
+
+  // Persist state changes - with debouncing
   useEffect(() => {
     if (selectedDriverId && dateRange.from && dateRange.to) {
-      // Add a small delay to prevent rapid successive calls
       const timeoutId = setTimeout(() => {
-        fetchDriverDetails(selectedDriverId, dateRange.from, dateRange.to);
-      }, 100);
+        persistState({
+          driverId: selectedDriverId,
+          from: dateRange.from,
+          to: dateRange.to,
+        });
+      }, 500);
       
       return () => clearTimeout(timeoutId);
     }
-  }, [selectedDriverId, dateRange.from, dateRange.to]);
+  }, [selectedDriverId, dateRange.from, dateRange.to, persistState]);
 
-  // Persist state changes
+  // Debug: Log when lastStub changes
   useEffect(() => {
-    if (selectedDriverId && dateRange.from && dateRange.to) {
-      persistState({
-        driverId: selectedDriverId,
-        from: dateRange.from,
-        to: dateRange.to,
+    console.log('lastStub state changed:', lastStub);
+    if (lastStub) {
+      console.log('lastStub details:', {
+        type: lastStub.type,
+        is_preview: lastStub.is_preview,
+        timestamp: lastStub.timestamp,
+        view_url: lastStub.view_url,
+        download_url: lastStub.download_url
       });
     }
-  }, [selectedDriverId, dateRange.from, dateRange.to]);
+  }, [lastStub]);
 
   const handleDriverSelect = useCallback(
     (driver) => {
       console.log('Driver selected:', driver);
       
       if (selectedDriverId !== driver.id) {
-        // Clear the last fetch params to allow refetch
-        lastFetchParamsRef.current = null;
-        
         setSelectedDriverId(driver.id);
         setSelectedDriverMeta(driver);
         setDriverError('');
@@ -466,14 +565,14 @@ const AccountingPage = () => {
         // Clear existing data to show loading state
         setDriverData({ loads: [], driver: null });
         setSelectedLoadIds([]);
+        setSelectedOtherPayIds([]);
       }
     },
     [selectedDriverId]
   );
 
   const handleDateChange = useCallback((key, value) => {
-    // Clear the last fetch params to allow refetch
-    lastFetchParamsRef.current = null;
+    console.log('Date changed:', key, value);
     
     setDateRange((prev) => ({
       ...prev,
@@ -486,31 +585,48 @@ const AccountingPage = () => {
     (checked) => {
       if (!checked) {
         setSelectedLoadIds([]);
+        setSelectedOtherPayIds([]);
         return;
       }
       const ids = driverData.loads.map((load) => getRowId(load)).filter(Boolean);
       setSelectedLoadIds(ids);
+      
+      // Don't automatically select other pays when selecting all loads
+      // Users should manually select other pays if they want them
     },
     [driverData.loads]
   );
+
+  const handleSelectAllOtherPaysForLoad = useCallback((loadId, checked) => {
+    const load = driverData.loads.find((l) => getRowId(l) === loadId);
+    if (!load) return;
+    
+    const otherPayIds = ensureArray(load.other_pays)
+      .map((otherPay) => getOtherPayId(otherPay))
+      .filter(Boolean);
+    
+    setSelectedOtherPayIds((prev) => {
+      if (checked) {
+        // Add all other pay IDs for this load
+        const newIds = [...prev];
+        otherPayIds.forEach((id) => {
+          if (!newIds.includes(id)) {
+            newIds.push(id);
+          }
+        });
+        return newIds;
+      } else {
+        // Remove all other pay IDs for this load
+        return prev.filter((id) => !otherPayIds.includes(id));
+      }
+    });
+  }, [driverData.loads]);
 
   const parseNumberInput = (value) => {
     if (value === '' || value === null || value === undefined) return null;
     const num = parseFloat(value);
     if (Number.isNaN(num)) return null;
     return num;
-  };
-
-  const runDebugTest = async () => {
-    try {
-      console.log('Running debug test...');
-      const results = await testApiConnection();
-      setDebugInfo(results);
-      console.log('Debug test results:', results);
-    } catch (error) {
-      console.error('Debug test failed:', error);
-      setDebugInfo({ error: error.message });
-    }
   };
 
   const handleStubAction = async (type) => {
@@ -524,43 +640,48 @@ const AccountingPage = () => {
       return;
     }
 
-    if (dateRange.from && !dateRange.to) {
-      setActionError(t('Please select an end date to finish the range'));
-      return;
-    }
-
-    if (dateRange.to && !dateRange.from) {
-      setActionError(t('Please select a start date to finish the range'));
-      return;
-    }
-
     setActionLoading(true);
     setActionError('');
+    setLastStub(null); // Clear previous result before making new request
+    
     try {
+      // Map type to pay_type for the API
+      const payType = type === 'preview' ? 'preview_stub' : 'generate_stub';
+      
       const payload = {
-        type,
         driver_id: selectedDriverId,
         load_ids: selectedLoadIds,
-        notes: statementNotes,
-        from_date: dateRange.from || undefined,
-        to_date: dateRange.to || undefined,
-        fuel_advance: parseNumberInput(fuelAdvance),
-        other_deductions: parseNumberInput(otherDeductions),
+        pay_type: payType,
       };
 
+      // Only include other_pays_id if there are selected other pays
+      if (selectedOtherPayIds.length > 0) {
+        payload.other_pays_id = selectedOtherPayIds;
+      }
+
       console.log('Posting paystub action with payload:', payload);
+      console.log('Selected other pay IDs:', selectedOtherPayIds);
 
       const response = await postPaystubAction(payload);
       console.log('Paystub action response:', response);
+      console.log('Response type:', typeof response);
+      console.log('Response keys:', Object.keys(response || {}));
       
-      setLastStub({
-        ...response,
-        driver_id: selectedDriverId,
-        type,
-      });
-
-      if (type === 'preview' && response?.view_url) {
-        window.open(response.view_url, '_blank', 'noopener');
+      if (response && typeof response === 'object') {
+        const newStub = {
+          ...response,
+          driver_id: selectedDriverId,
+          type: payType,
+          timestamp: new Date().toISOString(), // Add timestamp to ensure uniqueness
+        };
+        
+        console.log('Setting new stub data:', newStub);
+        setLastStub(newStub);
+        
+        console.log('Paystub generated successfully:', response.pay_type);
+      } else {
+        console.error('Invalid response format:', response);
+        setActionError(t('Invalid response from server'));
       }
     } catch (error) {
       console.error('Error in handleStubAction:', error);
@@ -584,6 +705,13 @@ const AccountingPage = () => {
   };
 
   const loadsSelectedCount = selectedLoadIds.length;
+  const otherPaysSelectedCount = selectedOtherPayIds.length;
+  
+  // Calculate total other pays count
+  const totalOtherPaysCount = driverData.loads.reduce((total, load) => {
+    return total + ensureArray(load.other_pays).length;
+  }, 0);
+  
   const allLoadsSelected =
     driverData.loads.length > 0 && loadsSelectedCount === driverData.loads.length;
 
@@ -699,39 +827,6 @@ const AccountingPage = () => {
 
         {driverError && <div className="inline-error">{driverError}</div>}
 
-        {/* Debug Panel */}
-        <div className="debug-panel">
-          <div style={{ marginBottom: '10px' }}>
-            <button onClick={() => setDebugMode(!debugMode)}>
-              {debugMode ? 'Hide Debug' : 'Show Debug'}
-            </button>
-            {debugMode && (
-              <button onClick={runDebugTest}>
-                Test API Connection
-              </button>
-            )}
-          </div>
-          {debugMode && (
-            <div>
-              <div><strong>Selected Driver ID:</strong> {selectedDriverId || 'None'}</div>
-              <div><strong>Selected Driver Meta:</strong> {selectedDriverMeta ? getDriverName(selectedDriverMeta) : 'None'}</div>
-              <div><strong>Date Range:</strong> {dateRange.from || 'Not set'} to {dateRange.to || 'Not set'}</div>
-              <div><strong>Summary Status:</strong> Loading: {summaryLoading ? 'Yes' : 'No'}, Error: {summaryError || 'None'}</div>
-              <div><strong>Driver Data Status:</strong> Loading: {driverLoading ? 'Yes' : 'No'}, Loads: {driverData.loads.length}</div>
-              <div><strong>Filtered Drivers Count:</strong> Company: {summary.company.length}, Owner: {summary.owner.length}, Current View: {filteredDrivers.length}</div>
-              <div><strong>Persisted Hydrated:</strong> {persistedHydrated ? 'Yes' : 'No'}</div>
-              <div><strong>Fetching Driver:</strong> {fetchingDriverRef.current ? 'Yes' : 'No'}</div>
-              <div><strong>Last Fetch Params:</strong> {lastFetchParamsRef.current || 'None'}</div>
-              {debugInfo && (
-                <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f5f5f5' }}>
-                  <strong>API Test Results:</strong>
-                  <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
         <div className="data-panels">
           <section className={`data-panel ${driverLoading ? 'loading' : ''}`}>
             {driverLoading && (
@@ -743,7 +838,10 @@ const AccountingPage = () => {
               <div>
                 <h2>{t('Loads')}</h2>
                 <p>
-                  {loadsSelectedCount}/{driverData.loads.length} {t('selected')}
+                  {loadsSelectedCount}/{driverData.loads.length} {t('loads selected')}
+                  {totalOtherPaysCount > 0 && (
+                    <> • {otherPaysSelectedCount}/{totalOtherPaysCount} {t('other pays selected')}</>
+                  )}
                 </p>
               </div>
               <div className="panel-header__action">
@@ -768,8 +866,8 @@ const AccountingPage = () => {
                       <th />
                       <th>{t('Load #')}</th>
                       <th>{t('Customer')}</th>
-                      <th>{t('Pickup')}</th>
-                      <th>{t('Delivery')}</th>
+                      <th>{t('Lane')}</th>
+                      <th>{t('Status')}</th>
                       <th>{t('Pay')}</th>
                       <th>{t('Miles')}</th>
                       <th />
@@ -781,7 +879,8 @@ const AccountingPage = () => {
                       const expanded = expandedLoads.includes(rowId);
                       const hasOtherPays = ensureArray(load.other_pays).length > 0;
                       const hasStops = ensureArray(load.stops).length > 0;
-                      const hasExpandableContent = hasOtherPays || hasStops;
+                      const hasPayPlan = load.description || load.rate || load.total;
+                      const hasExpandableContent = hasOtherPays || hasStops || hasPayPlan;
                       
                       return (
                         <React.Fragment key={rowId}>
@@ -795,17 +894,11 @@ const AccountingPage = () => {
                             </td>
                             <td>{load.load_id || load.reference || rowId}</td>
                             <td>{load.customer_broker_name || load.customer || load.customer_name || '--'}</td>
+                            <td>{formatLane(load)}</td>
                             <td>
-                              {load.pickup_location ||
-                                load.pickup_city ||
-                                load.pickup_state ||
-                                (load.pickup_date ? new Date(load.pickup_date).toLocaleDateString() : '--')}
-                            </td>
-                            <td>
-                              {load.delivery_location ||
-                                load.delivery_city ||
-                                load.delivery_state ||
-                                (load.delivery_date ? new Date(load.delivery_date).toLocaleDateString() : '--')}
+                              <span style={getLoadStatusStyle(load.load_status)}>
+                                {load.load_status || '--'}
+                              </span>
                             </td>
                             <td>{formatCurrency(load.driver_pay ?? load.pay_total ?? load.pay)}</td>
                             <td>{formatMiles(load.total_miles ?? load.miles)}</td>
@@ -825,29 +918,83 @@ const AccountingPage = () => {
                               <td />
                               <td colSpan={7}>
                                 <div className="load-details-content">
+                                  {/* Pay Plan Section */}
+                                  <div className="load-details-section pay-plan-section">
+                                    <strong className="load-details-section-title">
+                                      {t('Pay Plan')}
+                                    </strong>
+                                    <div className="pay-plan-details">
+                                      {load.description && (
+                                        <div className="pay-plan-item">
+                                          <span className="pay-plan-label">{t('Description')}:</span>
+                                          <span className="pay-plan-value">{load.description}</span>
+                                        </div>
+                                      )}
+                                      {load.rate && (
+                                        <div className="pay-plan-item">
+                                          <span className="pay-plan-label">{t('Rate')}:</span>
+                                          <span className="pay-plan-value">{formatCurrency(load.rate)}</span>
+                                        </div>
+                                      )}
+                                      {load.total && (
+                                        <div className="pay-plan-item">
+                                          <span className="pay-plan-label">{t('Total')}:</span>
+                                          <span className="pay-plan-value">{formatCurrency(load.total)}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
                                   {hasOtherPays && (
                                     <div className="load-details-section other-pays-section">
-                                      <strong className="load-details-section-title">
-                                        {t('Other Pays')}
-                                      </strong>
+                                      <div className="other-pays-header">
+                                        <strong className="load-details-section-title">
+                                          {t('Other Pays')}
+                                        </strong>
+                                        <label className="other-pays-select-all">
+                                          <input
+                                            type="checkbox"
+                                            checked={ensureArray(load.other_pays).length > 0 && 
+                                              ensureArray(load.other_pays).every((otherPay) => {
+                                                const otherPayId = getOtherPayId(otherPay);
+                                                return otherPayId && selectedOtherPayIds.includes(otherPayId);
+                                              })}
+                                            onChange={(e) => handleSelectAllOtherPaysForLoad(rowId, e.target.checked)}
+                                          />
+                                          <span>{t('Select all')}</span>
+                                        </label>
+                                      </div>
                                       <div className="other-pays-list">
-                                        {ensureArray(load.other_pays).map((otherPay, index) => (
-                                          <div key={index} className="other-pay-item">
-                                            <div className="other-pay-header">
-                                              <span className="other-pay-type">
-                                                {otherPay.type || otherPay.pay_type || 'Other Pay'}
-                                              </span>
-                                              <span className="other-pay-amount">
-                                                {formatCurrency(otherPay.amount || otherPay.pay_amount)}
-                                              </span>
-                                            </div>
-                                            {(otherPay.note || otherPay.description) && (
-                                              <div className="other-pay-note">
-                                                {otherPay.note || otherPay.description}
+                                        {ensureArray(load.other_pays).map((otherPay, index) => {
+                                          const otherPayId = getOtherPayId(otherPay);
+                                          if (!otherPayId) return null; // Skip if no valid ID
+                                          
+                                          return (
+                                            <div key={otherPayId} className="other-pay-item">
+                                              <div className="other-pay-header">
+                                                <div className="other-pay-header-left">
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={selectedOtherPayIds.includes(otherPayId)}
+                                                    onChange={(e) => handleOtherPaySelectChange(otherPayId, e.target.checked)}
+                                                    className="other-pay-checkbox"
+                                                  />
+                                                  <span className="other-pay-type">
+                                                    {otherPay.type || otherPay.pay_type || 'Other Pay'}
+                                                  </span>
+                                                </div>
+                                                <span className="other-pay-amount">
+                                                  {formatCurrency(otherPay.amount || otherPay.pay_amount)}
+                                                </span>
                                               </div>
-                                            )}
-                                          </div>
-                                        ))}
+                                              {(otherPay.note || otherPay.description) && (
+                                                <div className="other-pay-note">
+                                                  {otherPay.note || otherPay.description}
+                                                </div>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
                                       </div>
                                     </div>
                                   )}
@@ -930,41 +1077,58 @@ const AccountingPage = () => {
         </div>
 
         {lastStub && (
-          <section className="result-panel">
-            <h3>{t('Latest Paystub')}</h3>
+          <section key={lastStub.timestamp || lastStub.type} className="result-panel">
+            <h3>{t('Latest Paystub')} {lastStub.timestamp && (
+              <small style={{fontSize: '12px', color: '#6b7280', fontWeight: 'normal'}}>
+                ({new Date(lastStub.timestamp).toLocaleTimeString()})
+              </small>
+            )}</h3>
             <div className="result-grid">
               <div className="result-item">
                 <span className="result-label">{t('Type')}</span>
-                <span className="result-value">{lastStub.type}</span>
+                <span className="result-value">
+                  {lastStub.is_preview ? t('Preview Stub') : t('Generated Stub')}
+                </span>
               </div>
-              {lastStub.statement_id && (
+              {lastStub.total_pay && (
                 <div className="result-item">
-                  <span className="result-label">{t('Statement ID')}</span>
-                  <span className="result-value">{lastStub.statement_id}</span>
+                  <span className="result-label">{t('Total Pay')}</span>
+                  <span className="result-value">{lastStub.total_pay}</span>
+                </div>
+              )}
+              {lastStub.total_deductions && (
+                <div className="result-item">
+                  <span className="result-label">{t('Total Deductions')}</span>
+                  <span className="result-value">{lastStub.total_deductions}</span>
+                </div>
+              )}
+              {lastStub.total_additions && (
+                <div className="result-item">
+                  <span className="result-label">{t('Total Additions')}</span>
+                  <span className="result-value">{lastStub.total_additions}</span>
                 </div>
               )}
               {lastStub.view_url && (
                 <div className="result-item">
-                  <span className="result-label">{t('View')}</span>
-                  <button
-                    className="link-button"
-                    onClick={() => window.open(lastStub.view_url, '_blank', 'noopener')}
-                  >
-                    {t('View Paystub')}
-                  </button>
-                </div>
-              )}
-              {lastStub.download_url && (
-                <div className="result-item">
-                  <span className="result-label">{t('Download')}</span>
-                  <a
-                    className="link-button"
-                    href={lastStub.download_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {t('Download Paystub')}
-                  </a>
+                  <span className="result-label">{t('Actions')}</span>
+                  <div className="result-actions">
+                    <button
+                      className="link-button"
+                      onClick={() => window.open(lastStub.view_url, '_blank', 'noopener')}
+                    >
+                      {t('View')}
+                    </button>
+                    {lastStub.download_url && (
+                      <a
+                        className="link-button"
+                        href={lastStub.download_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {t('Download')}
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
