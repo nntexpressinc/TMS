@@ -1,0 +1,106 @@
+.accounting-wrapper {
+  min-height: 100vh;
+  background-color: #f6f7fb;
+}
+
+/* Tab Navigation */
+.accounting-tabs {
+  background: #ffffff;
+  border-bottom: 2px solid #e5e7eb;
+  padding: 0 32px;
+  display: flex;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.accounting-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  margin-bottom: -2px;
+}
+
+.accounting-tab:hover {
+  color: #374151;
+  background: #f9fafb;
+}
+
+.accounting-tab svg {
+  transition: all 0.2s ease;
+}
+
+.accounting-tab--active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  background: transparent;
+}
+
+.accounting-tab--active:hover {
+  color: #1d4ed8;
+  background: transparent;
+}
+
+.accounting-tab--active svg {
+  transform: scale(1.1);
+}
+
+/* Content Area */
+.accounting-content {
+  /* Remove padding since child components have their own */
+  min-height: calc(100vh - 65px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .accounting-tabs {
+    padding: 0 16px;
+    gap: 4px;
+  }
+
+  .accounting-tab {
+    padding: 14px 16px;
+    font-size: 14px;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .accounting-tab svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .accounting-tab span {
+    display: none;
+  }
+
+  .accounting-tab {
+    padding: 14px 12px;
+  }
+
+  .accounting-tab svg {
+    margin: 0;
+  }
+}
+
+
+
+
+
+
+
+

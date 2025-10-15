@@ -1,0 +1,729 @@
+.pay-reports-page {
+  padding: 32px;
+  background-color: #f6f7fb;
+  min-height: calc(100vh - 120px);
+}
+
+/* Header Section */
+.pay-reports-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.pay-reports-header__left h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.02em;
+}
+
+.pay-reports-subtitle {
+  margin: 0;
+  font-size: 15px;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.create-pay-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.create-pay-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+}
+
+.create-pay-button:active {
+  transform: translateY(0);
+}
+
+.create-pay-button svg {
+  flex-shrink: 0;
+}
+
+/* Filters Section */
+.pay-reports-filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-search {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background: #fafbff;
+}
+
+.filter-search:focus {
+  outline: none;
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.filter-date {
+  padding: 10px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background: #fafbff;
+  min-width: 150px;
+}
+
+.filter-date:focus {
+  outline: none;
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.filter-separator {
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.filter-reset {
+  padding: 10px 18px;
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-reset:hover {
+  background: #e5e7eb;
+}
+
+/* Error Message */
+.pay-reports-error {
+  padding: 16px 20px;
+  background: #fef2f2;
+  border-left: 4px solid #ef4444;
+  border-radius: 12px;
+  color: #991b1b;
+  margin-bottom: 24px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Content Section */
+.pay-reports-content {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  min-height: 400px;
+  position: relative;
+}
+
+/* Loading State */
+.pay-reports-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 20px;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.pay-reports-loading p {
+  color: #6b7280;
+  font-size: 15px;
+  margin: 0;
+}
+
+/* Empty State */
+.pay-reports-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 16px;
+}
+
+.pay-reports-empty svg {
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+.pay-reports-empty h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.pay-reports-empty p {
+  margin: 0;
+  font-size: 15px;
+  color: #6b7280;
+  max-width: 400px;
+  text-align: center;
+}
+
+.pay-reports-empty .create-pay-button {
+  margin-top: 8px;
+}
+
+/* Table */
+.pay-reports-table-wrapper {
+  overflow-x: auto;
+}
+
+.pay-reports-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.pay-reports-table thead {
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  border-bottom: 2px solid #c7d2fe;
+}
+
+.pay-reports-table th {
+  padding: 16px 20px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.pay-reports-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: all 0.15s ease;
+}
+
+.pay-reports-table tbody tr:hover {
+  background: #fafbff;
+}
+
+.pay-reports-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.pay-reports-table td {
+  padding: 16px 20px;
+  color: #374151;
+  vertical-align: middle;
+}
+
+/* Table Cell Styles */
+.invoice-cell .invoice-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #dbeafe;
+  color: #1e40af;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.driver-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.driver-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.driver-name {
+  font-weight: 500;
+  color: #111827;
+}
+
+.date-range-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.date-separator {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.week-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #f3f4f6;
+  color: #374151;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.amount-cell {
+  font-weight: 700;
+  color: #059669;
+  font-size: 15px;
+}
+
+.date-cell {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.action-button {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: transparent;
+}
+
+.action-button--view {
+  color: #2563eb;
+}
+
+.action-button--view:hover {
+  background: #dbeafe;
+}
+
+.action-button--edit {
+  color: #7c3aed;
+}
+
+.action-button--edit:hover {
+  background: #ede9fe;
+}
+
+.action-button--download {
+  color: #059669;
+}
+
+.action-button--download:hover {
+  background: #d1fae5;
+}
+
+.action-button--delete {
+  color: #dc2626;
+}
+
+.action-button--delete:hover {
+  background: #fee2e2;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalSlideIn 0.3s ease;
+}
+
+.modal-content--large {
+  max-width: 800px;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 28px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 8px;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-close:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.modal-body {
+  padding: 28px;
+}
+
+.modal-body p {
+  margin: 0 0 16px;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.delete-record-details {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.delete-record-details p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.delete-record-details p:last-child {
+  margin-bottom: 0;
+}
+
+.warning-text {
+  color: #dc2626;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 28px;
+  border-top: 1px solid #e5e7eb;
+  background: #fafbff;
+  border-radius: 0 0 20px 20px;
+}
+
+.modal-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-button--cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.modal-button--cancel:hover {
+  background: #e5e7eb;
+}
+
+.modal-button--delete {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.modal-button--delete:hover {
+  background: #b91c1c;
+}
+
+.modal-button--delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modal-button--primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.modal-button--primary:hover {
+  background: #1d4ed8;
+}
+
+/* Details Modal */
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.detail-section {
+  background: #fafbff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.detail-section--full {
+  grid-column: 1 / -1;
+}
+
+.detail-section h4 {
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 16px;
+}
+
+.detail-item:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.detail-value {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: right;
+}
+
+.detail-value--highlight {
+  color: #059669;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.detail-notes {
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.load-ids {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.load-id-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #dbeafe;
+  color: #1e40af;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+/* Edit Form Styles */
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.edit-form .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edit-form .form-field label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.edit-form .form-field input,
+.edit-form .form-field textarea {
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background: #ffffff;
+}
+
+.edit-form .form-field input:focus,
+.edit-form .form-field textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.edit-form .form-field textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .pay-reports-table {
+    font-size: 13px;
+  }
+
+  .pay-reports-table th,
+  .pay-reports-table td {
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .pay-reports-page {
+    padding: 20px 16px;
+  }
+
+  .pay-reports-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .create-pay-button {
+    justify-content: center;
+  }
+
+  .pay-reports-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    min-width: 100%;
+  }
+
+  .pay-reports-table-wrapper {
+    overflow-x: scroll;
+  }
+
+  .pay-reports-table {
+    min-width: 1000px;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+
+
+

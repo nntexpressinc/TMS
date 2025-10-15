@@ -6,21 +6,21 @@ import DashboardPage from "./components/Dashboard/DashboardPage";
 import ProfilePage from "./components/Profile/ProfilePage";
 import LoadsPage from "./components/Loads/LoadsPage";
 import CreateLoad from "./components/Loads/CreateLoad";
-import LoadPage from './components/Loads/CreateLoad'; // Yangi birlashgan fayl
+import LoadPage from './components/Loads/CreateLoad';
 import CustomerBrokerPage from "./components/CustomerBroker/CustomerBrokerPage";
-import CustomerBrokerCreatePage from "./components/CustomerBroker/create/CustomerBrokerCreatePage"; // Import CustomerBrokerCreatePage
+import CustomerBrokerCreatePage from "./components/CustomerBroker/create/CustomerBrokerCreatePage";
 import CustomerBrokerEditPage from "./components/CustomerBroker/edit/CustomerBrokerEditPage";
 import CustomerBrokerViewPage from "./components/CustomerBroker/view/CustomerBrokerViewPage";
 import DriverPage from "./components/Driver/DriverPage";
-import DriverCreatePage from "./components/Driver/create/DriverCreatePage"; // Import DriverCreatePage
+import DriverCreatePage from "./components/Driver/create/DriverCreatePage";
 import DispatcherPage from "./components/Dispatcher/DispatcherPage";
-import DispatcherCreatePage from "./components/Dispatcher/create/DispatcherCreatePage"; // Import DispatcherCreatePage
+import DispatcherCreatePage from "./components/Dispatcher/create/DispatcherCreatePage";
 import EmployeePage from "./components/Employee/EmployeePage";
-import EmployeeCreatePage from "./components/Employee/create/EmployeeCreatePage"; // Import EmployeeCreatePage
+import EmployeeCreatePage from "./components/Employee/create/EmployeeCreatePage";
 import TruckTrailerPage from "./components/TruckTrailer/TruckTrailerPage";
 import TruckCreatePage from "./components/TruckTrailer/truck/TruckCreatePage";
 import TrailerCreatePage from "./components/TruckTrailer/trailer/TrailerCreatePage";
-import AccountingPage from "./components/Accounting/AccountingPage";
+import AccountingPageWrapper from "./components/Accounting/AccountingPageWrapper";
 import InvoicesPage from "./components/Accounting/InvoicesPage";
 import InvoiceCreatePage from "./components/Accounting/invoices/InvoiceCreatePage";
 import InvoiceViewPage from "./components/Accounting/invoices/InvoiceViewPage";
@@ -28,14 +28,14 @@ import PrivateRoute from "./components/PrivateRoute";
 import Layout from "./components/Layout/Layout";
 import { SidebarProvider } from "./components/SidebarContext";
 import { useAuth } from "./context/AuthContext";
-import UsersActivesPage from "./components/UsersActives/UsersActivesPage"; 
+import UsersActivesPage from "./components/UsersActives/UsersActivesPage";
 import DriverViewPage from "./components/Driver/DriverViewPage";
 import DriverPayCreatePage from "./components/Driver/create/DriverPayCreatePage";
 import DriverExpenseCreatePage from "./components/Driver/create/DriverExpenseCreatePage";
 import DriverEditPage from "./components/Driver/DriverEditPage";
 import DriverPayEditPage from './components/Driver/create/DriverPayEditPage';
 import DriverExpenseEditPage from './components/Driver/create/DriverExpenseEditPage';
-import LoadViewPage from './components/Loads/LoadViewPage'; // Import LoadViewPage
+import LoadViewPage from './components/Loads/LoadViewPage';
 import ManageUsersPage from "./components/ManageUsers/ManageUsersPage";
 import UnitManagementPage from "./components/ManageUsers/UnitManagementPage";
 import TeamManagementPage from "./components/ManageUsers/TeamManagementPage";
@@ -55,9 +55,6 @@ import PermissionGuard from "./components/PermissionGuard";
 const App = () => {
   const { isAuthenticated: isAuth } = useAuth();
   const isAuthenticated = isAuth || localStorage.getItem("accessToken");
-
-  // Xavfsizlik sozlamalarini ishga tushirish
-  
 
   return (
     <SidebarProvider>
@@ -233,7 +230,6 @@ const App = () => {
                 </PermissionGuard>
               }
             />
-
             <Route
               path="dispatcher"
               element={
@@ -414,12 +410,13 @@ const App = () => {
                 </PermissionGuard>
               }
             />
+            {/* ACCOUNTING SECTION - WITH TAB NAVIGATION */}
             <Route
-              path="accounting"
+              path="accounting/*"
               element={
                 <PermissionGuard permissionKey="accounting">
                   <PrivateRoute>
-                    <AccountingPage />
+                    <AccountingPageWrapper />
                   </PrivateRoute>
                 </PermissionGuard>
               }
@@ -454,6 +451,7 @@ const App = () => {
                 </PermissionGuard>
               }
             />
+            {/* END ACCOUNTING SECTION */}
             <Route
               path="ifta"
               element={
@@ -495,16 +493,6 @@ const App = () => {
               }
             />
             <Route
-              path="ifta"
-              element={
-                <PermissionGuard permissionKey="ifta">
-                  <PrivateRoute>
-                    <IftaPage />
-                  </PrivateRoute>
-                </PermissionGuard>
-              }
-            />
-            <Route
               path="settings"
               element={
                 <PrivateRoute>
@@ -522,11 +510,8 @@ const App = () => {
         </Routes>
       </Router>
     </SidebarProvider>
-
   );
 };
-
-
 
 // Helper to find first allowed route
 function getFirstAllowedRoute() {
@@ -564,3 +549,15 @@ function getFirstAllowedRoute() {
 }
 
 export default App;
+
+
+
+
+
+
+
+
+
+
+
+

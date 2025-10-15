@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getDriversSummary, getDriverCompletedLoads, postPaystubAction } from '../../api/paySystem';
 import { testApiConnection } from '../../api/testConnection';
@@ -184,6 +185,7 @@ const getLoadStatusStyle = (status) => {
 
 const AccountingPage = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   console.log('AccountingPage render started');
 
@@ -748,7 +750,18 @@ const AccountingPage = () => {
     <div className="driver-pay-page">
       <div className="driver-pay-page__sidebar">
         <div className="sidebar-header">
-          <h1>{t('Driver Pay')}</h1>
+          <div className="sidebar-header-title">
+            <button 
+              className="back-button-icon"
+              onClick={() => navigate('/accounting')}
+              title={t('Back to Pay Reports')}
+            >
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <h1>{t('Driver Pay')}</h1>
+          </div>
           <div className="sidebar-toggle">
             <button
               className={sidebarView === 'company' ? 'active' : ''}
@@ -1134,6 +1147,7 @@ const AccountingPage = () => {
             </div>
           </section>
         )}
+
       </div>
     </div>
   );
