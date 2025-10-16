@@ -635,6 +635,7 @@ const LoadsPage = () => {
   const [filteredLoads, setFilteredLoads] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchCategory, setSearchCategory] = useState("all");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [selectedInvoiceStatus, setSelectedInvoiceStatus] = useState(null);
   const [selectedRow, setSelectedRow] = useState(null);
@@ -665,6 +666,15 @@ const LoadsPage = () => {
       setPermissions({});
     }
   }, []);
+
+  // Debounce search term to avoid excessive API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const loadStatuses = [
     { value: 'open', label: 'Open', icon: <MdLocalShipping />, color: '#3B82F6' },
@@ -698,12 +708,10 @@ const LoadsPage = () => {
 
   const handleStatusFilter = (status) => {
     setSelectedStatus(status === selectedStatus ? null : status);
-    filterLoads(status === selectedStatus ? null : status, selectedInvoiceStatus);
   };
 
   const handleInvoiceStatusFilter = (status) => {
     setSelectedInvoiceStatus(status === selectedInvoiceStatus ? null : status);
-    filterLoads(selectedStatus, status === selectedInvoiceStatus ? null : status);
   };
 
   const filterLoads = (loadStatus, invoiceStatus) => {
@@ -726,6 +734,7 @@ const LoadsPage = () => {
 
   const searchCategories = [
     { value: "all", label: "All Fields" },
+    { value: "id", label: "ID" },
     { value: "company_name", label: "Company Name" },
     { value: "reference_id", label: "Reference ID" },
     { value: "load_id", label: "Load ID" },
@@ -865,9 +874,12 @@ const LoadsPage = () => {
     qs.set('page', page);
     qs.set('page_size', opts.page_size || pageSize);
 
-    const term = (searchTerm || '').toString().trim();
+    const term = (debouncedSearchTerm || '').toString().trim();
     if (term) {
       switch (searchCategory) {
+        case 'all':
+          qs.set('search', term);
+          break;
         case 'id':
           qs.set('id', term);
           break;
@@ -898,7 +910,7 @@ const LoadsPage = () => {
     if (selectedInvoiceStatus) qs.set('invoice_status', selectedInvoiceStatus);
 
     return `/load/?${qs.toString()}`;
-  }, [pageSize, searchTerm, searchCategory, selectedStatus, selectedInvoiceStatus]);
+  }, [pageSize, debouncedSearchTerm, searchCategory, selectedStatus, selectedInvoiceStatus]);
 
   // Excel export handler
   const handleExportExcel = async () => {
@@ -907,6 +919,9 @@ const LoadsPage = () => {
     const term = (searchTerm || '').toString().trim();
     if (term) {
       switch (searchCategory) {
+        case 'all':
+          qs.set('search', term);
+          break;
         case 'id':
           qs.set('id', term);
           break;

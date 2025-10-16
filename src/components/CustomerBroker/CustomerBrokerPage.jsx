@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Typography, Box, Button, TextField, MenuItem, InputAdornment, Chip, IconButton, Tooltip } from "@mui/material";
-import { DataGrid, GridToolbar } from '@mui/x-data-grid';
+import { DataGrid } from '@mui/x-data-grid';
 import { ApiService,ENDPOINTS } from "../../api/auth";
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
@@ -9,7 +9,6 @@ import { useNavigate } from 'react-router-dom';
 import './CustomerBrokerPage.css';
 import { useSidebar } from "../SidebarContext";
 import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -20,6 +19,7 @@ const CustomerBrokerPage = () => {
   const [filteredCustomerBrokers, setFilteredCustomerBrokers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchCategory, setSearchCategory] = useState("all");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [copiedContact, setCopiedContact] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -75,6 +75,15 @@ const CustomerBrokerPage = () => {
   fetchCustomerBrokersData();
 }, []);
 
+  // Debounce search term to avoid excessive filtering
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -90,39 +99,58 @@ const CustomerBrokerPage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [isSidebarOpen]);
 
-  const handleSearch = () => {
-    if (searchTerm === "") {
-      setFilteredCustomerBrokers(customerBrokers);
-      return;
+  const applyFilters = () => {
+    let filtered = [...customerBrokers];
+
+    // Apply search filter first
+    if (debouncedSearchTerm !== "") {
+      filtered = filtered.filter(customerBroker => {
+        if (searchCategory === "all") {
+          // Search across all relevant fields
+          const searchableFields = [
+            customerBroker.mc_number,
+            customerBroker.company_name,
+            customerBroker.contact_number,
+            customerBroker.email_address,
+            customerBroker.pod_file,
+            customerBroker.rate_con,
+            customerBroker.address1,
+            customerBroker.address2,
+            customerBroker.country,
+            customerBroker.state,
+            customerBroker.zip_code,
+            customerBroker.city,
+            customerBroker.billing_type,
+            customerBroker.terms_days,
+            customerBroker.status
+          ];
+          
+          return searchableFields.some(value => 
+            value && String(value).toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+          );
+        } else {
+          const fieldValue = customerBroker[searchCategory];
+          return fieldValue && String(fieldValue)
+            .toLowerCase()
+            .includes(debouncedSearchTerm.toLowerCase());
+        }
+      });
     }
 
-    const filtered = customerBrokers.filter(customerBroker => {
-      if (searchCategory === "all") {
-        return Object.values(customerBroker).some(value => 
-          String(value).toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      } else {
-        return String(customerBroker[searchCategory])
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
-      }
-    });
+    // Apply status filter
+    if (selectedStatus) {
+      filtered = filtered.filter(customerBroker => customerBroker.status === selectedStatus);
+    }
 
     setFilteredCustomerBrokers(filtered);
   };
 
   useEffect(() => {
-    handleSearch();
-  }, [searchTerm, searchCategory, customerBrokers]);
+    applyFilters();
+  }, [debouncedSearchTerm, searchCategory, customerBrokers, selectedStatus]);
 
   const handleStatusFilter = (status) => {
     setSelectedStatus(status === selectedStatus ? null : status);
-    if (status === selectedStatus) {
-      setFilteredCustomerBrokers(customerBrokers);
-    } else {
-      const filtered = customerBrokers.filter(customerBroker => customerBroker.status === status);
-      setFilteredCustomerBrokers(filtered);
-    }
   };
 
   const handleCreateCustomerBroker = () => {
@@ -342,7 +370,7 @@ const CustomerBrokerPage = () => {
         </Typography>
         <Box sx={{ 
           display: 'flex', 
-          width: '50%',
+          width: '60%',
           gap: 1, 
           alignItems: 'center',
           backgroundColor: 'white',
@@ -356,7 +384,7 @@ const CustomerBrokerPage = () => {
             onChange={(e) => setSearchCategory(e.target.value)}
             variant="outlined"
             sx={{ 
-              width: '150px',
+              width: '180px',
               '& .MuiOutlinedInput-root': {
                 borderRadius: '8px',
                 backgroundColor: '#F9FAFB',
@@ -392,19 +420,6 @@ const CustomerBrokerPage = () => {
               }
             }}
           />
-
-          <IconButton 
-            onClick={() => {}}
-            sx={{ 
-              backgroundColor: '#F9FAFB',
-              borderRadius: '8px',
-              height: '32px',
-              width: '32px',
-              minWidth: '32px'
-            }}
-          >
-            <FilterListIcon />
-          </IconButton>
         </Box>
         <Button 
           variant="contained" 
@@ -466,15 +481,6 @@ const CustomerBrokerPage = () => {
             columns={columns}
             pageSize={10}
             rowsPerPageOptions={[10, 20, 50]}
-            components={{
-              Toolbar: GridToolbar
-            }}
-            componentsProps={{
-              toolbar: {
-                showQuickFilter: true,
-                quickFilterProps: { debounceMs: 500 },
-              },
-            }}
             loading={loading}
             sx={{
               backgroundColor: 'white',
@@ -497,16 +503,6 @@ const CustomerBrokerPage = () => {
               },
               '& .MuiDataGrid-cell:focus': {
                 outline: 'none'
-              },
-              '& .MuiDataGrid-toolbarContainer': {
-                padding: '8px 16px',
-                borderBottom: '1px solid #E5E7EB',
-                '& .MuiButton-root': {
-                  color: '#6B7280',
-                  '&:hover': {
-                    backgroundColor: '#F3F4F6'
-                  }
-                }
               },
               '& .MuiDataGrid-cell--pinned': {
                 backgroundColor: 'white',

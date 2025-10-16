@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Typography, Box, Button, TextField, MenuItem, InputAdornment, Chip, IconButton, Menu, Popover, Tooltip } from "@mui/material";
-import { DataGrid, GridToolbar } from '@mui/x-data-grid';
+import { DataGrid } from '@mui/x-data-grid';
 import { ApiService } from "../../api/auth";
 import { useNavigate } from 'react-router-dom';
 import './DispatcherPage.css';
@@ -23,6 +23,7 @@ const DispatcherPage = () => {
   const [filteredDispatchers, setFilteredDispatchers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchCategory, setSearchCategory] = useState("all");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [filterAnchorEl, setFilterAnchorEl] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
@@ -40,14 +41,18 @@ const DispatcherPage = () => {
 
   const searchCategories = [
     { value: "all", label: "All Fields" },
-    { value: "first_name", label: "First Name" },
-    { value: "last_name", label: "Last Name" },
     { value: "nickname", label: "Nickname" },
+    { value: "user_first_name", label: "First Name" },
+    { value: "user_last_name", label: "Last Name" },
+    { value: "user_email", label: "Email" },
+    { value: "user_telephone", label: "Phone" },
     { value: "employee_status", label: "Employee Status" },
     { value: "position", label: "Position" },
     { value: "company_name", label: "Company Name" },
-    { value: "email_address", label: "Email" },
-    { value: "contact_number", label: "Contact Number" }
+    { value: "mc_number", label: "MC Number" },
+    { value: "office", label: "Office" },
+    { value: "user_city", label: "City" },
+    { value: "user_state", label: "State" }
   ];
 
   // Filter handlers
@@ -59,18 +64,9 @@ const DispatcherPage = () => {
     setFilterAnchorEl(null);
   };
 
-  // Status filter handler
+    // Status filter handler
   const handleStatusFilter = (status) => {
     setSelectedStatus(status === selectedStatus ? null : status);
-    if (status === selectedStatus) {
-      setFilteredDispatchers(dispatchers);
-    } else {
-      const filtered = dispatchers.filter(dispatcher => {
-        if (!dispatcher || !dispatcher.employee_status) return false;
-        return dispatcher.employee_status.toLowerCase() === status.toLowerCase();
-      });
-      setFilteredDispatchers(filtered);
-    }
   };
 
   useEffect(() => {
@@ -108,6 +104,15 @@ const DispatcherPage = () => {
   fetchDispatchersData();
 }, []);
 
+  // Debounce search term to avoid excessive filtering
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -123,29 +128,68 @@ const DispatcherPage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [isSidebarOpen]);
 
-  // Search function
-  useEffect(() => {
-    if (searchTerm === "") {
-      setFilteredDispatchers(dispatchers);
-      return;
+  // Apply filters function
+  const applyFilters = () => {
+    let filtered = [...dispatchers];
+
+    // Apply search filter first
+    if (debouncedSearchTerm !== "") {
+      filtered = filtered.filter(dispatcher => {
+        if (searchCategory === "all") {
+          // Search across all relevant fields including nested user data
+          const searchableFields = [
+            // Dispatcher fields
+            dispatcher.nickname,
+            dispatcher.mc_number,
+            dispatcher.employee_status,
+            dispatcher.position,
+            dispatcher.company_name,
+            dispatcher.office,
+            // User nested fields
+            dispatcher.user?.first_name,
+            dispatcher.user?.last_name,
+            dispatcher.user?.email,
+            dispatcher.user?.telephone,
+            dispatcher.user?.state,
+            dispatcher.user?.city,
+            dispatcher.user?.address,
+            dispatcher.user?.country,
+            dispatcher.user?.postal_zip
+          ];
+          
+          return searchableFields.some(value =>
+            value && String(value).toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+          );
+        } else {
+          // Handle nested field searches
+          let fieldValue;
+          if (searchCategory.startsWith('user_')) {
+            const userField = searchCategory.replace('user_', '');
+            fieldValue = dispatcher.user?.[userField];
+          } else {
+            fieldValue = dispatcher[searchCategory];
+          }
+          
+          return fieldValue && String(fieldValue)
+            .toLowerCase()
+            .includes(debouncedSearchTerm.toLowerCase());
+        }
+      });
     }
 
-    const filtered = dispatchers.filter(dispatcher => {
-      if (searchCategory === "all") {
-        return Object.values(dispatcher).some(value =>
-          String(value).toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      } else {
-        return String(dispatcher[searchCategory])
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
-      }
-    });
+    // Apply status filter
+    if (selectedStatus) {
+      filtered = filtered.filter(dispatcher => 
+        dispatcher.employee_status?.toLowerCase() === selectedStatus.toLowerCase()
+      );
+    }
 
     setFilteredDispatchers(filtered);
-  }, [searchTerm, searchCategory, dispatchers]);
+  };
 
-  const handleCreateDispatcher = () => {
+  useEffect(() => {
+    applyFilters();
+  }, [debouncedSearchTerm, searchCategory, dispatchers, selectedStatus]);  const handleCreateDispatcher = () => {
     navigate('/dispatcher/create');
   };
 
@@ -294,7 +338,7 @@ const DispatcherPage = () => {
         </Typography>
         <Box sx={{
           display: 'flex',
-          width: '75%',
+          width: '60%',
           gap: 1,
           alignItems: 'center',
           backgroundColor: 'white',
@@ -308,7 +352,7 @@ const DispatcherPage = () => {
             onChange={(e) => setSearchCategory(e.target.value)}
             variant="outlined"
             sx={{
-              width: '150px',
+              width: '180px',
               '& .MuiOutlinedInput-root': {
                 borderRadius: '8px',
                 backgroundColor: '#F9FAFB',
@@ -344,19 +388,6 @@ const DispatcherPage = () => {
               }
             }}
           />
-
-          <IconButton
-            onClick={handleFilterClick}
-            sx={{
-              backgroundColor: '#F9FAFB',
-              borderRadius: '8px',
-              height: '32px',
-              width: '32px',
-              minWidth: '32px'
-            }}
-          >
-            <FilterListIcon />
-          </IconButton>
         </Box>
         <Button
           variant="contained" 
@@ -426,15 +457,6 @@ const DispatcherPage = () => {
             columns={columns}
             pageSize={10}
             rowsPerPageOptions={[10, 20, 50]}
-            components={{
-              Toolbar: GridToolbar
-            }}
-            componentsProps={{
-              toolbar: {
-                showQuickFilter: true,
-                quickFilterProps: { debounceMs: 500 },
-              },
-            }}
             loading={loading}
             sx={{
               backgroundColor: 'white',
@@ -457,16 +479,6 @@ const DispatcherPage = () => {
               },
               '& .MuiDataGrid-cell:focus': {
                 outline: 'none'
-              },
-              '& .MuiDataGrid-toolbarContainer': {
-                padding: '8px 16px',
-                borderBottom: '1px solid #E5E7EB',
-                '& .MuiButton-root': {
-                  color: '#6B7280',
-                  '&:hover': {
-                    backgroundColor: '#F3F4F6'
-                  }
-                }
               },
               '& .MuiDataGrid-cell--pinned': {
                 backgroundColor: 'white',

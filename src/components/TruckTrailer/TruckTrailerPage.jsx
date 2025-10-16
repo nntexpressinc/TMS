@@ -18,13 +18,12 @@ import {
   CircularProgress,
   Grid
 } from "@mui/material";
-import { DataGrid, GridToolbar } from '@mui/x-data-grid';
+import { DataGrid } from '@mui/x-data-grid';
 import { ApiService } from "../../api/auth";
 import { useNavigate } from 'react-router-dom';
 import './TruckTrailerPage.css';
 import { useSidebar } from "../SidebarContext";
 import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -37,6 +36,7 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
   const [filteredItems, setFilteredItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchCategory, setSearchCategory] = useState("all");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -72,20 +72,26 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
 
   const truckSearchCategories = [
     { value: "all", label: "All Fields" },
-    { value: "truck_number", label: "Truck Number" },
+    { value: "unit_number", label: "Unit Number" },
     { value: "vin", label: "VIN" },
     { value: "plate_number", label: "Plate Number" },
     { value: "make", label: "Make" },
     { value: "model", label: "Model" },
-    { value: "year", label: "Year" }
+    { value: "year", label: "Year" },
+    { value: "owner", label: "Owner" },
+    { value: "driver", label: "Driver" }
   ];
 
   const trailerSearchCategories = [
     { value: "all", label: "All Fields" },
-    { value: "trailer_number", label: "Trailer Number" },
+    { value: "unit_number", label: "Unit Number" },
+    { value: "make", label: "Trailer Number" },
     { value: "vin", label: "VIN" },
     { value: "plate_number", label: "Plate Number" },
-    { value: "type", label: "Type" }
+    { value: "type", label: "Type" },
+    { value: "model", label: "Model" },
+    { value: "year", label: "Year" },
+    { value: "owner", label: "Owner" }
   ];
 
   const searchCategories = type === 'truck' ? truckSearchCategories : trailerSearchCategories;
@@ -109,6 +115,15 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
     fetchData();
   }, [type]);
 
+  // Debounce search term to avoid excessive filtering
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   useEffect(() => {
     const handleResize = () => {
       if (tableRef.current) {
@@ -123,59 +138,51 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, [isSidebarOpen]);
 
-  const handleSearch = () => {
-    if (searchTerm === "") {
-      setFilteredItems(items);
-      return;
+  const applyFilters = () => {
+    let filtered = [...items];
+
+    // Apply search filter first
+    if (debouncedSearchTerm !== "") {
+      filtered = filtered.filter(item => {
+        if (searchCategory === "all") {
+          return Object.values(item).some(value => 
+            value && String(value).toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+          );
+        } else {
+          const fieldValue = item[searchCategory];
+          return fieldValue && String(fieldValue)
+            .toLowerCase()
+            .includes(debouncedSearchTerm.toLowerCase());
+        }
+      });
     }
 
-    const filtered = items.filter(item => {
-      if (searchCategory === "all") {
-        return Object.values(item).some(value => 
-          String(value).toLowerCase().includes(searchTerm.toLowerCase())
-        );
+    // Apply status/type/ownership filter
+    if (selectedStatus) {
+      if (type === 'truck') {
+        filtered = filtered.filter(item => item.ownership_type === selectedStatus);
       } else {
-        return String(item[searchCategory])
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
+        filtered = filtered.filter(item => item.type === selectedStatus);
       }
-    });
+    }
 
     setFilteredItems(filtered);
   };
 
   useEffect(() => {
-    handleSearch();
-  }, [searchTerm, searchCategory, items]);
+    applyFilters();
+  }, [debouncedSearchTerm, searchCategory, items, selectedStatus]);
 
   const handleStatusFilter = (status) => {
     setSelectedStatus(status === selectedStatus ? null : status);
-    if (status === selectedStatus) {
-      setFilteredItems(items);
-    } else {
-      const filtered = items.filter(item => item.status === status);
-      setFilteredItems(filtered);
-    }
   };
 
   const handleTypeFilter = (trailerType) => {
     setSelectedStatus(trailerType === selectedStatus ? null : trailerType);
-    if (trailerType === selectedStatus) {
-      setFilteredItems(items);
-    } else {
-      const filtered = items.filter(item => item.type === trailerType);
-      setFilteredItems(filtered);
-    }
   };
 
   const handleOwnershipFilter = (ownership) => {
     setSelectedStatus(ownership === selectedStatus ? null : ownership);
-    if (ownership === selectedStatus) {
-      setFilteredItems(items);
-    } else {
-      const filtered = items.filter(item => item.ownership_type === ownership);
-      setFilteredItems(filtered);
-    }
   };
 
   const handleCreate = () => {
@@ -679,7 +686,7 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
         </Typography>
         <Box sx={{ 
           display: 'flex', 
-          width: '50%',
+          width: '60%',
           gap: 1, 
           alignItems: 'center',
           backgroundColor: 'white',
@@ -693,7 +700,7 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
             onChange={(e) => setSearchCategory(e.target.value)}
             variant="outlined"
             sx={{ 
-              width: '150px',
+              width: '180px',
               '& .MuiOutlinedInput-root': {
                 borderRadius: '8px',
                 backgroundColor: '#F9FAFB',
@@ -729,19 +736,6 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
               }
             }}
           />
-
-          <IconButton 
-            onClick={() => {}}
-            sx={{ 
-              backgroundColor: '#F9FAFB',
-              borderRadius: '8px',
-              height: '32px',
-              width: '32px',
-              minWidth: '32px'
-            }}
-          >
-            <FilterListIcon />
-          </IconButton>
         </Box>
         <Button 
           variant="contained" 
@@ -853,15 +847,6 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
             columns={columns}
             pageSize={10}
             rowsPerPageOptions={[10, 20, 50]}
-            components={{
-              Toolbar: GridToolbar
-            }}
-            componentsProps={{
-              toolbar: {
-                showQuickFilter: true,
-                quickFilterProps: { debounceMs: 500 },
-              },
-            }}
             sx={{
               backgroundColor: 'white',
               borderRadius: '12px',
@@ -883,16 +868,6 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
               },
               '& .MuiDataGrid-cell:focus': {
                 outline: 'none'
-              },
-              '& .MuiDataGrid-toolbarContainer': {
-                padding: '8px 16px',
-                borderBottom: '1px solid #E5E7EB',
-                '& .MuiButton-root': {
-                  color: '#6B7280',
-                  '&:hover': {
-                    backgroundColor: '#F3F4F6'
-                  }
-                }
               },
               '& .MuiDataGrid-cell--pinned': {
                 backgroundColor: 'white',

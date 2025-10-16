@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Typography, Box, Button, TextField, MenuItem, InputAdornment, Chip, IconButton, Tooltip } from "@mui/material";
-import { DataGrid, GridToolbar } from '@mui/x-data-grid';
+import { DataGrid } from '@mui/x-data-grid';
 import { ApiService } from "../../api/auth";
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
@@ -9,7 +9,6 @@ import { useNavigate } from 'react-router-dom';
 import './EmployeePage.css';
 import { useSidebar } from "../SidebarContext";
 import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -20,6 +19,7 @@ const EmployeePage = () => {
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchCategory, setSearchCategory] = useState("all");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -36,11 +36,16 @@ const EmployeePage = () => {
 
   const searchCategories = [
     { value: "all", label: "All Fields" },
-    { value: "first_name", label: "First Name" },
-    { value: "last_name", label: "Last Name" },
-    { value: "contact_number", label: "Contact Number" },
-    { value: "email_address", label: "Email Address" },
-    { value: "position", label: "Position" }
+    { value: "nickname", label: "Nickname" },
+    { value: "user_first_name", label: "First Name" },
+    { value: "user_last_name", label: "Last Name" },
+    { value: "user_telephone", label: "Phone Number" },
+    { value: "user_email", label: "Email Address" },
+    { value: "user_company_name", label: "Company Name" },
+    { value: "position", label: "Position" },
+    { value: "employee_status", label: "Employee Status" },
+    { value: "user_city", label: "City" },
+    { value: "user_state", label: "State" }
   ];
 
   useEffect(() => {
@@ -63,6 +68,15 @@ const EmployeePage = () => {
     fetchEmployeesData();
   }, []);
 
+  // Debounce search term to avoid excessive filtering
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -78,39 +92,68 @@ const EmployeePage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [isSidebarOpen]);
 
-  const handleSearch = () => {
-    if (searchTerm === "") {
-      setFilteredEmployees(employees);
-      return;
+  const applyFilters = () => {
+    let filtered = [...employees];
+
+    // Apply search filter first
+    if (debouncedSearchTerm !== "") {
+      filtered = filtered.filter(employee => {
+        if (searchCategory === "all") {
+          // Search across all relevant fields including nested user data
+          const searchableFields = [
+            // Employee fields
+            employee.nickname,
+            employee.position,
+            employee.employee_status,
+            employee.note,
+            employee.employee_tags,
+            // User nested fields
+            employee.user?.first_name,
+            employee.user?.last_name,
+            employee.user?.email,
+            employee.user?.telephone,
+            employee.user?.company_name,
+            employee.user?.state,
+            employee.user?.city,
+            employee.user?.address,
+            employee.user?.country,
+            employee.user?.postal_zip
+          ];
+          
+          return searchableFields.some(value =>
+            value && String(value).toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+          );
+        } else {
+          // Handle nested field searches
+          let fieldValue;
+          if (searchCategory.startsWith('user_')) {
+            const userField = searchCategory.replace('user_', '');
+            fieldValue = employee.user?.[userField];
+          } else {
+            fieldValue = employee[searchCategory];
+          }
+          
+          return fieldValue && String(fieldValue)
+            .toLowerCase()
+            .includes(debouncedSearchTerm.toLowerCase());
+        }
+      });
     }
 
-    const filtered = employees.filter(employee => {
-      if (searchCategory === "all") {
-        return Object.values(employee).some(value =>
-          String(value).toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      } else {
-        return String(employee[searchCategory])
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
-      }
-    });
+    // Apply status filter
+    if (selectedStatus) {
+      filtered = filtered.filter(employee => employee.employee_status === selectedStatus);
+    }
 
     setFilteredEmployees(filtered);
   };
 
   useEffect(() => {
-    handleSearch();
-  }, [searchTerm, searchCategory, employees]);
+    applyFilters();
+  }, [debouncedSearchTerm, searchCategory, employees, selectedStatus]);
 
   const handleStatusFilter = (status) => {
     setSelectedStatus(status === selectedStatus ? null : status);
-    if (status === selectedStatus) {
-      setFilteredEmployees(employees);
-    } else {
-      const filtered = employees.filter(employee => employee.employee_status === status);
-      setFilteredEmployees(filtered);
-    }
   };
 
   const handleCreateEmployee = () => {
@@ -235,7 +278,7 @@ const EmployeePage = () => {
         </Typography>
         <Box sx={{
           display: 'flex',
-          width: '50%',
+          width: '60%',
           gap: 1,
           alignItems: 'center',
           backgroundColor: 'white',
@@ -249,7 +292,7 @@ const EmployeePage = () => {
             onChange={(e) => setSearchCategory(e.target.value)}
             variant="outlined"
             sx={{
-              width: '150px',
+              width: '180px',
               '& .MuiOutlinedInput-root': {
                 borderRadius: '8px',
                 backgroundColor: '#F9FAFB',
@@ -285,19 +328,6 @@ const EmployeePage = () => {
               }
             }}
           />
-
-          <IconButton
-            onClick={() => { }}
-            sx={{
-              backgroundColor: '#F9FAFB',
-              borderRadius: '8px',
-              height: '32px',
-              width: '32px',
-              minWidth: '32px'
-            }}
-          >
-            <FilterListIcon />
-          </IconButton>
         </Box>
         <Button
           variant="contained"
@@ -359,15 +389,6 @@ const EmployeePage = () => {
             columns={columns}
             pageSize={10}
             rowsPerPageOptions={[10, 20, 50]}
-            components={{
-              Toolbar: GridToolbar
-            }}
-            componentsProps={{
-              toolbar: {
-                showQuickFilter: true,
-                quickFilterProps: { debounceMs: 500 },
-              },
-            }}
             loading={loading}
             sx={{
               backgroundColor: 'white',
@@ -390,16 +411,6 @@ const EmployeePage = () => {
               },
               '& .MuiDataGrid-cell:focus': {
                 outline: 'none'
-              },
-              '& .MuiDataGrid-toolbarContainer': {
-                padding: '8px 16px',
-                borderBottom: '1px solid #E5E7EB',
-                '& .MuiButton-root': {
-                  color: '#6B7280',
-                  '&:hover': {
-                    backgroundColor: '#F3F4F6'
-                  }
-                }
               },
               '& .MuiDataGrid-cell--pinned': {
                 backgroundColor: 'white',

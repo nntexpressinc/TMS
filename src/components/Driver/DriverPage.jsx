@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Typography, Box, Button, TextField, MenuItem, InputAdornment, Chip, IconButton, Tooltip } from "@mui/material";
-import { DataGrid, GridToolbar } from '@mui/x-data-grid';
+import { DataGrid } from '@mui/x-data-grid';
 import { ApiService } from "../../api/auth";
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
@@ -9,7 +9,6 @@ import { useNavigate } from 'react-router-dom';
 import './DriverPage.css';
 import { useSidebar } from "../SidebarContext";
 import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -20,6 +19,7 @@ const DriverPage = () => {
   const [filteredDrivers, setFilteredDrivers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchCategory, setSearchCategory] = useState("all");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,11 +40,17 @@ const DriverPage = () => {
 
   const searchCategories = [
     { value: "all", label: "All Fields" },
-    { value: "first_name", label: "First Name" },
-    { value: "last_name", label: "Last Name" },
-    { value: "contact_number", label: "Contact Number" },
-    { value: "email_address", label: "Email Address" },
-    { value: "driver_license_id", label: "Driver License ID" }
+    { value: "user_first_name", label: "First Name" },
+    { value: "user_last_name", label: "Last Name" },
+    { value: "user_telephone", label: "Phone Number" },
+    { value: "user_email", label: "Email Address" },
+    { value: "user_company_name", label: "Company Name" },
+    { value: "driver_license_id", label: "Driver License ID" },
+    { value: "driver_status", label: "Driver Status" },
+    { value: "employment_status", label: "Employment Status" },
+    { value: "telegram_username", label: "Telegram Username" },
+    { value: "driver_type", label: "Driver Type" },
+    { value: "mc_number", label: "MC Number" }
   ];
 
   useEffect(() => {
@@ -68,6 +74,15 @@ const DriverPage = () => {
   fetchDriversData();
 }, []);
 
+  // Debounce search term to avoid excessive filtering
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -83,39 +98,84 @@ const DriverPage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [isSidebarOpen]);
 
-  const handleSearch = () => {
-    if (searchTerm === "") {
-      setFilteredDrivers(drivers);
-      return;
+  const applyFilters = () => {
+    let filtered = [...drivers];
+
+    // Apply search filter first
+    if (debouncedSearchTerm !== "") {
+      filtered = filtered.filter(driver => {
+        if (searchCategory === "all") {
+          // Search across all relevant fields including nested user data
+          const searchableFields = [
+            // Driver fields
+            driver.driver_status,
+            driver.birth_date,
+            driver.employment_status,
+            driver.telegram_username,
+            driver.driver_license_id,
+            driver.dl_class,
+            driver.driver_type,
+            driver.driver_license_state,
+            driver.driver_license_expiration,
+            driver.other_id,
+            driver.notes,
+            driver.tariff,
+            driver.mc_number,
+            driver.team_driver,
+            driver.permile,
+            driver.cost,
+            driver.escrow_deposit,
+            driver.motive_id,
+            driver.assigned_truck,
+            driver.assigned_trailer,
+            driver.assigned_dispatcher,
+            // User nested fields
+            driver.user?.first_name,
+            driver.user?.last_name,
+            driver.user?.email,
+            driver.user?.telephone,
+            driver.user?.company_name,
+            driver.user?.city,
+            driver.user?.address,
+            driver.user?.country,
+            driver.user?.state,
+            driver.user?.postal_zip
+          ];
+          
+          return searchableFields.some(value =>
+            value && String(value).toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+          );
+        } else {
+          // Handle nested field searches
+          let fieldValue;
+          if (searchCategory.startsWith('user_')) {
+            const userField = searchCategory.replace('user_', '');
+            fieldValue = driver.user?.[userField];
+          } else {
+            fieldValue = driver[searchCategory];
+          }
+          
+          return fieldValue && String(fieldValue)
+            .toLowerCase()
+            .includes(debouncedSearchTerm.toLowerCase());
+        }
+      });
     }
 
-    const filtered = drivers.filter(driver => {
-      if (searchCategory === "all") {
-        return Object.values(driver).some(value =>
-          String(value).toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      } else {
-        return String(driver[searchCategory])
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
-      }
-    });
+    // Apply status filter
+    if (selectedStatus) {
+      filtered = filtered.filter(driver => driver.driver_status === selectedStatus);
+    }
 
     setFilteredDrivers(filtered);
   };
 
   useEffect(() => {
-    handleSearch();
-  }, [searchTerm, searchCategory, drivers]);
+    applyFilters();
+  }, [debouncedSearchTerm, searchCategory, drivers, selectedStatus]);
 
   const handleStatusFilter = (status) => {
     setSelectedStatus(status === selectedStatus ? null : status);
-    if (status === selectedStatus) {
-      setFilteredDrivers(drivers);
-    } else {
-      const filtered = drivers.filter(driver => driver.driver_status === status);
-      setFilteredDrivers(filtered);
-    }
   };
 
   const handleCreateDriver = () => {
@@ -336,7 +396,7 @@ const DriverPage = () => {
         </Typography>
         <Box sx={{
           display: 'flex',
-          width: '50%',
+          width: '60%',
           gap: 1,
           alignItems: 'center',
           backgroundColor: 'white',
@@ -350,7 +410,7 @@ const DriverPage = () => {
             onChange={(e) => setSearchCategory(e.target.value)}
             variant="outlined"
             sx={{
-              width: '150px',
+              width: '180px',
               '& .MuiOutlinedInput-root': {
                 borderRadius: '8px',
                 backgroundColor: '#F9FAFB',
@@ -386,19 +446,6 @@ const DriverPage = () => {
               }
             }}
           />
-
-          <IconButton
-            onClick={() => { }}
-            sx={{
-              backgroundColor: '#F9FAFB',
-              borderRadius: '8px',
-              height: '32px',
-              width: '32px',
-              minWidth: '32px'
-            }}
-          >
-            <FilterListIcon />
-          </IconButton>
         </Box>
         <Button
           variant="contained" 
@@ -460,15 +507,6 @@ const DriverPage = () => {
             columns={columns}
             pageSize={10}
             rowsPerPageOptions={[10, 20, 50]}
-            components={{
-              Toolbar: GridToolbar
-            }}
-            componentsProps={{
-              toolbar: {
-                showQuickFilter: true,
-                quickFilterProps: { debounceMs: 500 },
-              },
-            }}
             loading={loading} 
             sx={{
               backgroundColor: 'white',
@@ -491,16 +529,6 @@ const DriverPage = () => {
               },
               '& .MuiDataGrid-cell:focus': {
                 outline: 'none'
-              },
-              '& .MuiDataGrid-toolbarContainer': {
-                padding: '8px 16px',
-                borderBottom: '1px solid #E5E7EB',
-                '& .MuiButton-root': {
-                  color: '#6B7280',
-                  '&:hover': {
-                    backgroundColor: '#F3F4F6'
-                  }
-                }
               },
               '& .MuiDataGrid-cell--pinned': {
                 backgroundColor: 'white',
