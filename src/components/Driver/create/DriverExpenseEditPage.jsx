@@ -106,26 +106,12 @@ const DriverExpenseEditPage = () => {
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4">
-          Edit Expense for {driverData?.user?.first_name} {driverData?.user?.last_name}
+          Edit {formData.transaction_type === '+' ? 'Addition' : 'Deduction'} for {driverData?.user?.first_name} {driverData?.user?.last_name}
         </Typography>
       </Box>
       <Paper elevation={3} sx={{ p: 4, borderRadius: 3, boxShadow: 4, border: '1px solid #e0e0e0' }}>
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Transaction Type</InputLabel>
-                <Select
-                  name="transaction_type"
-                  value={formData.transaction_type}
-                  onChange={handleInputChange}
-                  label="Transaction Type"
-                >
-                  <MenuItem value="+">Income (+)</MenuItem>
-                  <MenuItem value="-">Expense (-)</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -152,17 +138,6 @@ const DriverExpenseEditPage = () => {
                 onChange={handleInputChange}
                 InputLabelProps={{ shrink: true }}
                 required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="From Date"
-                name="from_date"
-                type="date"
-                value={formData.from_date}
-                onChange={handleInputChange}
-                InputLabelProps={{ shrink: true }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -197,7 +172,7 @@ const DriverExpenseEditPage = () => {
               disabled={saving}
               sx={{ minWidth: 120 }}
             >
-              {saving ? <CircularProgress size={24} /> : 'Update Expense'}
+              {saving ? <CircularProgress size={24} /> : `Update ${formData.transaction_type === '+' ? 'Addition' : 'Deduction'}`}
             </Button>
             <Button
               variant="outlined"

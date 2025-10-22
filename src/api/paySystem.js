@@ -47,11 +47,18 @@ export const getDriverCompletedLoads = async (driverId, params = {}) => {
     const endpoint = `/pay-system/drivers/${driverId}/completed-loads/${query}`;
    
     console.log('getDriverCompletedLoads - Calling endpoint:', endpoint);
+    console.log('getDriverCompletedLoads - Full URL would be:', `https://nnt.nntexpressinc.com/api${endpoint}`);
    
     const response = await ApiService.getData(endpoint);
     console.log('getDriverCompletedLoads - Raw API response:', response);
     console.log('getDriverCompletedLoads - Response type:', Array.isArray(response) ? 'Array' : typeof response);
-    console.log('getDriverCompletedLoads - Response length:', Array.isArray(response) ? response.length : 'N/A');
+    console.log('getDriverCompletedLoads - Response keys:', response && typeof response === 'object' ? Object.keys(response) : 'N/A');
+    console.log('getDriverCompletedLoads - Has loads:', response && response.loads ? 'YES' : 'NO');
+    console.log('getDriverCompletedLoads - Has expenses:', response && response.expenses ? 'YES' : 'NO');
+    if (response && response.expenses) {
+      console.log('getDriverCompletedLoads - Expenses array:', response.expenses);
+      console.log('getDriverCompletedLoads - Expenses count:', response.expenses.length);
+    }
    
     // CRITICAL: Return the response as-is
     // The API returns an array directly, so we should not wrap it
@@ -303,6 +310,125 @@ export const downloadDriverPayPDF = async (id) => {
     return response;
   } catch (error) {
     console.error('Error downloading driver pay PDF:', error);
+    throw error;
+  }
+};
+
+// ============================================================================
+// DRIVER EXPENSE CRUD FUNCTIONS
+// ============================================================================
+
+/**
+ * Get all driver expenses
+ * @param {Object} params - Query parameters
+ * @returns {Promise<Array>} Array of driver expenses
+ */
+export const getDriverExpenses = async (params = {}) => {
+  try {
+    const query = buildQueryString(params);
+    const endpoint = `/driver/expense/${query}`;
+    
+    console.log('Fetching driver expenses:', endpoint);
+    const response = await ApiService.getData(endpoint);
+    console.log('Driver expenses response:', response);
+    
+    return response;
+  } catch (error) {
+    console.error('Error fetching driver expenses:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get a single driver expense by ID
+ * @param {number} id - Driver expense ID
+ * @returns {Promise<Object>} Detailed driver expense
+ */
+export const getDriverExpense = async (id) => {
+  try {
+    if (!id) {
+      throw new Error('Expense ID is required');
+    }
+    
+    const endpoint = `/driver/expense/${id}/`;
+    console.log('Fetching driver expense:', endpoint);
+    
+    const response = await ApiService.getData(endpoint);
+    console.log('Driver expense response:', response);
+    
+    return response;
+  } catch (error) {
+    console.error('Error fetching driver expense:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create a new driver expense
+ * @param {Object} payload - Driver expense data
+ * @returns {Promise<Object>} Created driver expense
+ */
+export const createDriverExpense = async (payload) => {
+  try {
+    if (!payload) {
+      throw new Error('Payload is required');
+    }
+    
+    console.log('Creating driver expense:', payload);
+    const response = await ApiService.postData('/driver/expense/', payload);
+    console.log('Created driver expense:', response);
+    
+    return response;
+  } catch (error) {
+    console.error('Error creating driver expense:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update a driver expense
+ * @param {number} id - Driver expense ID
+ * @param {Object} payload - Complete driver expense data
+ * @returns {Promise<Object>} Updated driver expense
+ */
+export const updateDriverExpense = async (id, payload) => {
+  try {
+    if (!id) {
+      throw new Error('Expense ID is required');
+    }
+    if (!payload) {
+      throw new Error('Payload is required');
+    }
+    
+    console.log('Updating driver expense:', id, payload);
+    const response = await ApiService.putData(`/driver/expense/${id}/`, payload);
+    console.log('Updated driver expense:', response);
+    
+    return response;
+  } catch (error) {
+    console.error('Error updating driver expense:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a driver expense
+ * @param {number} id - Driver expense ID
+ * @returns {Promise<Object>} Deletion confirmation
+ */
+export const deleteDriverExpense = async (id) => {
+  try {
+    if (!id) {
+      throw new Error('Expense ID is required');
+    }
+    
+    console.log('Deleting driver expense:', id);
+    const response = await ApiService.deleteData(`/driver/expense/${id}/`);
+    console.log('Deleted driver expense:', response);
+    
+    return response;
+  } catch (error) {
+    console.error('Error deleting driver expense:', error);
     throw error;
   }
 };

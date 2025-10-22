@@ -24,8 +24,13 @@ const DriverExpenseCreatePage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [driverData, setDriverData] = useState(null);
+  
+  // Get transaction type from URL parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  const transactionType = urlParams.get('type') === 'deduction' ? '-' : '+';
+  
   const [formData, setFormData] = useState({
-    transaction_type: '+',
+    transaction_type: transactionType,
     description: '',
     amount: '',
     expense_date: new Date().toISOString().split('T')[0],
@@ -83,26 +88,12 @@ const DriverExpenseCreatePage = () => {
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4">
-          Create Expense for {driverData?.user?.first_name} {driverData?.user?.last_name}
+          Create {transactionType === '+' ? 'Addition' : 'Deduction'} for {driverData?.user?.first_name} {driverData?.user?.last_name}
         </Typography>
       </Box>
       <Paper elevation={3} sx={{ p: 4, borderRadius: 3, boxShadow: 4, border: '1px solid #e0e0e0' }}>
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Transaction Type</InputLabel>
-                <Select
-                  name="transaction_type"
-                  value={formData.transaction_type}
-                  onChange={handleInputChange}
-                  label="Transaction Type"
-                >
-                  <MenuItem value="+">Income (+)</MenuItem>
-                  <MenuItem value="-">Expense (-)</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -131,17 +122,6 @@ const DriverExpenseCreatePage = () => {
                   shrink: true,
                 }}
                 required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="From Date"
-                name="from_date"
-                type="date"
-                value={formData.from_date}
-                onChange={handleInputChange}
-                InputLabelProps={{ shrink: true }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -176,7 +156,7 @@ const DriverExpenseCreatePage = () => {
               disabled={loading}
               sx={{ minWidth: 120 }}
             >
-              {loading ? <CircularProgress size={24} /> : 'Create Expense'}
+              {loading ? <CircularProgress size={24} /> : `Create ${transactionType === '+' ? 'Addition' : 'Deduction'}`}
             </Button>
             <Button
               variant="outlined"

@@ -40,6 +40,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { MdCheckCircle, MdCancel, MdPerson, MdDirectionsCar, MdPayment, MdReceipt, MdAssessment } from 'react-icons/md';
 import CreateIftaModal from '../IFTA/CreateIftaModal';
 import EditIftaModal from '../IFTA/EditIftaModal';
+import './DriverPage.css';
 
 const US_STATES = [
   { code: 'AL', name: 'Alabama' },
@@ -213,21 +214,46 @@ const DriverViewPage = () => {
     },
   ];
 
-  const expenseColumns = [
+  const getExpenseColumns = (transactionType) => [
     {
       field: 'index',
       headerName: 'No.',
       width: 70,
       valueGetter: (params) => {
-        const rowIndex = filteredExpenseData.findIndex(row => row.id === params.row.id);
+        const filteredData = filteredExpenseData.filter(e => e.transaction_type === transactionType);
+        const rowIndex = filteredData.findIndex(row => row.id === params.row.id);
         return rowIndex + 1;
       }
     },
     { field: 'description', headerName: 'Description', width: 200 },
-    { field: 'amount', headerName: 'Amount', width: 100 },
+    { 
+      field: 'amount', 
+      headerName: 'Amount', 
+      width: 120,
+      valueGetter: (params) => {
+        const amount = params.row.amount || 0;
+        const transactionType = params.row.transaction_type || '-';
+        return transactionType === '+' ? `+$${amount}` : `-$${amount}`;
+      },
+      cellClassName: (params) => {
+        const transactionType = params.row.transaction_type || '-';
+        return transactionType === '+' ? 'expense-amount-positive' : 'expense-amount-negative';
+      }
+    },
     { field: 'expense_date', headerName: 'Date', width: 120 },
-    { field: 'from_date', headerName: 'From Date', width: 120 },
-    { field: 'to_date', headerName: 'To Date', width: 120 },
+    {
+      field: 'invoice_status',
+      headerName: 'Invoice Status',
+      width: 130,
+      valueGetter: (params) => {
+        const status = params.row.invoice_status || 'Unpaid';
+        return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+      },
+      cellClassName: (params) => {
+        const status = (params.row.invoice_status || 'Unpaid').toLowerCase();
+        return status === 'paid' ? 'invoice-status-paid' : 'invoice-status-unpaid';
+      }
+    },
     {
       field: 'actions',
       headerName: 'Actions',
@@ -436,6 +462,14 @@ const DriverViewPage = () => {
 
   const handleCreateExpense = () => {
     navigate(`/driver/${id}/expense/create`);
+  };
+
+  const handleCreateAddition = () => {
+    navigate(`/driver/${id}/expense/create?type=addition`);
+  };
+
+  const handleCreateDeduction = () => {
+    navigate(`/driver/${id}/expense/create?type=deduction`);
   };
 
   const handleEditIfta = (iftaId) => {
@@ -857,7 +891,7 @@ const DriverViewPage = () => {
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
-                  onClick={handleCreateExpense}
+                  onClick={handleCreateAddition}
                   size="small"
                 >
                   Create ADDITION
@@ -874,7 +908,7 @@ const DriverViewPage = () => {
             <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 2 }}>
               <DataGrid
                 rows={filteredExpenseData.filter(e => e.transaction_type === '+')}
-                columns={expenseColumns}
+                columns={getExpenseColumns('+')}
                 pageSize={5}
                 rowsPerPageOptions={[5, 10, 20]}
                 autoHeight
@@ -907,7 +941,7 @@ const DriverViewPage = () => {
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
-                  onClick={handleCreateExpense}
+                  onClick={handleCreateDeduction}
                   size="small"
                 >
                   Create Deduction
@@ -924,7 +958,7 @@ const DriverViewPage = () => {
             <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 2 }}>
               <DataGrid
                 rows={filteredExpenseData.filter(e => e.transaction_type === '-')}
-                columns={expenseColumns}
+                columns={getExpenseColumns('-')}
                 pageSize={5}
                 rowsPerPageOptions={[5, 10, 20]}
                 autoHeight

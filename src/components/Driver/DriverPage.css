@@ -9,3 +9,35 @@ text-align: center;
 .align-right {
 text-align: right;
 }
+
+/* Expense Table Styles */
+.expense-amount-positive {
+    color: #059669 !important;
+    font-weight: 600 !important;
+}
+
+.expense-amount-negative {
+    color: #dc2626 !important;
+    font-weight: 600 !important;
+}
+
+.expense-type-addition {
+    color: #059669 !important;
+    font-weight: 500 !important;
+}
+
+.expense-type-deduction {
+    color: #dc2626 !important;
+    font-weight: 500 !important;
+}
+
+/* Invoice Status Styles */
+.invoice-status-paid {
+    color: #059669 !important;
+    font-weight: 600 !important;
+}
+
+.invoice-status-unpaid {
+    color: #dc2626 !important;
+    font-weight: 600 !important;
+}

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getDriversSummary, getDriverCompletedLoads, postPaystubAction } from '../../api/paySystem';
+import { getDriversSummary, getDriverCompletedLoads, postPaystubAction, createDriverExpense } from '../../api/paySystem';
 import { testApiConnection } from '../../api/testConnection';
 import './AccountingPage.css';
 
@@ -212,13 +212,14 @@ const AccountingPage = () => {
   };
 
   const [dateRange, setDateRange] = useState(getDefaultDateRange());
-  const [driverData, setDriverData] = useState({ loads: [], driver: null });
+  const [driverData, setDriverData] = useState({ loads: [], expenses: [], driver: null });
   const [driverLoading, setDriverLoading] = useState(false);
   const [driverError, setDriverError] = useState('');
 
   const [expandedLoads, setExpandedLoads] = useState([]);
   const [selectedLoadIds, setSelectedLoadIds] = useState([]);
   const [selectedOtherPayIds, setSelectedOtherPayIds] = useState([]);
+  const [selectedExpenseIds, setSelectedExpenseIds] = useState([]);
 
   const [statementNotes, setStatementNotes] = useState('');
   const [fuelAdvance, setFuelAdvance] = useState('');
@@ -229,6 +230,15 @@ const AccountingPage = () => {
   const [lastStub, setLastStub] = useState(null);
 
   const [persistedHydrated, setPersistedHydrated] = useState(false);
+  
+  // Expense creation state
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [expenseFormData, setExpenseFormData] = useState({
+    description: '',
+    amount: '',
+    expense_date: new Date().toISOString().slice(0, 10),
+    transaction_type: '+'
+  });
   
   // CRITICAL: Use refs to prevent infinite loops
   const fetchingDriverRef = useRef(false);
@@ -280,6 +290,16 @@ const AccountingPage = () => {
     });
   }, []);
 
+  const handleExpenseSelectChange = useCallback((expenseId, checked) => {
+    setSelectedExpenseIds((prev) => {
+      if (checked) {
+        return prev.includes(expenseId) ? prev : [...prev, expenseId];
+      } else {
+        return prev.filter((id) => id !== expenseId);
+      }
+    });
+  }, []);
+
   const toggleLoadStops = useCallback((rowId) => {
     setExpandedLoads((prev) =>
       prev.includes(rowId) ? prev.filter((id) => id !== rowId) : [...prev, rowId]
@@ -299,16 +319,23 @@ const AccountingPage = () => {
     }
     
     const loads = ensureArray(data?.loads).filter(Boolean);
+    const expenses = ensureArray(data?.expenses).filter(Boolean);
     console.log('Extracted loads:', loads);
+    console.log('Extracted expenses:', expenses);
     console.log('Loads count:', loads.length);
+    console.log('Expenses count:', expenses.length);
     
     if (loads.length > 0) {
       console.log('First load sample:', loads[0]);
+    }
+    if (expenses.length > 0) {
+      console.log('First expense sample:', expenses[0]);
     }
 
     // Update driver data
     const newDriverData = {
       loads,
+      expenses,
       driver: data.driver || { id: driverId },
     };
     
@@ -320,8 +347,9 @@ const AccountingPage = () => {
     console.log('Default load IDs:', defaultLoadIds);
     setSelectedLoadIds(defaultLoadIds);
     
-    // Don't auto-select other pays - let user choose
+    // Don't auto-select other pays or expenses - let user choose
     setSelectedOtherPayIds([]);
+    setSelectedExpenseIds([]);
     
     // Set form data from response only if they exist
     if (data.statement_notes !== undefined) {
@@ -336,6 +364,7 @@ const AccountingPage = () => {
     
     console.log('=== HYDRATION COMPLETE ===');
     console.log('Final state - Loads:', loads.length, 'Selected:', defaultLoadIds.length);
+    console.log('Final state - Expenses:', expenses.length, 'Selected: 0 (manual selection)');
   }, []);
 
   const fetchDriversSummary = useCallback(async () => {
@@ -364,8 +393,8 @@ const AccountingPage = () => {
   // FIXED: Fetch driver details function that prevents duplicate calls
   const fetchDriverDetails = useCallback(
     async (driverId, fromDate, toDate) => {
-      if (!driverId || !fromDate || !toDate) {
-        console.warn('fetchDriverDetails called without required params:', { driverId, fromDate, toDate });
+      if (!driverId) {
+        console.warn('fetchDriverDetails called without driver ID:', { driverId, fromDate, toDate });
         return;
       }
       
@@ -384,40 +413,53 @@ const AccountingPage = () => {
       setDriverError('');
       
       try {
-        const params = {
-          from_date: fromDate,
-          to_date: toDate
-        };
+        const params = {};
+        
+        // Only add date parameters if they are provided
+        if (fromDate) {
+          params.from_date = fromDate;
+        }
+        if (toDate) {
+          params.to_date = toDate;
+        }
         
         console.log('Fetching driver completed loads with params:', { driverId, params });
         
         const response = await getDriverCompletedLoads(driverId, params);
         console.log('Driver completed loads response:', response);
         console.log('Response type:', Array.isArray(response) ? 'Array' : typeof response);
-        console.log('Response length:', Array.isArray(response) ? response.length : 'N/A');
         
-        // Handle response - the API returns an array directly
+        // Handle response - the API returns an object with loads and expenses arrays
         let loadsData = [];
+        let expensesData = [];
         
-        if (Array.isArray(response)) {
-          // API returns array directly
-          loadsData = response;
-          console.log('Extracted loads from array:', loadsData.length);
-        } else if (response && Array.isArray(response.loads)) {
-          // Wrapped in loads property
-          loadsData = response.loads;
+        if (response && typeof response === 'object' && response.loads) {
+          // API returns object with loads and expenses properties
+          loadsData = ensureArray(response.loads);
+          expensesData = ensureArray(response.expenses);
           console.log('Extracted loads from response.loads:', loadsData.length);
+          console.log('Extracted expenses from response.expenses:', expensesData.length);
+          console.log('Raw expenses data:', response.expenses);
+        } else if (Array.isArray(response)) {
+          // Fallback: API returns array directly (loads only)
+          loadsData = response;
+          expensesData = [];
+          console.log('Extracted loads from array:', loadsData.length);
+          console.log('No expenses found in array response');
         } else if (response && typeof response === 'object') {
           // Single object or other structure
           loadsData = ensureArray(response);
+          expensesData = [];
           console.log('Wrapped response in array:', loadsData.length);
         }
         
         console.log('Final loads data:', loadsData);
+        console.log('Final expenses data:', expensesData);
         
-        // Always hydrate with consistent structure
+        // Always hydrate with consistent structure including expenses
         const dataToHydrate = {
           loads: loadsData,
+          expenses: expensesData,
           driver: { id: driverId }
         };
         
@@ -624,6 +666,73 @@ const AccountingPage = () => {
     });
   }, [driverData.loads]);
 
+  const handleSelectAllExpenses = useCallback((checked) => {
+    setSelectedExpenseIds((prev) => {
+      if (checked) {
+        const allExpenseIds = (driverData.expenses || []).map((expense) => expense.id).filter(Boolean);
+        return [...new Set([...prev, ...allExpenseIds])];
+      } else {
+        return [];
+      }
+    });
+  }, [driverData.expenses]);
+
+  const handleCreateExpense = useCallback((transactionType) => {
+    if (!selectedDriverId) {
+      setActionError(t('Please select a driver first'));
+      return;
+    }
+    
+    setExpenseFormData({
+      description: '',
+      amount: '',
+      expense_date: new Date().toISOString().slice(0, 10),
+      transaction_type: transactionType
+    });
+    setShowExpenseModal(true);
+  }, [selectedDriverId, t]);
+
+  const handleExpenseFormChange = useCallback((field, value) => {
+    setExpenseFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
+
+  const handleExpenseSubmit = async () => {
+    if (!expenseFormData.description || !expenseFormData.amount) {
+      setActionError(t('Please fill in all required fields'));
+      return;
+    }
+
+    setActionLoading(true);
+    setActionError('');
+    
+    try {
+      const payload = {
+        driver: selectedDriverId,
+        description: expenseFormData.description,
+        amount: parseFloat(expenseFormData.amount),
+        expense_date: expenseFormData.expense_date,
+        transaction_type: expenseFormData.transaction_type
+      };
+
+      await createDriverExpense(payload);
+      
+      // Refresh the driver data to show the new expense
+      await fetchDriverDetails(selectedDriverId, dateRange.from, dateRange.to);
+      
+      setShowExpenseModal(false);
+      
+    } catch (error) {
+      console.error('Error creating expense:', error);
+      const message = error?.response?.data?.detail || error?.message || t('Failed to create expense');
+      setActionError(message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const parseNumberInput = (value) => {
     if (value === '' || value === null || value === undefined) return null;
     const num = parseFloat(value);
@@ -654,6 +763,8 @@ const AccountingPage = () => {
         driver_id: selectedDriverId,
         load_ids: selectedLoadIds,
         pay_type: payType,
+        from_date: dateRange.from,
+        to_date: dateRange.to,
       };
 
       // Only include other_pays_id if there are selected other pays
@@ -661,8 +772,14 @@ const AccountingPage = () => {
         payload.other_pays_id = selectedOtherPayIds;
       }
 
+      // Only include expenses if there are selected expenses
+      if (selectedExpenseIds.length > 0) {
+        payload.expenses = selectedExpenseIds;
+      }
+
       console.log('Posting paystub action with payload:', payload);
       console.log('Selected other pay IDs:', selectedOtherPayIds);
+      console.log('Selected expense IDs:', selectedExpenseIds);
 
       const response = await postPaystubAction(payload);
       console.log('Paystub action response:', response);
@@ -708,11 +825,15 @@ const AccountingPage = () => {
 
   const loadsSelectedCount = selectedLoadIds.length;
   const otherPaysSelectedCount = selectedOtherPayIds.length;
+  const expensesSelectedCount = selectedExpenseIds.length;
   
   // Calculate total other pays count
   const totalOtherPaysCount = driverData.loads.reduce((total, load) => {
     return total + ensureArray(load.other_pays).length;
   }, 0);
+  
+  // Calculate total expenses count
+  const totalExpensesCount = driverData.expenses?.length || 0;
   
   const allLoadsSelected =
     driverData.loads.length > 0 && loadsSelectedCount === driverData.loads.length;
@@ -840,199 +961,331 @@ const AccountingPage = () => {
 
         {driverError && <div className="inline-error">{driverError}</div>}
 
-        <div className="data-panels">
-          <section className={`data-panel ${driverLoading ? 'loading' : ''}`}>
-            {driverLoading && (
-              <div className="loading-overlay">
-                <div className="loading-spinner"></div>
-              </div>
-            )}
-            <div className="panel-header">
-              <div>
-                <h2>{t('Loads')}</h2>
-                <p>
-                  {loadsSelectedCount}/{driverData.loads.length} {t('loads selected')}
-                  {totalOtherPaysCount > 0 && (
-                    <> • {otherPaysSelectedCount}/{totalOtherPaysCount} {t('other pays selected')}</>
-                  )}
-                </p>
-              </div>
-              <div className="panel-header__action">
-                <label>
+        {/* Loads Section */}
+        <section className={`data-panel ${driverLoading ? 'loading' : ''}`}>
+          {driverLoading && (
+            <div className="loading-overlay">
+              <div className="loading-spinner"></div>
+            </div>
+          )}
+          <div className="panel-header">
+            <div>
+              <h2>{t('Loads')}</h2>
+              <p>
+                {loadsSelectedCount}/{driverData.loads.length} {t('loads selected')}
+                {totalOtherPaysCount > 0 && (
+                  <> • {otherPaysSelectedCount}/{totalOtherPaysCount} {t('other pays selected')}</>
+                )}
+              </p>
+            </div>
+            <div className="panel-header__action">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={allLoadsSelected}
+                  onChange={(e) => handleSelectAllLoads(e.target.checked)}
+                />
+                <span>{t('Select all')}</span>
+              </label>
+            </div>
+          </div>
+          {!driverLoading && driverData.loads.length === 0 && (
+            <div className="panel-status">{t('No loads to display')}</div>
+          )}
+          {driverData.loads.length > 0 && (
+            <div className="table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th />
+                    <th>{t('Load #')}</th>
+                    <th>{t('Customer')}</th>
+                    <th>{t('Lane')}</th>
+                    <th>{t('Status')}</th>
+                    <th>{t('Pay')}</th>
+                    <th>{t('Miles')}</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {driverData.loads.map((load) => {
+                    const rowId = getRowId(load);
+                    const expanded = expandedLoads.includes(rowId);
+                    const hasOtherPays = ensureArray(load.other_pays).length > 0;
+                    const hasStops = ensureArray(load.stops).length > 0;
+                    const hasPayPlan = load.description || load.rate || load.total;
+                    const hasExpandableContent = hasOtherPays || hasStops || hasPayPlan;
+                    
+                    return (
+                      <React.Fragment key={rowId}>
+                        <tr>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={selectedLoadIds.includes(rowId)}
+                              onChange={(e) => handleLoadSelectChange(rowId, e.target.checked)}
+                            />
+                          </td>
+                          <td>{load.load_id || load.reference || rowId}</td>
+                          <td>{load.customer_broker_name || load.customer || load.customer_name || '--'}</td>
+                          <td>{formatLane(load)}</td>
+                          <td>
+                            <span style={getLoadStatusStyle(load.load_status)}>
+                              {load.load_status || '--'}
+                            </span>
+                          </td>
+                          <td>{formatCurrency(load.driver_pay ?? load.pay_total ?? load.pay)}</td>
+                          <td>{formatMiles(load.total_miles ?? load.miles)}</td>
+                          <td>
+                            {hasExpandableContent && (
+                              <button
+                                className="link-button"
+                                onClick={() => toggleLoadStops(rowId)}
+                              >
+                                {expanded ? t('Hide details') : t('View details')}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                        {expanded && hasExpandableContent && (
+                          <tr className="stops-row">
+                            <td />
+                            <td colSpan={7}>
+                              <div className="load-details-content">
+                                {/* Pay Plan Section */}
+                                <div className="load-details-section pay-plan-section">
+                                  <strong className="load-details-section-title">
+                                    {t('Pay Plan')}
+                                  </strong>
+                                  <div className="pay-plan-details">
+                                    {load.description && (
+                                      <div className="pay-plan-item">
+                                        <span className="pay-plan-label">{t('Description')}:</span>
+                                        <span className="pay-plan-value">{load.description}</span>
+                                      </div>
+                                    )}
+                                    {load.rate && (
+                                      <div className="pay-plan-item">
+                                        <span className="pay-plan-label">{t('Rate')}:</span>
+                                        <span className="pay-plan-value">{formatCurrency(load.rate)}</span>
+                                      </div>
+                                    )}
+                                    {load.total && (
+                                      <div className="pay-plan-item">
+                                        <span className="pay-plan-label">{t('Total')}:</span>
+                                        <span className="pay-plan-value">{formatCurrency(load.total)}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                {hasOtherPays && (
+                                  <div className="load-details-section other-pays-section">
+                                    <div className="other-pays-header">
+                                      <strong className="load-details-section-title">
+                                        {t('Other Pays')}
+                                      </strong>
+                                      <label className="other-pays-select-all">
+                                        <input
+                                          type="checkbox"
+                                          checked={ensureArray(load.other_pays).length > 0 && 
+                                            ensureArray(load.other_pays).every((otherPay) => {
+                                              const otherPayId = getOtherPayId(otherPay);
+                                              return otherPayId && selectedOtherPayIds.includes(otherPayId);
+                                            })}
+                                          onChange={(e) => handleSelectAllOtherPaysForLoad(rowId, e.target.checked)}
+                                        />
+                                        <span>{t('Select all')}</span>
+                                      </label>
+                                    </div>
+                                    <div className="other-pays-list">
+                                      {ensureArray(load.other_pays).map((otherPay, index) => {
+                                        const otherPayId = getOtherPayId(otherPay);
+                                        if (!otherPayId) return null; // Skip if no valid ID
+                                        
+                                        return (
+                                          <div key={otherPayId} className="other-pay-item">
+                                            <div className="other-pay-header">
+                                              <div className="other-pay-header-left">
+                                                <input
+                                                  type="checkbox"
+                                                  checked={selectedOtherPayIds.includes(otherPayId)}
+                                                  onChange={(e) => handleOtherPaySelectChange(otherPayId, e.target.checked)}
+                                                  className="other-pay-checkbox"
+                                                />
+                                                <span className="other-pay-type">
+                                                  {otherPay.type || otherPay.pay_type || 'Other Pay'}
+                                                </span>
+                                              </div>
+                                              <span className="other-pay-amount">
+                                                {formatCurrency(otherPay.amount || otherPay.pay_amount)}
+                                              </span>
+                                            </div>
+                                            {(otherPay.note || otherPay.description) && (
+                                              <div className="other-pay-note">
+                                                {otherPay.note || otherPay.description}
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                                {hasStops && (
+                                  <div className="load-details-section">
+                                    {hasOtherPays && <div className="section-divider" />}
+                                    <strong className="load-details-section-title">
+                                      {t('Stops')}
+                                    </strong>
+                                    {renderStops(load.stops)}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        {/* Expenses Section */}
+        <section className={`data-panel ${driverLoading ? 'loading' : ''}`}>
+          {driverLoading && (
+            <div className="loading-overlay">
+              <div className="loading-spinner"></div>
+            </div>
+          )}
+          <div className="panel-header">
+            <div>
+              <h2>{t('Expenses')}</h2>
+              <p>
+                {expensesSelectedCount}/{totalExpensesCount} {t('expenses selected')}
+              </p>
+            </div>
+            <div className="panel-header__action">
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  className="ghost-button"
+                  onClick={() => handleCreateExpense('+')}
+                  style={{ minWidth: 'auto', padding: '6px 12px', fontSize: '12px' }}
+                >
+                  {t('Create Addition')}
+                </button>
+                <button
+                  className="ghost-button"
+                  onClick={() => handleCreateExpense('-')}
+                  style={{ minWidth: 'auto', padding: '6px 12px', fontSize: '12px' }}
+                >
+                  {t('Create Deduction')}
+                </button>
+                <label style={{ marginLeft: '8px' }}>
                   <input
                     type="checkbox"
-                    checked={allLoadsSelected}
-                    onChange={(e) => handleSelectAllLoads(e.target.checked)}
+                    checked={totalExpensesCount > 0 && expensesSelectedCount === totalExpensesCount}
+                    onChange={(e) => handleSelectAllExpenses(e.target.checked)}
                   />
                   <span>{t('Select all')}</span>
                 </label>
               </div>
             </div>
-            {!driverLoading && driverData.loads.length === 0 && (
-              <div className="panel-status">{t('No loads to display')}</div>
-            )}
-            {driverData.loads.length > 0 && (
-              <div className="table-wrapper">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th />
-                      <th>{t('Load #')}</th>
-                      <th>{t('Customer')}</th>
-                      <th>{t('Lane')}</th>
-                      <th>{t('Status')}</th>
-                      <th>{t('Pay')}</th>
-                      <th>{t('Miles')}</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {driverData.loads.map((load) => {
-                      const rowId = getRowId(load);
-                      const expanded = expandedLoads.includes(rowId);
-                      const hasOtherPays = ensureArray(load.other_pays).length > 0;
-                      const hasStops = ensureArray(load.stops).length > 0;
-                      const hasPayPlan = load.description || load.rate || load.total;
-                      const hasExpandableContent = hasOtherPays || hasStops || hasPayPlan;
-                      
-                      return (
-                        <React.Fragment key={rowId}>
-                          <tr>
-                            <td>
-                              <input
-                                type="checkbox"
-                                checked={selectedLoadIds.includes(rowId)}
-                                onChange={(e) => handleLoadSelectChange(rowId, e.target.checked)}
-                              />
-                            </td>
-                            <td>{load.load_id || load.reference || rowId}</td>
-                            <td>{load.customer_broker_name || load.customer || load.customer_name || '--'}</td>
-                            <td>{formatLane(load)}</td>
-                            <td>
-                              <span style={getLoadStatusStyle(load.load_status)}>
-                                {load.load_status || '--'}
-                              </span>
-                            </td>
-                            <td>{formatCurrency(load.driver_pay ?? load.pay_total ?? load.pay)}</td>
-                            <td>{formatMiles(load.total_miles ?? load.miles)}</td>
-                            <td>
-                              {hasExpandableContent && (
-                                <button
-                                  className="link-button"
-                                  onClick={() => toggleLoadStops(rowId)}
-                                >
-                                  {expanded ? t('Hide details') : t('View details')}
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                          {expanded && hasExpandableContent && (
-                            <tr className="stops-row">
-                              <td />
-                              <td colSpan={7}>
-                                <div className="load-details-content">
-                                  {/* Pay Plan Section */}
-                                  <div className="load-details-section pay-plan-section">
-                                    <strong className="load-details-section-title">
-                                      {t('Pay Plan')}
-                                    </strong>
-                                    <div className="pay-plan-details">
-                                      {load.description && (
-                                        <div className="pay-plan-item">
-                                          <span className="pay-plan-label">{t('Description')}:</span>
-                                          <span className="pay-plan-value">{load.description}</span>
-                                        </div>
-                                      )}
-                                      {load.rate && (
-                                        <div className="pay-plan-item">
-                                          <span className="pay-plan-label">{t('Rate')}:</span>
-                                          <span className="pay-plan-value">{formatCurrency(load.rate)}</span>
-                                        </div>
-                                      )}
-                                      {load.total && (
-                                        <div className="pay-plan-item">
-                                          <span className="pay-plan-label">{t('Total')}:</span>
-                                          <span className="pay-plan-value">{formatCurrency(load.total)}</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                  
-                                  {hasOtherPays && (
-                                    <div className="load-details-section other-pays-section">
-                                      <div className="other-pays-header">
-                                        <strong className="load-details-section-title">
-                                          {t('Other Pays')}
-                                        </strong>
-                                        <label className="other-pays-select-all">
-                                          <input
-                                            type="checkbox"
-                                            checked={ensureArray(load.other_pays).length > 0 && 
-                                              ensureArray(load.other_pays).every((otherPay) => {
-                                                const otherPayId = getOtherPayId(otherPay);
-                                                return otherPayId && selectedOtherPayIds.includes(otherPayId);
-                                              })}
-                                            onChange={(e) => handleSelectAllOtherPaysForLoad(rowId, e.target.checked)}
-                                          />
-                                          <span>{t('Select all')}</span>
-                                        </label>
-                                      </div>
-                                      <div className="other-pays-list">
-                                        {ensureArray(load.other_pays).map((otherPay, index) => {
-                                          const otherPayId = getOtherPayId(otherPay);
-                                          if (!otherPayId) return null; // Skip if no valid ID
-                                          
-                                          return (
-                                            <div key={otherPayId} className="other-pay-item">
-                                              <div className="other-pay-header">
-                                                <div className="other-pay-header-left">
-                                                  <input
-                                                    type="checkbox"
-                                                    checked={selectedOtherPayIds.includes(otherPayId)}
-                                                    onChange={(e) => handleOtherPaySelectChange(otherPayId, e.target.checked)}
-                                                    className="other-pay-checkbox"
-                                                  />
-                                                  <span className="other-pay-type">
-                                                    {otherPay.type || otherPay.pay_type || 'Other Pay'}
-                                                  </span>
-                                                </div>
-                                                <span className="other-pay-amount">
-                                                  {formatCurrency(otherPay.amount || otherPay.pay_amount)}
-                                                </span>
-                                              </div>
-                                              {(otherPay.note || otherPay.description) && (
-                                                <div className="other-pay-note">
-                                                  {otherPay.note || otherPay.description}
-                                                </div>
-                                              )}
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  )}
-                                  {hasStops && (
-                                    <div className="load-details-section">
-                                      {hasOtherPays && <div className="section-divider" />}
-                                      <strong className="load-details-section-title">
-                                        {t('Stops')}
-                                      </strong>
-                                      {renderStops(load.stops)}
-                                    </div>
-                                  )}
-                                </div>
+          </div>
+          
+          {!driverLoading && (!driverData.expenses || driverData.expenses.length === 0) && (
+            <div className="panel-status">{t('No expenses to display')}</div>
+          )}
+          
+          {driverData.expenses && driverData.expenses.length > 0 && (
+            <div>
+              {/* Deductions Section */}
+              {driverData.expenses.filter(expense => expense.transaction_type === '-').length > 0 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#dc2626', fontWeight: '600' }}>
+                    {t('Deductions')}
+                  </h4>
+                  <div className="table-wrapper">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th />
+                          <th>{t('Date')}</th>
+                          <th>{t('Description')}</th>
+                          <th>{t('Amount')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {driverData.expenses
+                          .filter(expense => expense.transaction_type === '-')
+                          .map((expense) => (
+                            <tr key={expense.id} className="expense-row">
+                              <td>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedExpenseIds.includes(expense.id)}
+                                  onChange={(e) => handleExpenseSelectChange(expense.id, e.target.checked)}
+                                />
+                              </td>
+                              <td>{expense.expense_date || '--'}</td>
+                              <td>{expense.description || '--'}</td>
+                              <td className="expense-amount-negative">
+                                -{formatCurrency(Math.abs(expense.amount || 0))}
                               </td>
                             </tr>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-        </div>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+              
+              {/* Additions Section */}
+              {driverData.expenses.filter(expense => expense.transaction_type === '+').length > 0 && (
+                <div>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#059669', fontWeight: '600' }}>
+                    {t('Additions')}
+                  </h4>
+                  <div className="table-wrapper">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th />
+                          <th>{t('Date')}</th>
+                          <th>{t('Description')}</th>
+                          <th>{t('Amount')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {driverData.expenses
+                          .filter(expense => expense.transaction_type === '+')
+                          .map((expense) => (
+                            <tr key={expense.id} className="expense-row">
+                              <td>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedExpenseIds.includes(expense.id)}
+                                  onChange={(e) => handleExpenseSelectChange(expense.id, e.target.checked)}
+                                />
+                              </td>
+                              <td>{expense.expense_date || '--'}</td>
+                              <td>{expense.description || '--'}</td>
+                              <td className="expense-amount-positive">
+                                +{formatCurrency(Math.abs(expense.amount || 0))}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
 
         <section className="form-panel">
           <h2>{t('Statement Details')}</h2>
@@ -1146,6 +1399,77 @@ const AccountingPage = () => {
               )}
             </div>
           </section>
+        )}
+
+        {/* Expense Creation Modal */}
+        {showExpenseModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h3>{t('Create')} {expenseFormData.transaction_type === '+' ? t('Addition') : t('Deduction')}</h3>
+                <button
+                  className="modal-close"
+                  onClick={() => setShowExpenseModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="modal-body">
+                <div className="form-grid">
+                  <div className="form-field">
+                    <label htmlFor="expense-description">{t('Description')} *</label>
+                    <input
+                      id="expense-description"
+                      type="text"
+                      value={expenseFormData.description}
+                      onChange={(e) => handleExpenseFormChange('description', e.target.value)}
+                      placeholder={t('Enter description')}
+                    />
+                  </div>
+                  
+                  <div className="form-field">
+                    <label htmlFor="expense-amount">{t('Amount')} *</label>
+                    <input
+                      id="expense-amount"
+                      type="number"
+                      step="0.01"
+                      value={expenseFormData.amount}
+                      onChange={(e) => handleExpenseFormChange('amount', e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  
+                  <div className="form-field">
+                    <label htmlFor="expense-date">{t('Date')}</label>
+                    <input
+                      id="expense-date"
+                      type="date"
+                      value={expenseFormData.expense_date}
+                      onChange={(e) => handleExpenseFormChange('expense_date', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="modal-footer">
+                <button
+                  className="ghost-button"
+                  onClick={() => setShowExpenseModal(false)}
+                  disabled={actionLoading}
+                >
+                  {t('Cancel')}
+                </button>
+                <button
+                  className="primary-button"
+                  onClick={handleExpenseSubmit}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? t('Creating...') : t('Create')} {expenseFormData.transaction_type === '+' ? t('Addition') : t('Deduction')}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
       </div>
