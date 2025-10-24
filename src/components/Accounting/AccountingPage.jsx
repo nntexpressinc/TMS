@@ -769,7 +769,7 @@ const AccountingPage = () => {
 
       // Only include other_pays_id if there are selected other pays
       if (selectedOtherPayIds.length > 0) {
-        payload.other_pays_id = selectedOtherPayIds;
+        payload.other_pays_ids = selectedOtherPayIds;
       }
 
       // Only include expenses if there are selected expenses
