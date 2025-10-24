@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, Button, TextField, Typography, Paper, MenuItem, FormControl, InputLabel, Select, OutlinedInput, Grid, Alert, Divider, Tabs, Tab, CircularProgress, Avatar } from "@mui/material";
+import { Box, Button, TextField, Typography, Paper, MenuItem, FormControl, InputLabel, Select, OutlinedInput, Grid, Alert, Divider, Tabs, Tab, CircularProgress, Avatar, Autocomplete } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiService } from "../../api/auth";
 import { toast } from 'react-hot-toast';
@@ -86,13 +86,26 @@ const DispatcherEditPage = () => {
   const [userData, setUserData] = useState({});
   const [dispatcherData, setDispatcherData] = useState({});
   const [profilePhotoFile, setProfilePhotoFile] = useState(null);
+  const [teams, setTeams] = useState([]);
+  const [selectedTeam, setSelectedTeam] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const dispatcher = await ApiService.getData(`/dispatcher/${id}/`);
+        const [dispatcher, teamsData] = await Promise.all([
+          ApiService.getData(`/dispatcher/${id}/`),
+          ApiService.getData('/team/')
+        ]);
         setDispatcherData(dispatcher);
         setUserData(dispatcher.user || {});
+        setTeams(teamsData);
+        
+        // Find current team for this dispatcher
+        const currentTeam = teamsData.find(team => team.dispatchers?.includes(dispatcher.id));
+        if (currentTeam) {
+          setSelectedTeam(currentTeam.id);
+        }
+        
         setLoading(false);
       } catch (error) {
         setError('Failed to load dispatcher data. Please try again.');
@@ -192,6 +205,33 @@ const DispatcherEditPage = () => {
         office: dispatcherData.office
       };
       await ApiService.putData(`/dispatcher/${id}/`, updatedData);
+      
+      // Handle team assignment
+      const dispatcherId = parseInt(id);
+      const newTeamId = selectedTeam ? parseInt(selectedTeam) : null;
+      const currentTeam = teams.find(team => team.dispatchers?.includes(dispatcherId));
+      
+      // Remove from old team if exists
+      if (currentTeam && currentTeam.id !== newTeamId) {
+        const updatedDispatchers = currentTeam.dispatchers ? currentTeam.dispatchers.filter(did => did !== dispatcherId) : [];
+        await ApiService.putData(`/team/${currentTeam.id}/`, { 
+          ...currentTeam, 
+          dispatchers: updatedDispatchers 
+        });
+      }
+      
+      // Add to new team if selected
+      if (newTeamId && (!currentTeam || currentTeam.id !== newTeamId)) {
+        const targetTeam = teams.find(t => t.id === newTeamId);
+        if (targetTeam) {
+          const updatedDispatchers = targetTeam.dispatchers ? [...targetTeam.dispatchers, dispatcherId] : [dispatcherId];
+          await ApiService.putData(`/team/${newTeamId}/`, { 
+            ...targetTeam, 
+            dispatchers: updatedDispatchers 
+          });
+        }
+      }
+      
       setSuccess(true);
       setLoading(false);
       toast.success('Dispatcher information updated successfully!');
@@ -464,6 +504,46 @@ const DispatcherEditPage = () => {
                     name="office"
                     value={dispatcherData.office || ''}
                     onChange={handleDispatcherChange}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Autocomplete
+                    options={[{ id: '', name: 'No Team (Unassigned)' }, ...teams]}
+                    getOptionLabel={(option) => option.name === 'No Team (Unassigned)' ? option.name : `Team #${option.name}`}
+                    value={teams.find(t => t.id === selectedTeam) || { id: '', name: 'No Team (Unassigned)' }}
+                    onChange={(event, newValue) => {
+                      setSelectedTeam(newValue ? newValue.id : '');
+                    }}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Team"
+                        placeholder="Search for a team..."
+                        variant="outlined"
+                      />
+                    )}
+                    renderOption={(props, option) => (
+                      <li {...props} key={option.id}>
+                        {option.name === 'No Team (Unassigned)' ? (
+                          <em>{option.name}</em>
+                        ) : (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography>Team #{option.name}</Typography>
+                            {option.team_id && (
+                              <Typography variant="caption" color="text.secondary">
+                                (Team assigned)
+                              </Typography>
+                            )}
+                          </Box>
+                        )}
+                      </li>
+                    )}
+                    filterOptions={(options, { inputValue }) => {
+                      return options.filter(option =>
+                        option.name.toString().toLowerCase().includes(inputValue.toLowerCase())
+                      );
+                    }}
                   />
                 </Grid>
               </Grid>

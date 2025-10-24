@@ -41,7 +41,7 @@ const CreateEditUnitModal = ({ isOpen, onClose, onSubmit, editingUnit }) => {
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!unitNumber) return;
     
@@ -50,7 +50,7 @@ const CreateEditUnitModal = ({ isOpen, onClose, onSubmit, editingUnit }) => {
       team_id: selectedTeam || null
     };
     
-    onSubmit(unitData);
+    await onSubmit(unitData);
   };
 
   return (

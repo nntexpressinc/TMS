@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -99,14 +99,25 @@ const DispatcherViewPage = () => {
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
   const [dispatcherData, setDispatcherData] = useState(null);
+  const [teamData, setTeamData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const dispatcher = await ApiService.getData(`/dispatcher/${id}/`);
+        const [dispatcher, allTeams] = await Promise.all([
+          ApiService.getData(`/dispatcher/${id}/`),
+          ApiService.getData('/team/')
+        ]);
         setDispatcherData(dispatcher);
+        
+        // Find the team this dispatcher belongs to
+        const dispatcherTeam = allTeams.find(team => team.dispatchers?.includes(dispatcher.id));
+        if (dispatcherTeam) {
+          setTeamData(dispatcherTeam);
+        }
+        
         setLoading(false);
       } catch (err) {
         setError('Error loading data');
@@ -222,6 +233,7 @@ const DispatcherViewPage = () => {
         { label: 'Position', value: dispatcherData.position },
         { label: 'Company Name', value: dispatcherData.company_name },
         { label: 'Office', value: dispatcherData.office },
+        { label: 'Team', value: teamData ? `Team: ${teamData.name}` : 'Unassigned' },
       ]
     }
   ];
@@ -360,3 +372,4 @@ const DispatcherViewPage = () => {
 };
 
 export default DispatcherViewPage; 
+

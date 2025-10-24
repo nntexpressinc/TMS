@@ -136,42 +136,70 @@ const CreateTeamModal = ({ isOpen, onClose, onCreateTeam, editingTeam, dispatche
               
               <div className="form-group">
                 <label htmlFor="dispatchers">{t('Dispatchers')}</label>
-                <select
-                  id="dispatchers"
-                  name="dispatchers"
-                  multiple
-                  size="5"
-                  value={formData.dispatchers}
-                  onChange={handleDispatcherChange}
-                >
-                  {dispatchers.map(dispatcher => (
-                    <option key={dispatcher.id} value={dispatcher.id}>
-                      {dispatcher.user?.first_name && dispatcher.user?.last_name
-                        ? `${dispatcher.user.first_name} ${dispatcher.user.last_name}`
-                        : dispatcher.user?.email || `ID: ${dispatcher.id}`}
-                    </option>
-                  ))}
-                </select>
-                <small>{t('Hold Ctrl/Cmd to select multiple')}</small>
+                <div className="checkbox-group">
+                  {dispatchers.map(dispatcher => {
+                    const isSelected = formData.dispatchers.includes(dispatcher.id);
+                    const displayName = dispatcher.user?.first_name && dispatcher.user?.last_name
+                      ? `${dispatcher.user.first_name} ${dispatcher.user.last_name}`
+                      : dispatcher.user?.email || `ID: ${dispatcher.id}`;
+                    
+                    return (
+                      <div key={dispatcher.id} className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          id={`dispatcher-${dispatcher.id}`}
+                          checked={isSelected}
+                          onChange={(e) => {
+                            const newDispatchers = e.target.checked
+                              ? [...formData.dispatchers, dispatcher.id]
+                              : formData.dispatchers.filter(id => id !== dispatcher.id);
+                            setFormData({ ...formData, dispatchers: newDispatchers });
+                          }}
+                        />
+                        <label htmlFor={`dispatcher-${dispatcher.id}`}>
+                          {displayName}
+                          {dispatcher.nickname && <span className="nickname"> ({dispatcher.nickname})</span>}
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+                {dispatchers.length === 0 && (
+                  <small className="empty-message">{t('No dispatchers available')}</small>
+                )}
               </div>
               
               <div className="form-group">
                 <label htmlFor="units">{t('Units')}</label>
-                <select
-                  id="units"
-                  name="units"
-                  multiple
-                  size="5"
-                  value={formData.unit_id}
-                  onChange={handleUnitChange}
-                >
-                  {units.map(unit => (
-                    <option key={unit.id} value={unit.id}>
-                      {`Unit #${unit.unit_number}`}
-                    </option>
-                  ))}
-                </select>
-                <small>{t('Hold Ctrl/Cmd to select multiple')}</small>
+                <div className="checkbox-group">
+                  {units.map(unit => {
+                    const isSelected = formData.unit_id.includes(unit.id);
+                    const resourceCount = (unit.driver?.length || 0) + (unit.truck?.length || 0) + (unit.trailer?.length || 0);
+                    
+                    return (
+                      <div key={unit.id} className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          id={`unit-${unit.id}`}
+                          checked={isSelected}
+                          onChange={(e) => {
+                            const newUnits = e.target.checked
+                              ? [...formData.unit_id, unit.id]
+                              : formData.unit_id.filter(id => id !== unit.id);
+                            setFormData({ ...formData, unit_id: newUnits });
+                          }}
+                        />
+                        <label htmlFor={`unit-${unit.id}`}>
+                          Unit #{unit.unit_number}
+                          <span className="resource-count"> ({resourceCount} resources)</span>
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+                {units.length === 0 && (
+                  <small className="empty-message">{t('No units available')}</small>
+                )}
               </div>
             </div>
           </div>

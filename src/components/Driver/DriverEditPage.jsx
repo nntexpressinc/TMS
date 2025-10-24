@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Box, Button, TextField, Typography, Paper, MenuItem, FormControl, InputLabel, Select, OutlinedInput, Grid, Alert, Divider, Tabs, Tab } from "@mui/material";
+import { Box, Button, TextField, Typography, Paper, MenuItem, FormControl, InputLabel, Select, OutlinedInput, Grid, Alert, Divider, Tabs, Tab, Autocomplete } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiService } from "../../api/auth";
-import Autocomplete from '@mui/material/Autocomplete';
 import { toast } from 'react-hot-toast';
 import Avatar from '@mui/material/Avatar';
 
@@ -119,19 +118,22 @@ const DriverEditPage = () => {
   const [trucks, setTrucks] = useState([]);
   const [trailers, setTrailers] = useState([]);
   const [dispatchers, setDispatchers] = useState([]);
+  const [units, setUnits] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [profilePhotoFile, setProfilePhotoFile] = useState(null);
+  const [selectedUnit, setSelectedUnit] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [driver, trucksData, trailersData, dispatchersData, usersData] = await Promise.all([
+        const [driver, trucksData, trailersData, dispatchersData, usersData, unitsData] = await Promise.all([
           ApiService.getData(`/driver/${id}/`),
           ApiService.getData('/truck/'),
           ApiService.getData('/trailer/'),
           ApiService.getData('/dispatcher/'),
-          ApiService.getData('/auth/users/')
+          ApiService.getData('/auth/users/'),
+          ApiService.getData('/unit/')
         ]);
         setAllUsers(usersData);
         setDriverData(prevData => ({
@@ -151,6 +153,14 @@ const DriverEditPage = () => {
         setTrucks(trucksData);
         setTrailers(trailersData);
         setDispatchers(dispatchersData);
+        setUnits(unitsData);
+        
+        // Find current unit for this driver
+        const currentUnit = unitsData.find(unit => unit.driver?.includes(driver.id));
+        if (currentUnit) {
+          setSelectedUnit(currentUnit.id);
+        }
+        
         setLoading(false);
       } catch (error) {
         setError('Failed to load driver data. Please try again.');
@@ -290,6 +300,33 @@ const DriverEditPage = () => {
       }, {});
       updatedData.user = selectedUser?.id;
       await ApiService.putData(`/driver/${id}/`, updatedData);
+      
+      // Handle unit assignment
+      const driverId = parseInt(id);
+      const newUnitId = selectedUnit ? parseInt(selectedUnit) : null;
+      const currentUnit = units.find(unit => unit.driver?.includes(driverId));
+      
+      // Remove from old unit if exists
+      if (currentUnit && currentUnit.id !== newUnitId) {
+        const updatedDrivers = currentUnit.driver.filter(did => did !== driverId);
+        await ApiService.putData(`/unit/${currentUnit.id}/`, { 
+          ...currentUnit, 
+          driver: updatedDrivers 
+        });
+      }
+      
+      // Add to new unit if selected
+      if (newUnitId && (!currentUnit || currentUnit.id !== newUnitId)) {
+        const targetUnit = units.find(u => u.id === newUnitId);
+        if (targetUnit) {
+          const updatedDrivers = targetUnit.driver ? [...targetUnit.driver, driverId] : [driverId];
+          await ApiService.putData(`/unit/${newUnitId}/`, { 
+            ...targetUnit, 
+            driver: updatedDrivers 
+          });
+        }
+      }
+      
       setSuccess(true);
       setLoading(false);
       toast.success('Driver information updated successfully!');
@@ -775,6 +812,46 @@ const DriverEditPage = () => {
                     name="driver_tags"
                     value={driverData.driver_tags || ''}
                     onChange={handleDriverChange}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Autocomplete
+                    options={[{ id: '', unit_number: 'No Unit (Unassigned)' }, ...units]}
+                    getOptionLabel={(option) => option.unit_number === 'No Unit (Unassigned)' ? option.unit_number : `Unit #${option.unit_number}`}
+                    value={units.find(u => u.id === selectedUnit) || { id: '', unit_number: 'No Unit (Unassigned)' }}
+                    onChange={(event, newValue) => {
+                      setSelectedUnit(newValue ? newValue.id : '');
+                    }}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Unit"
+                        placeholder="Search for a unit..."
+                        variant="outlined"
+                      />
+                    )}
+                    renderOption={(props, option) => (
+                      <li {...props} key={option.id}>
+                        {option.unit_number === 'No Unit (Unassigned)' ? (
+                          <em>{option.unit_number}</em>
+                        ) : (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography>Unit #{option.unit_number}</Typography>
+                            {option.team_id && (
+                              <Typography variant="caption" color="text.secondary">
+                                (Team assigned)
+                              </Typography>
+                            )}
+                          </Box>
+                        )}
+                      </li>
+                    )}
+                    filterOptions={(options, { inputValue }) => {
+                      return options.filter(option =>
+                        option.unit_number.toString().toLowerCase().includes(inputValue.toLowerCase())
+                      );
+                    }}
                   />
                 </Grid>
               </Grid>

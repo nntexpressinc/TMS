@@ -208,10 +208,54 @@ const TeamManagementPage = () => {
       setError(null);
       
       if (editingTeam) {
+        // Update team
         await ApiService.putData(`/team/${editingTeam.id}/`, teamData);
+        
+        // Sync units: Update team_id in units that were added or removed
+        const oldUnitIds = editingTeam.unit_id || [];
+        const newUnitIds = teamData.unit_id || [];
+        
+        // Units removed from team
+        const removedUnits = oldUnitIds.filter(id => !newUnitIds.includes(id));
+        for (const unitId of removedUnits) {
+          const unit = units.find(u => u.id === unitId);
+          if (unit) {
+            await ApiService.putData(`/unit/${unitId}/`, {
+              ...unit,
+              team_id: null
+            });
+          }
+        }
+        
+        // Units added to team
+        const addedUnits = newUnitIds.filter(id => !oldUnitIds.includes(id));
+        for (const unitId of addedUnits) {
+          const unit = units.find(u => u.id === unitId);
+          if (unit) {
+            await ApiService.putData(`/unit/${unitId}/`, {
+              ...unit,
+              team_id: editingTeam.id
+            });
+          }
+        }
+        
         setEditingTeam(null);
       } else {
-        await ApiService.postData('/team/', teamData);
+        // Create new team
+        const newTeam = await ApiService.postData('/team/', teamData);
+        
+        // Sync units: Update team_id in newly assigned units
+        if (newTeam && newTeam.id && teamData.unit_id) {
+          for (const unitId of teamData.unit_id) {
+            const unit = units.find(u => u.id === unitId);
+            if (unit) {
+              await ApiService.putData(`/unit/${unitId}/`, {
+                ...unit,
+                team_id: newTeam.id
+              });
+            }
+          }
+        }
       }
       
       setIsCreateTeamModalOpen(false);
@@ -257,6 +301,7 @@ const TeamManagementPage = () => {
           
           const idField = itemType === 'dispatcher' ? 'dispatchers' : 'unit_id';
 
+          // Update team membership
           if (sourceTeam) {
             const updatedIds = sourceTeam[idField].filter(id => id !== item.id);
             await ApiService.putData(`/team/${sourceTeam.id}/`, { ...sourceTeam, [idField]: updatedIds });
@@ -268,6 +313,14 @@ const TeamManagementPage = () => {
               updatedIds.push(item.id);
             }
             await ApiService.putData(`/team/${newTeam.id}/`, { ...newTeam, [idField]: updatedIds });
+          }
+          
+          // Sync unit's team_id field if this is a unit
+          if (itemType === 'unit') {
+            await ApiService.putData(`/unit/${item.id}/`, {
+              ...item,
+              team_id: newTeam ? newTeam.id : null
+            });
           }
           
           await fetchData();

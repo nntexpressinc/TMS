@@ -120,6 +120,7 @@ const DriverViewPage = () => {
   const [truckData, setTruckData] = useState(null);
   const [trailerData, setTrailerData] = useState(null);
   const [dispatcherData, setDispatcherData] = useState(null);
+  const [unitData, setUnitData] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [itemType, setItemType] = useState('');
@@ -400,12 +401,13 @@ const DriverViewPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [driver, pay, expense, ifta, rolesData] = await Promise.all([
+        const [driver, pay, expense, ifta, rolesData, allUnits] = await Promise.all([
           ApiService.getData(ENDPOINTS.DRIVER_DETAIL(id)),
           ApiService.getData(`${ENDPOINTS.DRIVER_PAY}?driver=${id}`),
           ApiService.getData(`${ENDPOINTS.DRIVER_EXPENSE}?driver=${id}`),
           getIftaRecords(id),
-          ApiService.getData(`/auth/role/`)
+          ApiService.getData(`/auth/role/`),
+          ApiService.getData('/unit/')
         ]);
 
         setDriverData(driver);
@@ -431,6 +433,12 @@ const DriverViewPage = () => {
         if (driver.assigned_dispatcher) {
           const dispatcher = await ApiService.getData(ENDPOINTS.DISPATCHER_DETAIL(driver.assigned_dispatcher));
           setDispatcherData(dispatcher);
+        }
+        
+        // Find the unit this driver belongs to
+        const driverUnit = allUnits.find(unit => unit.driver?.includes(driver.id));
+        if (driverUnit) {
+          setUnitData(driverUnit);
         }
 
         setLoading(false);
@@ -672,6 +680,7 @@ const DriverViewPage = () => {
         { label: 'Driver Type', value: driverData?.driver_type },
         { label: 'Team Driver', value: driverData?.team_driver },
         { label: 'Birth Date', value: driverData?.birth_date, type: 'date' },
+        { label: 'Unit', value: unitData ? `Unit #${unitData.unit_number}` : 'Unassigned' },
       ]
     },
     {
