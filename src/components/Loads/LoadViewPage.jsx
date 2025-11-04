@@ -50,7 +50,7 @@ import {
   ArrowBack,
   Refresh as RefreshIcon,
   RadioButtonUnchecked,
-  Assignment,
+  Assignment as AssignmentIcon,
   Done,
   CheckCircle,
   Cancel,
@@ -79,7 +79,6 @@ import {
   DirectionsCar as DirectionsCarIcon,
   Person as PersonIcon,
   SupportAgent as SupportAgentIcon,
-  Assignment as AssignmentIcon,
   Receipt as ReceiptIcon,
   Badge as BadgeIcon,
   ContentCopy as ContentCopyIcon,
@@ -93,32 +92,51 @@ import darkLogo from '../../images/dark-logo.png';
 import { CiDeliveryTruck } from "react-icons/ci";
 import EmojiPicker from 'emoji-picker-react';
 
-// Styled components for the layout
+// Styled components for the layout - Clean & Minimalist Design
 const MainContainer = styled(Box)(({ theme }) => ({
   display: "flex",
+  flexDirection: "column",
   height: "calc(100vh - 64px)",
   padding: theme.spacing(2),
-  gap: theme.spacing(2),
+  backgroundColor: '#f8f9fa',
+  overflow: "auto",
+}));
+
+const SinglePanel = styled(Paper)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  width: "100%",
+  maxWidth: "1400px",
+  margin: "0 auto",
+  borderRadius: theme.spacing(2),
+  overflow: "hidden",
+  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+  border: `1px solid #e8eaed`,
+  backgroundColor: '#fff',
 }));
 
 const Panel = styled(Paper)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   flex: 1,
-  borderRadius: theme.spacing(1),
+  borderRadius: theme.spacing(2),
   overflow: "hidden",
+  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+  border: `1px solid #e8eaed`,
+  backgroundColor: '#fff',
 }));
 
 const PanelHeader = styled(Box)(({ theme }) => ({
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  padding: theme.spacing(2),
-  borderBottom: `1px solid ${theme.palette.divider}`,
+  padding: theme.spacing(2, 2.5),
+  borderBottom: `1px solid #f0f2f5`,
+  backgroundColor: '#fafbfc',
 }));
 
 const PanelContent = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(2),
+  padding: theme.spacing(2.5),
   flex: 1,
   overflowY: "auto",
   display: "flex",
@@ -376,17 +394,18 @@ const EditIconButton = styled(IconButton)(({ theme }) => ({
 const LeftPanel = styled(Panel)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
-  overflow: "hidden", // Keep outer container from scrolling
-  maxHeight: "calc(100vh - 64px)", // Set max height to viewport height minus header
+  overflow: "hidden",
+  maxHeight: "calc(100vh - 64px)",
+  width: "100%",
   "& > :first-of-type": {
-    flex: "0 0 auto" // Keep header from scrolling
+    flex: "0 0 auto"
   }
 }));
 
 const LeftPanelContent = styled(Box)(({ theme }) => ({
   flex: 1,
-  overflowY: "auto", // Make content scrollable
-  padding: theme.spacing(0, 2, 2),
+  overflowY: "auto",
+  padding: theme.spacing(0, 2.5, 2.5),
   display: "flex",
   flexDirection: "column",
   gap: theme.spacing(2)
@@ -401,11 +420,60 @@ const MiddlePanel = styled(Panel)(({ theme }) => ({
   overflow: 'hidden'
 }));
 
-const RightPanel = styled(Panel)(({ theme }) => ({
-  flex: 1,
-  display: "flex",
-  flexDirection: "column",
-  gap: theme.spacing(2),
+// Floating Chat Button Styles
+const FloatingChatButton = styled(Box)(({ theme }) => ({
+  position: 'fixed',
+  bottom: theme.spacing(3),
+  right: theme.spacing(3),
+  zIndex: 1000,
+  width: 56,
+  height: 56,
+  borderRadius: '50%',
+  backgroundColor: theme.palette.primary.main,
+  color: 'white',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'scale(1.1)',
+    boxShadow: '0 6px 20px rgba(0,0,0,0.2)',
+  },
+  '&:active': {
+    transform: 'scale(0.95)',
+  }
+}));
+
+const ChatDialog = styled(Dialog)(({ theme }) => ({
+  '& .MuiDialog-paper': {
+    width: '450px',
+    maxWidth: '90vw',
+    height: '600px',
+    maxHeight: '80vh',
+    borderRadius: theme.spacing(2),
+    overflow: 'hidden',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+  }
+}));
+
+const ChatDialogHeader = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: theme.spacing(2, 2.5),
+  borderBottom: `1px solid ${theme.palette.divider}`,
+  backgroundColor: theme.palette.primary.main,
+  color: 'white',
+}));
+
+const ChatDialogContent = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  height: 'calc(100% - 140px)',
+  position: 'relative',
+  overflow: 'hidden',
 }));
 
 const ArrowBackIcon = styled(ArrowBack)(({ theme }) => ({
@@ -521,24 +589,25 @@ const InfoRow = styled(Box)(({ theme }) => ({
 
 const StopsContainer = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.background.paper,
-  borderRadius: theme.spacing(1),
+  borderRadius: theme.spacing(1.5),
   padding: theme.spacing(2),
   marginBottom: theme.spacing(2),
-  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+  boxShadow: "0 2px 8px 0 rgba(0, 0, 0, 0.08)",
+  border: `1px solid ${theme.palette.divider}`,
 }));
 
 const StopItem = styled(Box)(({ theme, isPickup, isCompact }) => ({
   display: "flex",
   borderLeft: `2px solid ${isPickup ? theme.palette.success.main : theme.palette.error.main}`,
-  paddingLeft: theme.spacing(2),
-  marginBottom: theme.spacing(isCompact ? 0.75 : 1.5),
+  paddingLeft: theme.spacing(1.5),
+  marginBottom: theme.spacing(isCompact ? 0.5 : 1),
   position: "relative",
   "&:not(:last-child)::after": {
     content: '""',
     position: "absolute",
     left: -1,
-    top: 24,
-    bottom: isCompact ? -8 : -12,
+    top: 20,
+    bottom: isCompact ? -6 : -8,
     width: 2,
     backgroundColor: theme.palette.grey[300],
   }
@@ -547,15 +616,15 @@ const StopItem = styled(Box)(({ theme, isPickup, isCompact }) => ({
 const StopIconContainer = styled(Box)(({ theme, isPickup, isCompact }) => ({
   backgroundColor: isPickup ? "rgba(76, 175, 80, 0.1)" : "rgba(244, 67, 54, 0.1)",
   borderRadius: "50%",
-  width: isCompact ? 28 : 36,
-  height: isCompact ? 28 : 36,
+  width: isCompact ? 24 : 32,
+  height: isCompact ? 24 : 32,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  marginRight: theme.spacing(isCompact ? 1 : 2),
+  marginRight: theme.spacing(isCompact ? 0.75 : 1.5),
   "& svg": {
     color: isPickup ? theme.palette.success.main : theme.palette.error.main,
-    fontSize: isCompact ? '0.875rem' : '1.25rem'
+    fontSize: isCompact ? '0.75rem' : '1rem'
   }
 }));
 
@@ -567,16 +636,16 @@ const StopHeader = styled(Box)(({ theme }) => ({
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-start",
-  marginBottom: theme.spacing(0.5),
+  marginBottom: theme.spacing(0.25),
 }));
 
 const StopAddress = styled(Typography)(({ theme }) => ({
   fontWeight: 500,
-  fontSize: "0.875rem",
+  fontSize: "0.8125rem",
 }));
 
 const StopDate = styled(Typography)(({ theme }) => ({
-  fontSize: "0.75rem",
+  fontSize: "0.7rem",
   color: theme.palette.text.secondary,
 }));
 
@@ -628,11 +697,16 @@ const StatusIconContainer = styled(Box)(({ theme, color }) => ({
 }));
 
 const InfoCard = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(2),
+  padding: theme.spacing(2, 2.5),
   marginBottom: theme.spacing(2),
-  borderRadius: theme.spacing(1),
-  boxShadow: 'none',
+  borderRadius: theme.spacing(1.5),
+  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
   border: `1px solid ${theme.palette.divider}`,
+  backgroundColor: '#fff',
+  transition: 'box-shadow 0.2s ease-in-out',
+  '&:hover': {
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+  }
 }));
 
 const InfoCardHeader = styled(Box)(({ theme }) => ({
@@ -640,17 +714,19 @@ const InfoCardHeader = styled(Box)(({ theme }) => ({
   justifyContent: 'space-between',
   alignItems: 'center',
   marginBottom: theme.spacing(2),
+  paddingBottom: theme.spacing(1.5),
+  borderBottom: `1px solid #f0f2f5`,
 }));
 
 const InfoCardTitle = styled(Typography)(({ theme }) => ({
   fontWeight: 600,
   display: 'flex',
   alignItems: 'center',
-  gap: theme.spacing(1),
-  fontSize: '0.95rem',
+  gap: theme.spacing(1.5),
+  fontSize: '1.05rem',
+  color: '#202124',
   '& svg': {
-    fontSize: '1.1rem',
-    opacity: 0.9,
+    fontSize: '1.2rem',
     color: theme.palette.primary.main,
   }
 }));
@@ -658,29 +734,33 @@ const InfoCardTitle = styled(Typography)(({ theme }) => ({
 const DetailItem = styled(Box)(({ theme, noBorder }) => ({
   display: 'flex',
   padding: theme.spacing(1, 0),
-  borderBottom: noBorder ? 'none' : `1px solid ${theme.palette.divider}`,
+  borderBottom: noBorder ? 'none' : `1px solid #f0f2f5`,
   '&:last-child': {
     borderBottom: 'none',
   }
 }));
 
 const DetailLabel = styled(Typography)(({ theme }) => ({
-  width: '140px',
+  width: '150px',
   fontSize: '0.875rem',
-  color: theme.palette.text.secondary,
+  color: '#5f6368',
   fontWeight: 500,
+  lineHeight: 1.6,
+  flexShrink: 0,
 }));
 
 const DetailValue = styled(Typography)(({ theme }) => ({
   flex: 1,
   fontSize: '0.875rem',
   fontWeight: 400,
+  lineHeight: 1.6,
+  color: '#202124',
 }));
 
 const FileItem = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
-  padding: theme.spacing(1, 0),
+  padding: theme.spacing(0.75, 0),
   borderBottom: `1px solid ${theme.palette.divider}`,
   '&:last-child': {
     borderBottom: 'none',
@@ -750,6 +830,367 @@ const EmptyFilesMessage = styled(Box)(({ theme }) => ({
     marginBottom: theme.spacing(1),
   }
 }));
+
+// New styled components for professional file upload - COMPACT VERSION
+const FileUploadZone = styled(Box)(({ theme, isDragging }) => ({
+  border: `1.5px dashed ${isDragging ? theme.palette.primary.main : '#dadce0'}`,
+  borderRadius: theme.spacing(1),
+  padding: theme.spacing(1.5, 2),
+  textAlign: 'center',
+  cursor: 'pointer',
+  transition: 'all 0.3s ease',
+  backgroundColor: isDragging ? `${theme.palette.primary.main}08` : '#fafbfc',
+  '&:hover': {
+    borderColor: theme.palette.primary.main,
+    backgroundColor: `${theme.palette.primary.main}05`,
+  },
+  display: 'flex',
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: theme.spacing(1.5),
+  minHeight: '60px',
+}));
+
+const UploadIcon = styled(Box)(({ theme }) => ({
+  width: 32,
+  height: 32,
+  borderRadius: '50%',
+  backgroundColor: `${theme.palette.primary.main}12`,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+  '& svg': {
+    fontSize: '1.1rem',
+    color: theme.palette.primary.main,
+  }
+}));
+
+const FileUploadProgress = styled(Box)(({ theme }) => ({
+  width: '100%',
+  padding: theme.spacing(2),
+  borderRadius: theme.spacing(1),
+  backgroundColor: '#fafbfc',
+  border: `1px solid #e8eaed`,
+  marginBottom: theme.spacing(2),
+}));
+
+const FilePreviewCard = styled(Paper)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  padding: theme.spacing(1.5, 2),
+  marginBottom: theme.spacing(1),
+  border: `1px solid #e8eaed`,
+  borderRadius: theme.spacing(1),
+  transition: 'all 0.2s ease',
+  backgroundColor: '#fff',
+  '&:hover': {
+    boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+    borderColor: theme.palette.primary.main,
+  }
+}));
+
+const FilePreviewImage = styled('img')({
+  width: 48,
+  height: 48,
+  objectFit: 'cover',
+  borderRadius: '4px',
+  marginRight: '12px',
+});
+
+const FileIconWrapper = styled(Box)(({ theme, fileType }) => {
+  const getColor = () => {
+    switch (fileType) {
+      case 'pdf': return '#f44336';
+      case 'image': return '#4caf50';
+      case 'doc': return '#2196f3';
+      case 'excel': return '#4caf50';
+      default: return '#9e9e9e';
+    }
+  };
+  
+  return {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 48,
+    height: 48,
+    borderRadius: '8px',
+    backgroundColor: `${getColor()}15`,
+    marginRight: theme.spacing(1.5),
+    '& svg': {
+      color: getColor(),
+      fontSize: '1.5rem',
+    }
+  };
+});
+
+const FileMetadata = styled(Box)({
+  flex: 1,
+  minWidth: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+});
+
+const FileNameText = styled(Typography)({
+  fontSize: '0.875rem',
+  fontWeight: 500,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+});
+
+const FileSizeText = styled(Typography)(({ theme }) => ({
+  fontSize: '0.75rem',
+  color: theme.palette.text.secondary,
+}));
+
+const FileActionButtons = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  gap: theme.spacing(0.5),
+  alignItems: 'center',
+}));
+
+// Utility functions for file handling
+const getFileType = (fileName) => {
+  if (!fileName) return 'unknown';
+  const extension = fileName.split('.').pop().toLowerCase();
+  
+  if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(extension)) {
+    return 'image';
+  } else if (extension === 'pdf') {
+    return 'pdf';
+  } else if (['doc', 'docx'].includes(extension)) {
+    return 'doc';
+  } else if (['xls', 'xlsx', 'csv'].includes(extension)) {
+    return 'excel';
+  } else {
+    return 'other';
+  }
+};
+
+const getFileIcon = (fileType) => {
+  switch (fileType) {
+    case 'image': return <Image />;
+    case 'pdf': return <PictureAsPdf />;
+    case 'doc': return <Description />;
+    case 'excel': return <InsertDriveFile />;
+    default: return <InsertDriveFile />;
+  }
+};
+
+const getFormattedDocumentUrl = (url) => {
+  if (!url) return "";
+  return url.replace('https://0.0.0.0:8000/', 'https://blackhawks.nntexpressinc.com/');
+};
+
+const downloadFile = (url, fileName) => {
+  if (!url) return;
+  
+  // Format the URL to use production API
+  const formattedUrl = getFormattedDocumentUrl(url);
+  
+  // Create a temporary anchor element
+  const link = document.createElement('a');
+  link.href = formattedUrl;
+  
+  // Set the download attribute with filename
+  if (fileName) {
+    link.download = fileName;
+  } else {
+    // Extract filename from URL if not provided
+    const urlParts = formattedUrl.split('/');
+    link.download = urlParts[urlParts.length - 1] || 'download';
+  }
+  
+  // Append to body, click, and remove
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+// Enhanced File Upload Component
+const FileUploadComponent = ({ fileType, fileUrl, fileName, onUpload, onDelete, onView, allowMultiple = false }) => {
+  const fileInputRef = useRef(null);
+  const [localIsDragging, setLocalIsDragging] = useState(false);
+  
+  const handleLocalDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLocalIsDragging(true);
+  };
+  
+  const handleLocalDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLocalIsDragging(false);
+  };
+  
+  const handleLocalDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  
+  const handleLocalDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLocalIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      onUpload(files, fileType);
+    }
+  };
+  
+  const handleFileSelect = (e) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      onUpload(files, fileType);
+    }
+  };
+  
+  const handleClick = () => {
+    fileInputRef.current?.click();
+  };
+  
+  const getFileTypeIcon = () => {
+    if (!fileUrl) return <FileUpload />;
+    
+    const type = getFileType(fileUrl);
+    switch (type) {
+      case 'image': return <Image />;
+      case 'pdf': return <PictureAsPdf />;
+      case 'doc': return <Description />;
+      case 'excel': return <InsertDriveFile />;
+      default: return <InsertDriveFile />;
+    }
+  };
+  
+  const getFileTypeName = (url) => {
+    if (!url) return 'Unknown';
+    const extension = url.split('.').pop()?.toUpperCase();
+    return extension || 'Unknown';
+  };
+  
+  if (fileUrl) {
+    // Display uploaded file
+    return (
+      <FilePreviewCard elevation={0}>
+        {getFileType(fileUrl) === 'image' ? (
+          <FilePreviewImage 
+            src={getFormattedDocumentUrl(fileUrl)} 
+            alt={fileName}
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'flex';
+            }}
+          />
+        ) : null}
+        
+        <FileIconWrapper 
+          fileType={getFileType(fileUrl)} 
+          style={{ display: getFileType(fileUrl) === 'image' ? 'none' : 'flex' }}
+        >
+          {getFileTypeIcon()}
+        </FileIconWrapper>
+        
+        <FileMetadata>
+          <FileNameText>
+            {fileName || 'Document'}
+          </FileNameText>
+          <FileSizeText>
+            {getFileTypeName(fileUrl)} • Uploaded
+          </FileSizeText>
+        </FileMetadata>
+        
+        <FileActionButtons>
+          <Tooltip title="View">
+            <IconButton 
+              size="small" 
+              onClick={() => onView(fileUrl, fileName)}
+              sx={{ 
+                '&:hover': { 
+                  backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                  color: '#2196f3'
+                }
+              }}
+            >
+              <Visibility fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          
+          <Tooltip title="Download">
+            <IconButton 
+              size="small" 
+              onClick={() => downloadFile(fileUrl, fileName)}
+              sx={{ 
+                '&:hover': { 
+                  backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                  color: '#4caf50'
+                }
+              }}
+            >
+              <GetApp fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          
+          <Tooltip title="Delete">
+            <IconButton 
+              size="small" 
+              onClick={() => onDelete(fileType)}
+              sx={{ 
+                '&:hover': { 
+                  backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                  color: '#f44336'
+                }
+              }}
+            >
+              <Delete fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </FileActionButtons>
+      </FilePreviewCard>
+    );
+  }
+  
+  // Display upload zone
+  return (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        hidden
+        onChange={handleFileSelect}
+        accept={fileType === 'pictures' ? 'image/*' : 'application/pdf,image/*'}
+        multiple={allowMultiple}
+      />
+      
+      <FileUploadZone
+        isDragging={localIsDragging}
+        onDragEnter={handleLocalDragEnter}
+        onDragLeave={handleLocalDragLeave}
+        onDragOver={handleLocalDragOver}
+        onDrop={handleLocalDrop}
+        onClick={handleClick}
+      >
+        <UploadIcon>
+          <FileUpload />
+        </UploadIcon>
+        
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, color: '#202124', fontSize: '0.8125rem' }}>
+            Click to upload or drag and drop
+          </Typography>
+          <Typography variant="caption" sx={{ color: '#5f6368', fontSize: '0.75rem' }}>
+            PDF, JPG, PNG (Max 10MB)
+          </Typography>
+        </Box>
+      </FileUploadZone>
+    </>
+  );
+};
 
 // Create Load Modal Component
 const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
@@ -1270,6 +1711,18 @@ const LoadViewPage = () => {
   const [typingUsers, setTypingUsers] = useState([]);
   const [loadStatusAnchor, setLoadStatusAnchor] = useState(null);
   const [invoiceStatusAnchor, setInvoiceStatusAnchor] = useState(null);
+  
+  // File upload states
+  const [uploadProgress, setUploadProgress] = useState({});
+  const [isDragging, setIsDragging] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState(null);
+  const [deleteFileDialog, setDeleteFileDialog] = useState(false);
+  
+  // Chat sidebar state
+  const [chatOpen, setChatOpen] = useState(false);
+  
+  // Broker info modal state
+  const [brokerInfoOpen, setBrokerInfoOpen] = useState(false);
   
   // Define status options with short labels
 
@@ -3117,103 +3570,229 @@ const LoadViewPage = () => {
     return types[type] || type;
   };
   
-  // Get file type
-  const getFileType = (fileName) => {
-    if (!fileName) return 'unknown';
-    const extension = fileName.split('.').pop().toLowerCase();
-    
-    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(extension)) {
-      return 'image';
-    } else if (extension === 'pdf') {
-      return 'pdf';
-    } else if (['doc', 'docx'].includes(extension)) {
-      return 'doc';
-    } else if (['xls', 'xlsx', 'csv'].includes(extension)) {
-      return 'excel';
-    } else {
-      return 'other';
-    }
-  };
-  
-  // Get file icon
-  const getFileIcon = (fileType) => {
-    switch (fileType) {
-      case 'image': return <Image />;
-      case 'pdf': return <PictureAsPdf />;
-      case 'doc': return <Description />;
-      case 'excel': return <InsertDriveFile />;
-      default: return <InsertDriveFile />;
-    }
-  };
-  
-  // Handle file upload
-  const handleFileUpload = async (event, fileType) => {
+  // Handle file upload - Improved version with progress tracking
+  const handleFileUpload = async (files, fileType) => {
     if (!permissions.load_update) {
       showSnackbar('You do not have permission to upload files', 'error');
+      return;
     }
     
-    const file = event.target.files[0];
-    if (!file) return;
+    // Handle both single file and FileList
+    const fileList = files instanceof FileList ? Array.from(files) : [files];
     
-    try {
-      // Store current stops data before file upload
-      const currentStops = load.stop || [];
+    for (const file of fileList) {
+      if (!file) continue;
       
-      const formData = new FormData();
-      const fileName = file.name; // Get original file name
-      formData.append('filename', fileName); // Send original filename to backend
-      formData.append(fileType, file, fileName); // Append file with original name
+      // Validate file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        showSnackbar(`File ${file.name} is too large. Maximum size is 10MB.`, 'error');
+        continue;
+      }
       
-      await ApiService.putMediaData(`/load/${id}/`, formData);
+      // Validate file type based on document type
+      const validTypes = {
+        'rate_con': ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'],
+        'bol': ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'],
+        'pod': ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'],
+        'comercial_invoice': ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'],
+        'pictures': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
+        'tonu': ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'],
+        'document': ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+      };
       
-      // Refresh load data while preserving stops
-      const updatedLoad = await ApiService.getData(`/load/${id}/`);
+      if (validTypes[fileType] && !validTypes[fileType].includes(file.type)) {
+        showSnackbar(`Invalid file type for ${file.name}. Please upload a valid file.`, 'error');
+        continue;
+      }
       
-      // Only restore stops if this load actually had stops before the operation
-      // This prevents linking all stops to new loads
-      if (updatedLoad && currentStops.length > 0) {
-        // Check if stops were actually lost (not just a new load with no stops)
-        if (!updatedLoad.stop || updatedLoad.stop.length === 0) {
-          // Only restore if we're sure this load should have stops
-          // For new loads, don't restore stops
-          if (load.stop && load.stop.length > 0) {
-            console.warn('Stops data was lost during file upload, restoring...');
-            
-            // Restore stops by updating the load with the stops data
-            const stopIds = currentStops.map(stop => stop.id);
-            await ApiService.patchData(`/load/${id}/`, {
-              stop: stopIds
-            });
-            
-            // Fetch the load again with restored stops
-            const restoredLoad = await ApiService.getData(`/load/${id}/`);
-            setLoad(restoredLoad);
+      try {
+        // Store current stops data before file upload
+        const currentStops = load.stop || [];
+        
+        // Initialize progress tracking
+        setUploadProgress(prev => ({
+          ...prev,
+          [fileType]: { progress: 0, fileName: file.name, status: 'uploading' }
+        }));
+        
+        const formData = new FormData();
+        const fileName = file.name;
+        formData.append('filename', fileName);
+        formData.append(fileType, file, fileName);
+        
+        // Simulate progress for better UX (since we don't have actual upload progress)
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => {
+            const currentProgress = prev[fileType]?.progress || 0;
+            if (currentProgress < 90) {
+              return {
+                ...prev,
+                [fileType]: { ...prev[fileType], progress: currentProgress + 10 }
+              };
+            }
+            return prev;
+          });
+        }, 200);
+        
+        await ApiService.putMediaData(`/load/${id}/`, formData);
+        
+        clearInterval(progressInterval);
+        
+        // Set progress to 100%
+        setUploadProgress(prev => ({
+          ...prev,
+          [fileType]: { ...prev[fileType], progress: 100, status: 'completed' }
+        }));
+        
+        // Refresh load data while preserving stops
+        const updatedLoad = await ApiService.getData(`/load/${id}/`);
+        
+        // Only restore stops if this load actually had stops before the operation
+        if (updatedLoad && currentStops.length > 0) {
+          if (!updatedLoad.stop || updatedLoad.stop.length === 0) {
+            if (load.stop && load.stop.length > 0) {
+              console.warn('Stops data was lost during file upload, restoring...');
+              const stopIds = currentStops.map(stop => stop.id);
+              await ApiService.patchData(`/load/${id}/`, { stop: stopIds });
+              const restoredLoad = await ApiService.getData(`/load/${id}/`);
+              setLoad(restoredLoad);
+            } else {
+              setLoad(updatedLoad);
+            }
           } else {
-            // This is a new load with no stops, don't restore
             setLoad(updatedLoad);
           }
         } else {
-          // Stops are present, update normally
           setLoad(updatedLoad);
         }
-      } else {
-        // No stops to preserve, update normally
-        setLoad(updatedLoad);
+        
+        showSnackbar(`${fileName} uploaded successfully`, "success");
+        
+        // Clear progress after 2 seconds
+        setTimeout(() => {
+          setUploadProgress(prev => {
+            const newProgress = { ...prev };
+            delete newProgress[fileType];
+            return newProgress;
+          });
+        }, 2000);
+        
+      } catch (error) {
+        console.error("Error uploading file:", error);
+        setUploadProgress(prev => ({
+          ...prev,
+          [fileType]: { ...prev[fileType], status: 'error' }
+        }));
+        showSnackbar(`Failed to upload ${file.name}. Please try again.`, "error");
+        
+        // Clear error progress after 3 seconds
+        setTimeout(() => {
+          setUploadProgress(prev => {
+            const newProgress = { ...prev };
+            delete newProgress[fileType];
+            return newProgress;
+          });
+        }, 3000);
       }
-      
-      showSnackbar(`File uploaded successfully`, "success");
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      showSnackbar("Failed to upload file. Please try again.", "error");
     }
   };
   
-  // Function to format file URL correctly
-  const getFormattedDocumentUrl = (url) => {
-    if (!url) return "";
-    return url.replace('https://0.0.0.0:8000/', 'https://blackhawks.nntexpressinc.com/');
+  // Handle drag and drop events
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
   };
   
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+  
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  
+  const handleDrop = (e, fileType) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleFileUpload(files, fileType);
+    }
+  };
+  
+  // Handle file deletion
+  const handleDeleteFile = async (fileType) => {
+    if (!permissions.load_update) {
+      showSnackbar('You do not have permission to delete files', 'error');
+      return;
+    }
+    
+    try {
+      // Store current stops data
+      const currentStops = load.stop || [];
+      
+      // Send delete request - setting the field to null
+      await ApiService.patchData(`/load/${id}/`, {
+        [fileType]: null
+      });
+      
+      // Refresh load data
+      const updatedLoad = await ApiService.getData(`/load/${id}/`);
+      
+      // Restore stops if needed
+      if (updatedLoad && currentStops.length > 0) {
+        if (!updatedLoad.stop || updatedLoad.stop.length === 0) {
+          if (load.stop && load.stop.length > 0) {
+            const stopIds = currentStops.map(stop => stop.id);
+            await ApiService.patchData(`/load/${id}/`, { stop: stopIds });
+            const restoredLoad = await ApiService.getData(`/load/${id}/`);
+            setLoad(restoredLoad);
+          } else {
+            setLoad(updatedLoad);
+          }
+        } else {
+          setLoad(updatedLoad);
+        }
+      } else {
+        setLoad(updatedLoad);
+      }
+      
+      showSnackbar('File deleted successfully', 'success');
+      setDeleteFileDialog(false);
+      setFileToDelete(null);
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      showSnackbar('Failed to delete file. Please try again.', 'error');
+    }
+  };
+  
+  // Open delete confirmation dialog
+  const openDeleteFileDialog = (fileType) => {
+    setFileToDelete(fileType);
+    setDeleteFileDialog(true);
+  };
+  
+  // Close delete confirmation dialog
+  const closeDeleteFileDialog = () => {
+    setDeleteFileDialog(false);
+    setFileToDelete(null);
+  };
+  
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (!bytes || bytes === 0) return 'Unknown size';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  };
   
   // Handle view file
   const handleViewFile = (url, fileName) => {
@@ -4102,16 +4681,38 @@ const LoadViewPage = () => {
       />
 
       <LeftPanel>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between', px: 2, pt: 2 }}>
+        <PanelHeader>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <IconButton onClick={() => navigate(-1)} sx={{ mr: 1 }}>
               <ArrowBackIcon />
             </IconButton>
-            <Typography variant="h5" component="h1">
+            <Typography variant="h6" component="h1" sx={{ fontSize: '1rem', fontWeight: 600 }}>
               Load Details
             </Typography>
           </Box>
-        </Box>
+          
+          <IconButton onClick={() => {
+            setIsLoadDataLoading(true);
+            ApiService.getData(`/load/${id}/`)
+              .then(data => {
+                setLoad(data);
+                fetchAllStops();
+              })
+              .catch(error => {
+                console.error("Error fetching load data:", error);
+                showSnackbar("Error updating data", "error");
+              })
+              .finally(() => {
+                setIsLoadDataLoading(false);
+              });
+          }} disabled={isLoadDataLoading}>
+            {isLoadDataLoading ? (
+              <CircularProgress size={24} thickness={4} />
+            ) : (
+              <RefreshIcon />
+            )}
+          </IconButton>
+        </PanelHeader>
 
         {isLoadDataLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80%' }}>
@@ -4498,25 +5099,27 @@ const LoadViewPage = () => {
                 </Box>
               )}
 
-              {/* Show stops when not adding a new one */}
+              {/* Show stops when not adding a new one - Grid Layout */}
               {!isAddingStop && !isStopsLoading && (load.stop && load.stop.length > 0 ? (
-                sortStopsInOrder(load.stop).map(stop => (
-                  editingStop === stop.id ? (
-                    <StopEditContainer key={stop.id}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Edit Stop
-                        </Typography>
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          size="small"
-                          startIcon={<Delete fontSize="small" />}
-                          onClick={(e) => openDeleteDialog(e, stop)}
-                        >
-                          Delete Stop
-                        </Button>
-                      </Box>
+                <Grid container spacing={2} sx={{ px: 2 }}>
+                  {sortStopsInOrder(load.stop).map(stop => (
+                    editingStop === stop.id ? (
+                      <Grid item xs={12} key={stop.id}>
+                        <StopEditContainer>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="subtitle2" gutterBottom>
+                              Edit Stop
+                            </Typography>
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              size="small"
+                              startIcon={<Delete fontSize="small" />}
+                              onClick={(e) => openDeleteDialog(e, stop)}
+                            >
+                              Delete Stop
+                            </Button>
+                          </Box>
                       
                       <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
@@ -4804,127 +5407,101 @@ const LoadViewPage = () => {
                         </Button>
                       </StopButtonGroup>
                     </StopEditContainer>
+                      </Grid>
                   ) : (
-                    <StopItem 
-                      key={stop.id} 
-                      isPickup={stop.stop_name === "PICKUP"}
-                      isCompact={compactView}
-                    >
-                      <StopIconContainer 
-                        isPickup={stop.stop_name === "PICKUP"}
-                        isCompact={compactView}
-                      >
-                        {stop.stop_name === "PICKUP" ? (
-                          <MdFileUpload size={compactView ? 14 : 20} />
-                        ) : stop.stop_name === "DELIVERY" ? (
-                          <MdFileDownload size={compactView ? 14 : 20} />
-                        ) : (
-                          <TimelineIcon fontSize={compactView ? 'small' : 'medium'} />
-                        )}
-                      </StopIconContainer>
-                      {/* Add stop sequence indicator */}
-                      {stop.stop_name.startsWith('Stop-') && (
-                        <Box sx={{ 
-                          position: 'absolute', 
-                          top: -8, 
-                          right: -8, 
-                          bgcolor: 'primary.main', 
-                          color: 'white', 
-                          borderRadius: '50%', 
-                          width: 20, 
-                          height: 20, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          fontSize: '0.7rem',
-                          fontWeight: 'bold',
-                          zIndex: 1,
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    <Grid item xs={12} sm={6} md={4} key={stop.id}>
+                      <Box sx={{
+                        p: 2,
+                        border: `2px solid ${stop.stop_name === "PICKUP" ? '#4caf50' : stop.stop_name === "DELIVERY" ? '#f44336' : '#2196f3'}`,
+                        borderRadius: 2,
+                        bgcolor: 'white',
+                        position: 'relative',
+                        transition: 'all 0.2s ease',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        '&:hover': {
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                          transform: 'translateY(-2px)'
+                        }
+                      }}>
+                        {/* Stop Type Badge */}
+                        <Box sx={{
+                          position: 'absolute',
+                          top: -12,
+                          left: 16,
+                          bgcolor: stop.stop_name === "PICKUP" ? '#4caf50' : stop.stop_name === "DELIVERY" ? '#f44336' : '#2196f3',
+                          color: 'white',
+                          px: 1.5,
+                          py: 0.5,
+                          borderRadius: 1,
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.5
                         }}>
-                          {stop.stop_name.match(/Stop-(\d+)/)?.[1] || ''}
+                          {stop.stop_name === "PICKUP" ? (
+                            <><MdFileUpload size={14} /> Pick Up</>
+                          ) : stop.stop_name === "DELIVERY" ? (
+                            <><MdFileDownload size={14} /> Delivery</>
+                          ) : (
+                            <><TimelineIcon sx={{ fontSize: 14 }} /> {stop.stop_name}</>
+                          )}
                         </Box>
-                      )}
-                      <StopDetails>
-                        <StopHeader>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <StopAddress>
-                              {stop.stop_name === "PICKUP" ? "Pick Up" : 
-                               stop.stop_name === "DELIVERY" ? "Delivery" : 
-                               stop.stop_name}
-                            </StopAddress>
-                            <IconButton 
-                              size="small" 
-                              onClick={() => handleEditStop(stop)}
-                              sx={{ ml: 1, display: compactView ? 'none' : 'flex' }}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Box>
-                          <StopDate>
-                            {stop.appointmentdate ? formatTimeForDisplay(stop.appointmentdate) : stop.fcfs ? (
-                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <Typography variant="caption">
-                                  FCFS: {formatTimeForDisplay(stop.fcfs)}
-                                  {stop.plus_hour ? ` - ${formatTimeForDisplay(stop.plus_hour)}` : ''}
-                                </Typography>
-                              </Box>
-                            ) : "Not specified"}
-                          </StopDate>
-                        </StopHeader>
-                        <Typography variant="body2">
-                          {stop.address1 ? stop.address1 : "No address specified"}
+                        
+                        {/* Edit Button */}
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEditStop(stop)}
+                          sx={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            bgcolor: 'background.paper',
+                            '&:hover': { bgcolor: 'action.hover' }
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        
+                        {/* Company Name */}
+                        {stop.company_name && (
+                          <Typography variant="subtitle2" sx={{ mt: 1.5, mb: 0.5, fontWeight: 600, fontSize: '0.9rem' }}>
+                            {stop.company_name}
+                          </Typography>
+                        )}
+                        
+                        {/* Address */}
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem', mb: 1 }}>
+                          {stop.address1 || "No address"}
                           {stop.city && `, ${stop.city}`}
                           {stop.state && `, ${stop.state}`}
                           {stop.zip_code && ` ${stop.zip_code}`}
                         </Typography>
-                        {!compactView && (
-                          <>
-                            {stop.company_name && (
-                              <Typography variant="caption" color="text.secondary" display="block" mt={0.5}>
-                                Company: {stop.company_name}
-                              </Typography>
-                            )}
-                            {stop.contact_name && (
-                              <Typography variant="caption" color="text.secondary" display="block">
-                                Contact: {stop.contact_name}
-                              </Typography>
-                            )}
-                            {/* Display FCFS information in expanded view */}
-                            {stop.fcfs && (
-                              <Typography variant="caption" color="text.secondary" display="block">
-                                FCFS: {formatTimeForDisplay(stop.fcfs)}
-                                {stop.plus_hour ? ` - ${formatTimeForDisplay(stop.plus_hour)}` : ''}
-                              </Typography>
-                            )}
-                          </>
+                        
+                        {/* Date/Time */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+                            {stop.appointmentdate ? (
+                              <>📅 {formatTimeForDisplay(stop.appointmentdate)}</>
+                            ) : stop.fcfs ? (
+                              <>⏰ FCFS: {formatTimeForDisplay(stop.fcfs)}{stop.plus_hour ? ` - ${formatTimeForDisplay(stop.plus_hour)}` : ''}</>
+                            ) : "No time specified"}
+                          </Typography>
+                        </Box>
+                        
+                        {/* Contact */}
+                        {stop.contact_name && (
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.8rem' }}>
+                            👤 {stop.contact_name}
+                          </Typography>
                         )}
-                      </StopDetails>
-                      {compactView && (
-                        <IconButton 
-                          size="small" 
-                          onClick={() => handleEditStop(stop)}
-                          sx={{ ml: 1 }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                    </StopItem>
+                      </Box>
+                    </Grid>
                   )
-                )).map((stop, index, array) => (
-                    <React.Fragment key={stop.id}>
-                      {stop}
-                      {/* Add visual separator between stops */}
-                      {index < array.length - 1 && (
-                        <Box sx={{ 
-                          height: 2, 
-                          bgcolor: 'divider', 
-                          mx: 2, 
-                          my: 1, 
-                          borderRadius: 1 
-                        }} />
-                      )}
-                    </React.Fragment>
-                  ))
+                ))}
+              </Grid>
                               ) : (
                 !isAddingStop && !isStopsLoading && !stopsError && (
                   <Box sx={{ 
@@ -4955,858 +5532,110 @@ const LoadViewPage = () => {
                 )
               ))}
             </StopsContainer>
-            
-            {/* Load and Broker Information Combined */}
-            <DetailCard sx={{ 
-              bgcolor: '#fff',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-              borderRadius: 1,
-              p: 2,
-              mb: 1.5
-            }}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                mb: 2,
-                pb: 1,
-                borderBottom: '1px solid #f0f0f0'
-              }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                Load Information
-              </Typography>
-              </Box>
-              
-              <Grid container spacing={2}>
-                <Grid item xs={6} md={3}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Load ID
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Tooltip title={load.load_id || "Not assigned"} placement="top">
-                        <Typography variant="body2" sx={{ 
-                          fontWeight: 500,
-                          maxWidth: '120px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {load.load_id || "Not assigned"}
-                        </Typography>
-                      </Tooltip>
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleCopyToClipboard(load.load_id, 'Load ID')}
-                        sx={{ padding: 0.2 }}
-                      >
-                        <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
-                      </IconButton>
-                    </Box>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={6} md={3}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Reference ID
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Tooltip title={load.reference_id || "Not assigned"} placement="top">
-                        <Typography variant="body2" sx={{ 
-                          fontWeight: 500,
-                          maxWidth: '120px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {load.reference_id || "Not assigned"}
-                        </Typography>
-                      </Tooltip>
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleCopyToClipboard(load.reference_id, 'Reference ID')}
-                        sx={{ padding: 0.2 }}
-                      >
-                        <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
-                      </IconButton>
-                    </Box>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={6} md={3}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Load Pay
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      fontWeight: 600,
-                      color: load.load_pay ? '#2e7d32' : 'text.primary'
-                    }}>
-                      {load.load_pay ? `$${load.load_pay}` : "Not assigned"}
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={6} md={3}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Driver Pay
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      fontWeight: 600,
-                      color: load.driver_pay ? '#2e7d32' : 'text.primary'
-                    }}>
-                      {load.driver_pay ? `$${load.driver_pay}` : "Not assigned"}
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={6} md={3}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Total Miles
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {load.total_miles || "Not available"}
-                    </Typography>
-                  </Box>
-                </Grid>
 
-                <Grid item xs={6} md={3}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Status
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      fontWeight: 500,
-                      color: load.status === 'COMPLETED' ? '#2e7d32' : 
-                             load.status === 'IN_PROGRESS' ? '#1976d2' : 
-                             load.status === 'CANCELLED' ? '#d32f2f' : 'text.primary'
-                    }}>
-                      {load.status || "Not set"}
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-            </DetailCard>
-            
-            <DetailCard sx={{ 
-              bgcolor: '#fff',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-              borderRadius: 1,
-              p: 2,
-              mb: 1.5
-            }}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                mb: 2,
-                pb: 1,
-                borderBottom: '1px solid #f0f0f0'
-              }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                Broker Information
-              </Typography>
-              </Box>
-              
-              <Grid container spacing={2}>
-                <Grid item xs={6} md={3}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Company
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {load.customer_broker?.company_name || "Not assigned"}
-                      </Typography>
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleCopyToClipboard(load.customer_broker?.company_name, 'Company')}
-                        sx={{ padding: 0.2 }}
-                      >
-                        <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
-                      </IconButton>
-                    </Box>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={6} md={3}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      MC Number
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {load.customer_broker?.mc_number || "Not available"}
-                      </Typography>
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleCopyToClipboard(load.customer_broker?.mc_number, 'MC Number')}
-                        sx={{ padding: 0.2 }}
-                      >
-                        <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
-                      </IconButton>
-                    </Box>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={6} md={3}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Contact
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {load.customer_broker?.contact_number || "Not available"}
-                      </Typography>
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleCopyToClipboard(load.customer_broker?.contact_number, 'Contact')}
-                        sx={{ padding: 0.2 }}
-                      >
-                        <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
-                      </IconButton>
-                    </Box>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={6} md={3}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Email
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Typography variant="body2" sx={{ 
-                        fontWeight: 500,
-                        maxWidth: '140px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {load.customer_broker?.email_address || "Not available"}
-                      </Typography>
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleCopyToClipboard(load.customer_broker?.email_address, 'Email')}
-                        sx={{ padding: 0.2 }}
-                      >
-                        <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
-                      </IconButton>
-                    </Box>
-                  </Box>
-                </Grid>
-              </Grid>
-            </DetailCard>
-            
-            <DetailCard sx={{ 
-              bgcolor: '#fff',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-              borderRadius: 1,
-              p: 2,
-              mb: 1.5
-            }}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                mb: 2,
-                pb: 1,
-                borderBottom: '1px solid #f0f0f0'
-              }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                Driver & Equipment
-              </Typography>
-              </Box>
-              
-              <Grid container spacing={2}>
-                <Grid item xs={6} md={4}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Driver
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  {load.driver ? 
-                    `${load.driver.user?.first_name || ''} ${load.driver.user?.last_name || ''}` : 
-                    "Not assigned"}
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={6} md={4}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Dispatcher
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {load.dispatcher?.nickname || "Not assigned"}
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={12} md={4}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Equipment
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  {load.truck ? 
-                    `${load.truck.make || ''} ${load.truck.model || ''} (Unit: ${load.truck.unit_number || ''})` : 
-                    "No equipment assigned"}
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-            </DetailCard>
-            
-            <DetailCard sx={{ 
-              bgcolor: '#fff',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-              borderRadius: 1,
-              p: 2
-            }}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                mb: 2,
-                pb: 1,
-                borderBottom: '1px solid #f0f0f0'
-              }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                Additional Information
-              </Typography>
-              </Box>
-              
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                  Instructions
-                </Typography>
-                    <Box sx={{ 
-                      p: 1.5, 
-                      bgcolor: '#fafafa',
-                      borderRadius: 1,
-                      border: '1px solid #f0f0f0',
-                      minHeight: '60px',
-                      fontSize: '0.875rem'
-                    }}>
-                  {load.instructions || "No instructions provided"}
-              </Box>
-                  </Box>
-                </Grid>
-              
-                <Grid item xs={12} md={6}>
-              <Box>
-                    <Typography variant="caption" color="text.secondary">
-                  Bills
-                </Typography>
-                    <Box sx={{ 
-                      p: 1.5, 
-                      bgcolor: '#fafafa',
-                      borderRadius: 1,
-                      border: '1px solid #f0f0f0',
-                      fontSize: '0.875rem'
-                    }}>
-                  {load.bills || "No bills information provided"}
-              </Box>
-                  </Box>
-                </Grid>
-              </Grid>
-            </DetailCard>
-          </LeftPanelContent>
-        )}
-      </LeftPanel>
-
-      <MiddlePanel>
-        <Panel>
-          <PanelHeader>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              width: '100%',
-              gap: 2
-            }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 'fit-content' }}>
-                <Typography variant="h6">Chat</Typography>
-                {/* Socket.IO Connection Status */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Box
-                    sx={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      backgroundColor: isSocketConnected ? '#10B981' : isSocketConnecting ? '#F59E0B' : '#6B7280',
-                      animation: (isSocketConnected || isSocketConnecting) ? 'pulse 2s infinite' : 'none',
-                      '@keyframes pulse': {
-                        '0%': { opacity: 1 },
-                        '50%': { opacity: 0.5 },
-                        '100%': { opacity: 1 }
-                      }
-                    }}
-                  />
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                    {isSocketConnected ? 'Real-time' : isSocketConnecting ? 'Connecting...' : 'HTTP API'}
-                  </Typography>
-                </Box>
-              </Box>
-              
-              {/* Typing Indicators */}
-              {typingUsers.length > 0 && (
-                <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 0.5,
-                  px: 1,
-                  py: 0.25,
-                  bgcolor: 'rgba(25, 118, 210, 0.08)',
-                  borderRadius: 4,
-                  position: 'absolute',
-                  bottom: 'calc(100% + 8px)',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  zIndex: 2,
-                  backdropFilter: 'blur(4px)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  animation: 'fadeIn 0.3s ease-in-out',
-                  '@keyframes fadeIn': {
-                    '0%': {
-                      opacity: 0,
-                      transform: 'translate(-50%, 10px)'
-                    },
-                    '100%': {
-                      opacity: 1,
-                      transform: 'translate(-50%, 0)'
-                    }
-                  }
-                }}>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 0.5,
-                    animation: 'bounce 1.4s infinite',
-                    '@keyframes bounce': {
-                      '0%, 80%, 100%': { transform: 'scale(0.6)' },
-                      '40%': { transform: 'scale(1.0)' }
-                    }
-                  }}>
-                    <CircleIcon sx={{ fontSize: 4, color: 'primary.main' }} />
-                    <CircleIcon sx={{ 
-                      fontSize: 4, 
-                      color: 'primary.main',
-                      animationDelay: '0.2s'
-                    }} />
-                    <CircleIcon sx={{ 
-                      fontSize: 4, 
-                      color: 'primary.main',
-                      animationDelay: '0.4s'
-                    }} />
-                  </Box>
-                  <Typography variant="caption" sx={{ 
-                    color: 'text.secondary',
-                    fontSize: '0.75rem',
-                    fontWeight: 500
-                  }}>
-                    {typingUsers.length === 1 
-                      ? `${usersData[typingUsers[0].userId]?.first_name || 'Someone'} is typing...`
-                      : `${typingUsers.length} people are typing...`
-                    }
-                  </Typography>
-                </Box>
-              )}
-              
-              {!isLoadDataLoading && (
-                <Box sx={{ 
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  ml: 2
-                }}>
-                  {/* Load Status Button */}
-                  <Tooltip title="Change Load Status">
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={(e) => setLoadStatusAnchor(e.currentTarget)}
-                      disabled={isUpdatingStatus}
-                      sx={{
-                        minWidth: 'auto',
-                        px: 1,
-                        py: 0.5,
-                        borderColor: 'divider',
-                        gap: 0.5,
-                        height: 28
-                      }}
-                    >
-                      <Box sx={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        bgcolor: loadStatusOptions.find(opt => opt.value === (load?.load_status || 'OPEN'))?.color || 'grey.400'
-                      }} />
-                      <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.7rem' }}>
-                        {loadStatusOptions.find(opt => opt.value === (load?.load_status || 'OPEN'))?.label}
-                      </Typography>
-                    </Button>
-                  </Tooltip>
-
-                  {/* Invoice Status Button */}
-                  <Tooltip title="Change Invoice Status">
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={(e) => setInvoiceStatusAnchor(e.currentTarget)}
-                      disabled={isUpdatingStatus}
-                      sx={{
-                        minWidth: 'auto',
-                        px: 1,
-                        py: 0.5,
-                        borderColor: 'divider',
-                        gap: 0.5,
-                        height: 28
-                      }}
-                    >
-                      <Box sx={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        bgcolor: invoiceStatusOptions.find(opt => opt.value === (load?.invoice_status || 'NOT_DETERMINED'))?.color || 'grey.400'
-                      }} />
-                      <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.7rem' }}>
-                        {invoiceStatusOptions.find(opt => opt.value === (load?.invoice_status || 'NOT_DETERMINED'))?.label}
-                      </Typography>
-                    </Button>
-                  </Tooltip>
-
-                  {/* Load Status Menu */}
-                  <Menu
-                    anchorEl={loadStatusAnchor}
-                    open={Boolean(loadStatusAnchor)}
-                    onClose={() => setLoadStatusAnchor(null)}
-                    PaperProps={{
-                      sx: { 
-                        minWidth: 180,
-                        boxShadow: theme => theme.shadows[3],
-                        borderRadius: 1
-                      }
-                    }}
-                  >
-                    {loadStatusOptions.map((option) => (
-                      <MenuItem 
-                        key={option.value} 
-                        onClick={() => {
-                          handleStatusChange({ target: { value: option.value } });
-                          setLoadStatusAnchor(null);
-                        }}
-                        sx={{ 
-                          py: 1,
-                          minHeight: 'auto',
-                          '&:hover': {
-                            bgcolor: 'action.hover'
-                          }
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <StatusIconContainer color={option.color} sx={{ width: 24, height: 24 }}>
-                            {option.icon}
-                          </StatusIconContainer>
-                          <Typography variant="body2">
-                            {option.label}
-                          </Typography>
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Menu>
-
-                  {/* Invoice Status Menu */}
-                  <Menu
-                    anchorEl={invoiceStatusAnchor}
-                    open={Boolean(invoiceStatusAnchor)}
-                    onClose={() => setInvoiceStatusAnchor(null)}
-                    PaperProps={{
-                      sx: { 
-                        minWidth: 180,
-                        boxShadow: theme => theme.shadows[3],
-                        borderRadius: 1
-                      }
-                    }}
-                  >
-                    {invoiceStatusOptions.map((option) => (
-                      <MenuItem 
-                        key={option.value} 
-                        onClick={() => {
-                          handleInvoiceStatusChange({ target: { value: option.value } });
-                          setInvoiceStatusAnchor(null);
-                        }}
-                        sx={{ 
-                          py: 1,
-                          minHeight: 'auto',
-                          '&:hover': {
-                            bgcolor: 'action.hover'
-                          }
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            bgcolor: option.color
-                          }} />
-                          <Typography variant="body2">
-                            {option.label}
-                          </Typography>
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Menu>
-                </Box>
-              )}
-              
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {/* Socket.IO Connection Status */}
-                {socketConnectionError && (
-                  <Alert 
-                    severity="info" 
-                    sx={{ fontSize: '0.75rem', py: 0 }}
-                    action={
-                      <Button 
-                        size="small" 
-                        color="inherit" 
-                        onClick={handleReconnectSocket}
-                        sx={{ fontSize: '0.7rem', minWidth: 'auto', px: 1 }}
-                      >
-                        Try Real-time
-                      </Button>
-                    }
-                  >
-                    Using HTTP API
-                  </Alert>
-                )}
-                
-                <IconButton onClick={handleRefreshChat} disabled={isChatLoading}>
-                  {isChatLoading ? (
-                    <CircularProgress size={24} thickness={4} />
-                  ) : (
-                    <RefreshIcon />
-                  )}
-                </IconButton>
-              </Box>
-            </Box>
-          </PanelHeader>
-          
-          <Box sx={{ 
-            flex: 1, 
-            display: 'flex', 
-            flexDirection: 'column',
-            backgroundColor: "#ffffff",
-            borderRadius: theme => theme.spacing(1),
-            margin: theme => theme.spacing(0, 2),
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
-          }}>
-            <ChatBackgroundOverlay />
-            <ChatContentWrapper>
-              <Box sx={{ 
-                px: 2,
-                py: 1.5,
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                overflowY: 'auto',
-                position: 'relative',
-                '&::-webkit-scrollbar': {
-                  width: '4px',
-                },
-                '&::-webkit-scrollbar-track': {
-                  background: 'transparent',
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  background: 'rgba(0,0,0,0.2)',
-                  borderRadius: '4px',
-                },
-                '&::-webkit-scrollbar-thumb:hover': {
-                  background: 'rgba(0,0,0,0.3)',
-                },
-                gap: 1.5
-              }} ref={chatContainerRef}>
-                {isChatLoading && chatMessages.length === 0 ? (
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'center', 
-                    alignItems: 'center', 
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                    zIndex: 10
-                  }}>
-                    <CircularProgress />
-                  </Box>
-                ) : (
-                  renderChatMessages()
-                )}
-                <div ref={chatEndRef} />
-              </Box>
-            </ChatContentWrapper>
-          </Box>
-          
-          <Box sx={{ position: 'relative' }}>
-            {showEmojiPicker && (
-              <Box sx={{ 
-                position: 'absolute', 
-                bottom: '100%', 
-                right: 16, 
-                zIndex: 100,
-                boxShadow: 3,
-                borderRadius: 1,
-                overflow: 'hidden'
-              }}>
-                <EmojiPicker 
-                  onEmojiClick={onEmojiClick} 
-                  searchDisabled
-                  skinTonesDisabled
-                  width={300}
-                  height={350}
-                />
-              </Box>
-            )}
-            
-            {selectedFile && (
-              <AttachmentPreview>
-                <FilePreview>
-                  {isImageFile(selectedFile) ? (
-                    <Image fontSize="small" color="primary" />
-                  ) : (
-                    <InsertDriveFile fontSize="small" color="primary" />
-                  )}
-                  <Typography variant="body2" noWrap sx={{ flex: 1 }}>
-                    {selectedFile.name}
-                  </Typography>
-                </FilePreview>
-                <Tooltip title="Remove attachment">
-                  <IconButton size="small" onClick={handleCancelFileSelection}>
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </AttachmentPreview>
-            )}
-            
-            {editingMessage && (
-              <Box sx={{ 
-                p: 1, 
-                bgcolor: 'primary.light', 
-                borderRadius: '4px 4px 0 0',
-                color: 'white',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <Typography variant="body2">Editing message</Typography>
-                <IconButton size="small" onClick={handleCancelMessageEdit} sx={{ color: 'white' }}>
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            )}
-            
-            <MessageInput>
-              <input
-                type="file"
-                id="file-upload"
-                style={{ display: 'none' }}
-                onChange={handleFileSelect}
-              />
-              <label htmlFor="file-upload">
-                <IconButton component="span" color="primary">
-                  <AttachFile />
-                </IconButton>
-              </label>
-              
-              <TextField
-                fullWidth
-                placeholder={editingMessage ? "Edit your message..." : "Type a message..."}
-                value={newMessage}
-                onChange={(e) => handleTyping(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                onBlur={() => {
-                  // Emit stopped typing event
-                  const userId = parseInt(localStorage.getItem("userid"));
-                  if (userId && isSocketConnected) {
-                    chatSocketService.emitStoppedTyping(userId, parseInt(id));
-                  }
-                }}
-                onPaste={handlePaste}
-                size="small"
-                variant="outlined"
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton 
-                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                        size="small"
-                        color="primary"
-                      >
-                        <CiDeliveryTruck size={20} />
-                      </IconButton>
-                    </InputAdornment>
-                  )
-                }}
-              />
-              
-              <IconButton
-                color="primary"
-                onClick={() => handleSendMessage()}
-                disabled={(!newMessage.trim() && !selectedFile && !editingMessage) || !permissions.chat_create}
-              >
-                <Send />
-              </IconButton>
-            </MessageInput>
-          </Box>
-        </Panel>
-      </MiddlePanel>
-
-      <RightPanel>
-        <PanelHeader>
-          <Typography variant="h6">Load Information</Typography>
-          
-          <IconButton onClick={() => {
-            setIsLoadDataLoading(true);
-            ApiService.getData(`/load/${id}/`)
-              .then(data => {
-                setLoad(data);
-                fetchAllStops();
-              })
-              .catch(error => {
-                console.error("Error fetching load data:", error);
-                showSnackbar("Error updating data", "error");
-              })
-              .finally(() => {
-                setIsLoadDataLoading(false);
-              });
-          }} disabled={isLoadDataLoading}>
-            {isLoadDataLoading ? (
-              <CircularProgress size={24} thickness={4} />
-            ) : (
-              <RefreshIcon />
-            )}
-          </IconButton>
-        </PanelHeader>
-        
-        <PanelContent>
+            <Divider sx={{ my: 2 }} />
           {isLoadDataLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
               <CircularProgress />
             </Box>
           ) : (
             <>
-              {/* Basic Information */}
+              {/* Status Section - NEW */}
+              <InfoCard>
+                <InfoCardHeader>
+                  <InfoCardTitle>
+                    <AssignmentIcon />
+                    Status
+                  </InfoCardTitle>
+                </InfoCardHeader>
+                
+                <Grid container spacing={2}>
+                  {/* Load Status */}
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
+                        Load Status
+                      </Typography>
+                      <FormControl fullWidth size="small">
+                        <Select
+                          value={load.load_status || ''}
+                          onChange={handleStatusChange}
+                          disabled={isUpdatingStatus || !permissions.load_update}
+                          sx={{
+                            '& .MuiSelect-select': {
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1
+                            }
+                          }}
+                        >
+                          {loadStatusOptions.map((option) => (
+                            <MenuItem key={option.value} value={option.value}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{
+                                  width: 8,
+                                  height: 8,
+                                  borderRadius: '50%',
+                                  backgroundColor: option.color
+                                }} />
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                  {option.label}
+                                </Typography>
+                              </Box>
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+                  </Grid>
+                  
+                  {/* Invoice Status */}
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
+                        Invoice Status
+                      </Typography>
+                      <FormControl fullWidth size="small">
+                        <Select
+                          value={load.invoice_status || ''}
+                          onChange={handleInvoiceStatusChange}
+                          disabled={isUpdatingStatus || !permissions.load_update}
+                          sx={{
+                            '& .MuiSelect-select': {
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1
+                            }
+                          }}
+                        >
+                          {invoiceStatusOptions.map((option) => (
+                            <MenuItem key={option.value} value={option.value}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{
+                                  width: 8,
+                                  height: 8,
+                                  borderRadius: '50%',
+                                  backgroundColor: option.color
+                                }} />
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                  {option.label}
+                                </Typography>
+                              </Box>
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </InfoCard>
+            
+              {/* Load Information */}
               <InfoCard>
                 <InfoCardHeader>
                   <InfoCardTitle>
                     <Info />
-                    Basic Information
+                    Load Information
                   </InfoCardTitle>
                   {permissions.load_update && (
                     <Button
@@ -5822,178 +5651,220 @@ const LoadViewPage = () => {
                 
                 {editingSection === 'basic' ? (
                   // Edit form for basic information
-                  <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Load ID"
-                      name="load_id"
-                      value={editFormData.load_id}
-                      onChange={handleFormChange}
-                    />
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Reference ID"
-                      name="reference_id"
-                      value={editFormData.reference_id}
-                      onChange={handleFormChange}
-                    />
-                    
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Weight"
-                      name="weight"
-                      type="text"
-                      inputProps={{
-                        pattern: "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
-                      }}
-                      value={editFormData.weight || ''}
-                      onChange={handleFormChange}
-                      helperText="Format: Up to 8 digits with optional 2 decimal places"
-                    />
-
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Weight"
-                      name="weight"
-                      type="text"
-                      inputProps={{
-                        pattern: "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
-                      }}
-                      value={editFormData.weight || ''}
-                      onChange={handleFormChange}
-                      helperText="Format: Up to 8 digits with optional 2 decimal places"
-                    />
-                    
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Company Name"
-                      name="company_name"
-                      value={editFormData.company_name}
-                      onChange={handleFormChange}
-                    />
-                    {/* Add Unit Autocomplete */}
-                    <Autocomplete
-                      options={units}
-                      getOptionLabel={(option) => `Unit ${option.unit_number}`}
-                      onChange={handleUnitChange}
-                      value={units.find(unit => unit.id === editFormData.unit_id) || null}
-                      renderOption={(props, option) => (
-                        <li {...props}>
-                          Unit {option.unit_number}
-                        </li>
-                      )}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Unit Number"
-                          size="small"
-                          helperText="When a unit is selected, truck, trailer and driver information will be automatically filled"
-                        />
-                      )}
-                    />
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Equipment Type</InputLabel>
-                      <Select
-                        name="equipment_type"
-                        value={editFormData.equipment_type || ''}
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Load ID"
+                        name="load_id"
+                        value={editFormData.load_id}
                         onChange={handleFormChange}
-                        label="Equipment Type"
-                        disabled={!!editFormData.unit_id} // Disable if unit is selected
-                      >
-                        <MenuItem value="DRYVAN">Dryvan</MenuItem>
-                        <MenuItem value="REEFER">Reefer</MenuItem>
-                        <MenuItem value="CARHAUL">Carhaul</MenuItem>
-                        <MenuItem value="FLATBED">Flatbed</MenuItem>
-                        <MenuItem value="STEPDECK">Stepdeck</MenuItem>
-                        <MenuItem value="POWERONLY">PowerOnly</MenuItem>
-                        <MenuItem value="RGN">Rgn</MenuItem>
-                        <MenuItem value="TANKERSTYLE">TankerStyle</MenuItem>
-                      </Select>
-                    </FormControl>
-                    {permissions.load_update && (
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                        <Button 
-                          variant="contained" 
-                          onClick={handleSaveChanges}
-                          disabled={isSaving}
-                          startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Reference ID"
+                        name="reference_id"
+                        value={editFormData.reference_id}
+                        onChange={handleFormChange}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6} md={4}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Weight"
+                        name="weight"
+                        type="text"
+                        inputProps={{
+                          pattern: "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+                        }}
+                        value={editFormData.weight || ''}
+                        onChange={handleFormChange}
+                        helperText="Up to 8 digits, 2 decimals"
+                      />
+                    </Grid>
+                    
+                    {/* Add Unit Autocomplete */}
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Autocomplete
+                        options={units}
+                        getOptionLabel={(option) => `Unit ${option.unit_number}`}
+                        onChange={handleUnitChange}
+                        value={units.find(unit => unit.id === editFormData.unit_id) || null}
+                        renderOption={(props, option) => (
+                          <li {...props}>
+                            Unit {option.unit_number}
+                          </li>
+                        )}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Unit Number"
+                            size="small"
+                          />
+                        )}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Equipment Type</InputLabel>
+                        <Select
+                          name="equipment_type"
+                          value={editFormData.equipment_type || ''}
+                          onChange={handleFormChange}
+                          label="Equipment Type"
+                          disabled={!!editFormData.unit_id}
                         >
-                          Save
-                        </Button>
-                      </Box>
+                          <MenuItem value="DRYVAN">Dryvan</MenuItem>
+                          <MenuItem value="REEFER">Reefer</MenuItem>
+                          <MenuItem value="CARHAUL">Carhaul</MenuItem>
+                          <MenuItem value="FLATBED">Flatbed</MenuItem>
+                          <MenuItem value="STEPDECK">Stepdeck</MenuItem>
+                          <MenuItem value="POWERONLY">PowerOnly</MenuItem>
+                          <MenuItem value="RGN">Rgn</MenuItem>
+                          <MenuItem value="TANKERSTYLE">TankerStyle</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    {permissions.load_update && (
+                      <Grid item xs={12}>
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                          <Button 
+                            variant="contained" 
+                            onClick={handleSaveChanges}
+                            disabled={isSaving}
+                            startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
+                          >
+                            Save
+                          </Button>
+                        </Box>
+                      </Grid>
                     )}
-                  </Box>
+                  </Grid>
                 ) : (
-                  // Display mode for basic information
-                  <>
-                    <DetailItem>
-                      <DetailLabel>Load ID</DetailLabel>
-                      <DetailValue>{load.load_id || "Not assigned"}</DetailValue>
-                    </DetailItem>
+                  // Display mode for load information - Grid Layout
+                  <Grid container spacing={2}>
+                    {/* Primary IDs */}
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                          Load ID
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                          {load.load_id || "Not assigned"}
+                        </Typography>
+                      </Box>
+                    </Grid>
                     
-                    <DetailItem>
-                      <DetailLabel>Reference ID</DetailLabel>
-                      <DetailValue>{load.reference_id || "Not assigned"}</DetailValue>
-                    </DetailItem>
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                          Reference ID
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                          {load.reference_id || "Not assigned"}
+                        </Typography>
+                      </Box>
+                    </Grid>
 
-                    <DetailItem>
-                      <DetailLabel>Weight</DetailLabel>
-                      <DetailValue>{load.weight || "Not assigned"}</DetailValue>
-                    </DetailItem>
-                    
-                    <DetailItem>
-                      <DetailLabel>Weight</DetailLabel>
-                      <DetailValue>{load.weight || "Not assigned"}</DetailValue>
-                    </DetailItem>
+                    {/* Customer/Broker */}
+                    <Grid item xs={12}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
+                          Customer/Broker
+                        </Typography>
+                        <Box 
+                          sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 0.5,
+                            cursor: 'pointer',
+                            '&:hover': {
+                              color: 'primary.main',
+                              textDecoration: 'underline'
+                            }
+                          }}
+                          onClick={() => load?.customer_broker && setBrokerInfoOpen(true)}
+                        >
+                          <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.875rem' }}>
+                            {load.customer_broker?.company_name || "Not assigned"}
+                          </Typography>
+                          {load?.customer_broker && (
+                            <Info sx={{ fontSize: '1rem', ml: 0.5 }} />
+                          )}
+                        </Box>
+                      </Box>
+                    </Grid>
 
-                    <DetailItem>
-                      <DetailLabel>Company</DetailLabel>
-                      <DetailValue>{load.company_name || "Not assigned"}</DetailValue>
-                    </DetailItem>
+                    {/* Weight */}
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
+                          Weight
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.875rem' }}>
+                          {load.weight ? `${load.weight} lbs` : "Not assigned"}
+                        </Typography>
+                      </Box>
+                    </Grid>
+
+                    {/* Unit Number */}
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
+                          Unit Number
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.875rem' }}>
+                          {units.find(unit => unit.id === load.unit_id)?.unit_number 
+                            ? `Unit ${units.find(unit => unit.id === load.unit_id)?.unit_number}` 
+                            : "Not assigned"}
+                        </Typography>
+                      </Box>
+                    </Grid>
                     
-                    <DetailItem>
-                      <DetailLabel>Customer/Broker</DetailLabel>
-                      <DetailValue>{load.customer_broker?.company_name || "Not assigned"}</DetailValue>
-                    </DetailItem>
+                    {/* Team */}
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
+                          Team
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.875rem' }}>
+                          {load.team_id 
+                            ? (teams.find(team => team.id === load.team_id)?.name || `Team-${load.team_id}`)
+                            : "Not assigned"}
+                        </Typography>
+                      </Box>
+                    </Grid>
                     
-                    <DetailItem>
-                      <DetailLabel>Unit Number</DetailLabel>
-                      <DetailValue>
-                        {units.find(unit => unit.id === load.unit_id)?.unit_number 
-                          ? `Unit ${units.find(unit => unit.id === load.unit_id)?.unit_number}` 
-                          : "Not assigned"}
-                      </DetailValue>
-                    </DetailItem>
+                    {/* Created By */}
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
+                          Created By
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.875rem' }}>
+                          {load.created_by?.nickname || load.created_by?.email || "Not assigned"}
+                        </Typography>
+                      </Box>
+                    </Grid>
                     
-                    <DetailItem>
-                      <DetailLabel>Team</DetailLabel>
-                      <DetailValue>
-                        {load.team_id 
-                          ? (teams.find(team => team.id === load.team_id)?.name || `Team-${load.team_id}`)
-                          : "Not assigned"}
-                      </DetailValue>
-                    </DetailItem>
-                    
-                    <DetailItem>
-                      <DetailLabel>Created By</DetailLabel>
-                      <DetailValue>{load.created_by?.nickname || load.created_by?.email || "Not assigned"}</DetailValue>
-                    </DetailItem>
-                    
-                    <DetailItem>
-                      <DetailLabel>Created Date</DetailLabel>
-                      <DetailValue>{load.created_date ? new Date(load.created_date).toLocaleString() : "Not assigned"}</DetailValue>
-                    </DetailItem>
-                    
-                    <DetailItem noBorder>
-                      <DetailLabel>Equipment Type</DetailLabel>
-                      <DetailValue>{getEquipmentTypeName(load.equipment_type) || "Not assigned"}</DetailValue>
-                    </DetailItem>
-                  </>
+                    {/* Created Date */}
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
+                          Created Date
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.875rem' }}>
+                          {load.created_date ? new Date(load.created_date).toLocaleString() : "Not assigned"}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
                 )}
               </InfoCard>
               
@@ -6018,105 +5889,103 @@ const LoadViewPage = () => {
                 
                 {editingSection === 'personnel' ? (
                   // Edit form for personnel
-                  <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Driver</InputLabel>
-                        <Select
-                          name="driver"
-                          value={editFormData.driver || ''}
-                          onChange={handleFormChange}
-                          label="Driver"
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>Driver</InputLabel>
+                          <Select
+                            name="driver"
+                            value={editFormData.driver || ''}
+                            onChange={handleFormChange}
+                            label="Driver"
+                          >
+                            <MenuItem value="">None</MenuItem>
+                            {drivers.map(driver => (
+                              <MenuItem key={driver.id} value={driver.id}>
+                                {`${driver.user?.first_name || ''} ${driver.user?.last_name || ''}`}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <IconButton 
+                          color="primary" 
+                          onClick={handleAddDriver}
+                          size="small"
                         >
-                          <MenuItem value="">None</MenuItem>
-                          {drivers.map(driver => (
-                            <MenuItem key={driver.id} value={driver.id}>
-                              {`${driver.user?.first_name || ''} ${driver.user?.last_name || ''}`}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      <IconButton 
-                        color="primary" 
-                        onClick={handleAddDriver}
-                        size="small"
-                      >
-                        <AddIcon />
-                      </IconButton>
-                    </Box>
+                          <AddIcon />
+                        </IconButton>
+                      </Box>
+                    </Grid>
                     
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Dispatcher</InputLabel>
-                        <Select
-                          name="dispatcher"
-                          value={editFormData.dispatcher || ''}
-                          onChange={handleFormChange}
-                          label="Dispatcher"
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>Dispatcher</InputLabel>
+                          <Select
+                            name="dispatcher"
+                            value={editFormData.dispatcher || ''}
+                            onChange={handleFormChange}
+                            label="Dispatcher"
+                          >
+                            <MenuItem value="">None</MenuItem>
+                            {dispatchers.map(dispatcher => (
+                              <MenuItem key={dispatcher.id} value={dispatcher.id}>
+                                {dispatcher.nickname || dispatcher.email}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <IconButton 
+                          color="primary" 
+                          onClick={handleAddDispatcher}
+                          size="small"
                         >
-                          <MenuItem value="">None</MenuItem>
-                          {dispatchers.map(dispatcher => (
-                            <MenuItem key={dispatcher.id} value={dispatcher.id}>
-                              {dispatcher.nickname || dispatcher.email}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      <IconButton 
-                        color="primary" 
-                        onClick={handleAddDispatcher}
-                        size="small"
-                      >
-                        <AddIcon />
-                      </IconButton>
-                    </Box>
+                          <AddIcon />
+                        </IconButton>
+                      </Box>
+                    </Grid>
                     
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Driver Pay"
-                      name="driver_pay"
-                      value={editFormData.driver_pay}
-                      onChange={handleFormChange}
-                      type="number"
-                      InputProps={{
-                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                      }}
-                    />
-                    
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                      <Button 
-                        variant="contained" 
-                        onClick={handleSaveChanges}
-                        disabled={isSaving}
-                        startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
-                      >
-                        Save
-                      </Button>
-        </Box>
-      </Box>
+                    <Grid item xs={12}>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                        <Button 
+                          variant="contained" 
+                          onClick={handleSaveChanges}
+                          disabled={isSaving}
+                          startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
+                        >
+                          Save
+                        </Button>
+                      </Box>
+                    </Grid>
+                  </Grid>
                 ) : (
-                  // Display mode for personnel
-                  <>
-                    <DetailItem>
-                      <DetailLabel>Driver</DetailLabel>
-                      <DetailValue>
-                        {load.driver ? 
-                          `${load.driver.user?.first_name || ''} ${load.driver.user?.last_name || ''}`.trim() : 
-                          "Not assigned"}
-                      </DetailValue>
-                    </DetailItem>
+                  // Display mode for personnel - Grid Layout
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
+                          Driver
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.875rem' }}>
+                          {load.driver ? 
+                            `${load.driver.user?.first_name || ''} ${load.driver.user?.last_name || ''}`.trim() : 
+                            "Not assigned"}
+                        </Typography>
+                      </Box>
+                    </Grid>
                     
-                    <DetailItem>
-                      <DetailLabel>Dispatcher</DetailLabel>
-                      <DetailValue>{load.dispatcher?.nickname || "Not assigned"}</DetailValue>
-                    </DetailItem>
-                    
-                    <DetailItem noBorder>
-                      <DetailLabel>Driver Pay</DetailLabel>
-                      <DetailValue>{load.driver_pay ? `$${load.driver_pay}` : "Not assigned"}</DetailValue>
-                    </DetailItem>
-                  </>
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
+                          Dispatcher
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.875rem' }}>
+                          {load.dispatcher?.nickname || "Not assigned"}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
                 )}
               </InfoCard>
               
@@ -6141,36 +6010,40 @@ const LoadViewPage = () => {
                 
                 {editingSection === 'equipment' ? (
                   // Edit form for equipment
-                  <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>Truck</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Truck</InputLabel>
-                        <Select
-                          name="truck"
-                          value={editFormData.truck || ''}
-                          onChange={handleFormChange}
-                          label="Truck"
-                          disabled={!!editFormData.unit_id} // Disable if unit is selected
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>Truck</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>Truck</InputLabel>
+                          <Select
+                            name="truck"
+                            value={editFormData.truck || ''}
+                            onChange={handleFormChange}
+                            label="Truck"
+                            disabled={!!editFormData.unit_id}
+                          >
+                            <MenuItem value="">None</MenuItem>
+                            {trucks.map(truck => (
+                              <MenuItem key={truck.id} value={truck.id}>
+                                {`${truck.make || ''} ${truck.model || ''} (${truck.unit_number || 'No unit'})`}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <IconButton 
+                          color="primary" 
+                          onClick={handleAddTruck}
+                          size="small"
+                          title="Add new truck"
+                          disabled={!!editFormData.unit_id}
                         >
-                          <MenuItem value="">None</MenuItem>
-                          {trucks.map(truck => (
-                            <MenuItem key={truck.id} value={truck.id}>
-                              {`${truck.make || ''} ${truck.model || ''} (${truck.unit_number || 'No unit'})`}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      <IconButton 
-                        color="primary" 
-                        onClick={handleAddTruck}
-                        size="small"
-                        title="Add new truck"
-                        disabled={!!editFormData.unit_id} // Disable if unit is selected
-                      >
-                        <AddIcon />
-                      </IconButton>
-                    </Box>
+                          <AddIcon />
+                        </IconButton>
+                      </Box>
+                    </Grid>
                     
                     {/* If unit is selected, show truck information from the unit */}
                     {editFormData.unit_id && (
@@ -6182,17 +6055,19 @@ const LoadViewPage = () => {
                           
                           if (truckInfo) {
                             return (
-                              <Box sx={{ mt: 1, p: 1, bgcolor: '#f0f7ff', borderRadius: 1, border: '1px solid #e1f0ff' }}>
-                                <Typography variant="caption" color="primary" sx={{ display: 'block', mb: 0.5 }}>
-                                  Truck from Unit {selectedUnit.unit_number}:
-                                </Typography>
-                                <Typography variant="body2">
-                                  {`${truckInfo.make || ''} ${truckInfo.model || ''} (${truckInfo.unit_number || 'No unit'})`}
-                                </Typography>
-                                <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
-                                  Plate: {truckInfo.plate_number || 'Not available'} | VIN: {truckInfo.vin || 'Not available'}
-                                </Typography>
-                              </Box>
+                              <Grid item xs={12}>
+                                <Box sx={{ p: 1, bgcolor: '#f0f7ff', borderRadius: 1, border: '1px solid #e1f0ff' }}>
+                                  <Typography variant="caption" color="primary" sx={{ display: 'block', mb: 0.5 }}>
+                                    Truck from Unit {selectedUnit.unit_number}:
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {`${truckInfo.make || ''} ${truckInfo.model || ''} (${truckInfo.unit_number || 'No unit'})`}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                                    Plate: {truckInfo.plate_number || 'Not available'} | VIN: {truckInfo.vin || 'Not available'}
+                                  </Typography>
+                                </Box>
+                              </Grid>
                             );
                           }
                         }
@@ -6200,35 +6075,39 @@ const LoadViewPage = () => {
                       })()
                     )}
                     
-                    <Typography variant="subtitle2" sx={{ fontWeight: 500, mt: 1 }}>Trailer</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Trailer</InputLabel>
-                        <Select
-                          name="trailer"
-                          value={editFormData.trailer || ''}
-                          onChange={handleFormChange}
-                          label="Trailer"
-                          disabled={!!editFormData.unit_id} // Disable if unit is selected
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>Trailer</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>Trailer</InputLabel>
+                          <Select
+                            name="trailer"
+                            value={editFormData.trailer || ''}
+                            onChange={handleFormChange}
+                            label="Trailer"
+                            disabled={!!editFormData.unit_id}
+                          >
+                            <MenuItem value="">None</MenuItem>
+                            {trailers.map(trailer => (
+                              <MenuItem key={trailer.id} value={trailer.id}>
+                                {`${trailer.trailer_type || ''} (${trailer.unit_number || 'No unit'})`}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <IconButton 
+                          color="primary" 
+                          onClick={handleAddTrailer}
+                          size="small"
+                          title="Add new trailer"
+                          disabled={!!editFormData.unit_id}
                         >
-                          <MenuItem value="">None</MenuItem>
-                          {trailers.map(trailer => (
-                            <MenuItem key={trailer.id} value={trailer.id}>
-                              {`${trailer.trailer_type || ''} (${trailer.unit_number || 'No unit'})`}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      <IconButton 
-                        color="primary" 
-                        onClick={handleAddTrailer}
-                        size="small"
-                        title="Add new trailer"
-                        disabled={!!editFormData.unit_id} // Disable if unit is selected
-                      >
-                        <AddIcon />
-                      </IconButton>
-                    </Box>
+                          <AddIcon />
+                        </IconButton>
+                      </Box>
+                    </Grid>
                     
                     {/* If unit is selected, show trailer information from the unit */}
                     {editFormData.unit_id && (
@@ -6240,7 +6119,8 @@ const LoadViewPage = () => {
                           
                           if (trailerInfo) {
                             return (
-                                                             <Box sx={{ mt: 1, p: 1, bgcolor: '#f0f7ff', borderRadius: 1, border: '1px solid #e1f0ff' }}>
+                              <Grid item xs={12}>
+                                <Box sx={{ p: 1, bgcolor: '#f0f7ff', borderRadius: 1, border: '1px solid #e1f0ff' }}>
                                 <Typography variant="caption" color="primary" sx={{ display: 'block', mb: 0.5 }}>
                                   Trailer from Unit {selectedUnit.unit_number}:
                                 </Typography>
@@ -6251,6 +6131,7 @@ const LoadViewPage = () => {
                                   VIN: {trailerInfo.vin || 'Not available'}
                                 </Typography>
                               </Box>
+                              </Grid>
                             );
                           }
                         }
@@ -6258,64 +6139,99 @@ const LoadViewPage = () => {
                       })()
                     )}
                     
-                    <Typography variant="subtitle2" sx={{ fontWeight: 500, mt: 1 }}>Equipment Type</Typography>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Equipment Type</InputLabel>
-                      <Select
-                        name="equipment_type"
-                        value={editFormData.equipment_type || ''}
-                        onChange={handleFormChange}
-                        label="Equipment Type"
-                        disabled={!!editFormData.unit_id} // Disable if unit is selected
-                      >
-                        <MenuItem value="DRYVAN">Dryvan</MenuItem>
-                        <MenuItem value="REEFER">Reefer</MenuItem>
-                        <MenuItem value="CARHAUL">Carhaul</MenuItem>
-                        <MenuItem value="FLATBED">Flatbed</MenuItem>
-                        <MenuItem value="STEPDECK">Stepdeck</MenuItem>
-                        <MenuItem value="POWERONLY">PowerOnly</MenuItem>
-                        <MenuItem value="RGN">Rgn</MenuItem>
-                        <MenuItem value="TANKERSTYLE">TankerStyle</MenuItem>
-                      </Select>
-                    </FormControl>
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>Equipment Type</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Equipment Type</InputLabel>
+                        <Select
+                          name="equipment_type"
+                          value={editFormData.equipment_type || ''}
+                          onChange={handleFormChange}
+                          label="Equipment Type"
+                          disabled={!!editFormData.unit_id}
+                        >
+                          <MenuItem value="DRYVAN">Dryvan</MenuItem>
+                          <MenuItem value="REEFER">Reefer</MenuItem>
+                          <MenuItem value="CARHAUL">Carhaul</MenuItem>
+                          <MenuItem value="FLATBED">Flatbed</MenuItem>
+                          <MenuItem value="STEPDECK">Stepdeck</MenuItem>
+                          <MenuItem value="POWERONLY">PowerOnly</MenuItem>
+                          <MenuItem value="RGN">Rgn</MenuItem>
+                          <MenuItem value="TANKERSTYLE">TankerStyle</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
                     
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                      <Button 
-                        variant="contained" 
-                        onClick={handleSaveChanges}
-                        disabled={isSaving}
-                        startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
-                      >
-                        Save
-                      </Button>
-                    </Box>
-                  </Box>
+                    <Grid item xs={12}>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                        <Button 
+                          variant="contained" 
+                          onClick={handleSaveChanges}
+                          disabled={isSaving}
+                          startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
+                        >
+                          Save
+                        </Button>
+                      </Box>
+                    </Grid>
+                  </Grid>
                 ) : (
-                  // Display mode for equipment - IMPROVED SECTION
-                  <>
+                  // Display mode for equipment - Grid Layout
+                  <Grid container spacing={3}>
                     {/* Truck information */}
-                    <Typography variant="subtitle2" sx={{ mt: 1, mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
-                      Truck
-                    </Typography>
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#202124', mb: 1.5 }}>
+                        Truck Information
+                      </Typography>
+                    </Grid>
                     
                     {load.truck ? (
                       <>
-                        <DetailItem>
-                          <DetailLabel>Make/Model</DetailLabel>
-                          <DetailValue>{`${load.truck.make || ''} ${load.truck.model || ''}`}</DetailValue>
-                        </DetailItem>
+                        <Grid item xs={12} sm={6} md={3}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                              Make/Model
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                              {`${load.truck.make || ''} ${load.truck.model || ''}`}
+                            </Typography>
+                          </Box>
+                        </Grid>
                         
-                        <DetailItem>
-                          <DetailLabel>Unit Number</DetailLabel>
-                          <DetailValue>{load.truck.unit_number || "Not available"}</DetailValue>
-                        </DetailItem>
+                        <Grid item xs={12} sm={6} md={3}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                              Unit Number
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                              {load.truck.unit_number || "Not available"}
+                            </Typography>
+                          </Box>
+                        </Grid>
                         
-                     
+                        <Grid item xs={12} sm={6} md={3}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                              Plate Number
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                              {load.truck.plate_number || "Not available"}
+                            </Typography>
+                          </Box>
+                        </Grid>
                         
-                        <DetailItem>
-                          <DetailLabel>VIN Number</DetailLabel>
-                          <DetailValue>{load.truck.vin || "Not available"}</DetailValue>
-                        </DetailItem>
+                        <Grid item xs={12} sm={6} md={3}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                              VIN Number
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                              {load.truck.vin || "Not available"}
+                            </Typography>
+                          </Box>
+                        </Grid>
                       </>
                     ) : load.unit_id ? (
                       // If unit is selected, show truck information from the unit
@@ -6328,70 +6244,120 @@ const LoadViewPage = () => {
                           if (truckInfo) {
                             return (
                               <>
-                                <DetailItem>
-                                  <DetailLabel>Make/Model</DetailLabel>
-                                  <DetailValue>{`${truckInfo.make || ''} ${truckInfo.model || ''}`}</DetailValue>
-                                </DetailItem>
+                                <Grid item xs={12} sm={6} md={3}>
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                    <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                      Make/Model
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                      {`${truckInfo.make || ''} ${truckInfo.model || ''}`}
+                                    </Typography>
+                                  </Box>
+                                </Grid>
                                 
-                                <DetailItem>
-                                  <DetailLabel>Unit Number</DetailLabel>
-                                  <DetailValue>{truckInfo.unit_number || "Not available"}</DetailValue>
-                                </DetailItem>
+                                <Grid item xs={12} sm={6} md={3}>
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                    <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                      Unit Number
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                      {truckInfo.unit_number || "Not available"}
+                                    </Typography>
+                                  </Box>
+                                </Grid>
                                 
-                                <DetailItem>
-                                  <DetailLabel>Plate Number</DetailLabel>
-                                  <DetailValue>{truckInfo.plate_number || "Not available"}</DetailValue>
-                                </DetailItem>
+                                <Grid item xs={12} sm={6} md={3}>
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                    <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                      Plate Number
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                      {truckInfo.plate_number || "Not available"}
+                                    </Typography>
+                                  </Box>
+                                </Grid>
                                 
-                                <DetailItem>
-                                  <DetailLabel>VIN Number</DetailLabel>
-                                  <DetailValue>{truckInfo.vin || "Not available"}</DetailValue>
-                                </DetailItem>
-                                <Typography variant="caption" color="primary">
-                                  (Truck from Unit {selectedUnit.unit_number})
-                                </Typography>
+                                <Grid item xs={12} sm={6} md={3}>
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                    <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                      VIN Number
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                      {truckInfo.vin || "Not available"}
+                                    </Typography>
+                                  </Box>
+                                </Grid>
+                                
+                                <Grid item xs={12}>
+                                  <Typography variant="caption" color="primary" sx={{ fontStyle: 'italic' }}>
+                                    (Truck from Unit {selectedUnit.unit_number})
+                                  </Typography>
+                                </Grid>
                               </>
                             );
                           }
                         }
                         return (
-                          <Box sx={{ p: 1, color: 'text.secondary' }}>
-                            <Typography variant="body2">Unit has no truck assigned</Typography>
-                          </Box>
+                          <Grid item xs={12}>
+                            <Box sx={{ p: 1.5, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
+                              <Typography variant="body2">Unit has no truck assigned</Typography>
+                            </Box>
+                          </Grid>
                         );
                       })()
                     ) : (
-                      <Box sx={{ p: 1, color: 'text.secondary', mb: 2 }}>
-                        <Typography variant="body2">No truck assigned</Typography>
-                      </Box>
+                      <Grid item xs={12}>
+                        <Box sx={{ p: 1.5, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
+                          <Typography variant="body2">No truck assigned</Typography>
+                        </Box>
+                      </Grid>
                     )}
                     
-                    {/* Trailer information - improved section */}
-                    <Divider sx={{ my: 2 }} />
-                    
-                    <Typography variant="subtitle2" sx={{ mt: 1, mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
-                      Trailer
-                    </Typography>
+                    {/* Trailer information */}
+                    <Grid item xs={12}>
+                      <Divider sx={{ my: 1 }} />
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#202124', mt: 2, mb: 1.5 }}>
+                        Trailer Information
+                      </Typography>
+                    </Grid>
                     
                     {load.trailer ? (
                       <>
-                        <DetailItem>
-                          <DetailLabel>Type</DetailLabel>
-                          <DetailValue>{load.trailer.trailer_type || load.trailer.type || "Not available"}</DetailValue>
-                        </DetailItem>
+                        <Grid item xs={12} sm={6} md={4}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                              Type
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                              {load.trailer.trailer_type || load.trailer.type || "Not available"}
+                            </Typography>
+                          </Box>
+                        </Grid>
                         
-                        <DetailItem>
-                          <DetailLabel>Unit Number</DetailLabel>
-                          <DetailValue>{load.trailer.unit_number || "Not available"}</DetailValue>
-                        </DetailItem>
+                        <Grid item xs={12} sm={6} md={4}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                              Unit Number
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                              {load.trailer.unit_number || "Not available"}
+                            </Typography>
+                          </Box>
+                        </Grid>
                         
-                        <DetailItem noBorder>
-                          <DetailLabel>VIN Number</DetailLabel>
-                          <DetailValue>{load.trailer.vin || load.trailer.vin_number || "Not available"}</DetailValue>
-                        </DetailItem>
+                        <Grid item xs={12} sm={6} md={4}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                              VIN Number
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                              {load.trailer.vin || load.trailer.vin_number || "Not available"}
+                            </Typography>
+                          </Box>
+                        </Grid>
                       </>
                     ) : load.unit_id ? (
-                      // Agar unit tanlangan bo'lsa, unitdan trailer ma'lumotlarini ko'rsatish
+                      // If unit is selected, show trailer information from the unit
                       (() => {
                         const selectedUnit = units.find(unit => unit.id === load.unit_id);
                         if (selectedUnit && selectedUnit.trailer && selectedUnit.trailer.length > 0) {
@@ -6401,39 +6367,64 @@ const LoadViewPage = () => {
                           if (trailerInfo) {
                             return (
                               <>
-                                <DetailItem>
-                                  <DetailLabel>Type</DetailLabel>
-                                  <DetailValue>{trailerInfo.trailer_type || trailerInfo.type || "Not available"}</DetailValue>
-                                </DetailItem>
+                                <Grid item xs={12} sm={6} md={4}>
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                    <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                      Type
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                      {trailerInfo.trailer_type || trailerInfo.type || "Not available"}
+                                    </Typography>
+                                  </Box>
+                                </Grid>
                                 
-                                <DetailItem>
-                                  <DetailLabel>Unit Number</DetailLabel>
-                                  <DetailValue>{trailerInfo.unit_number || "Not available"}</DetailValue>
-                                </DetailItem>
+                                <Grid item xs={12} sm={6} md={4}>
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                    <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                      Unit Number
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                      {trailerInfo.unit_number || "Not available"}
+                                    </Typography>
+                                  </Box>
+                                </Grid>
                                 
-                                <DetailItem noBorder>
-                                  <DetailLabel>VIN Number</DetailLabel>
-                                  <DetailValue>{trailerInfo.vin || trailerInfo.vin_number || "Not available"}</DetailValue>
-                                </DetailItem>
-                                <Typography variant="caption" color="primary">
-                                  (Trailer from Unit {selectedUnit.unit_number})
-                                </Typography>
+                                <Grid item xs={12} sm={6} md={4}>
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                    <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                      VIN Number
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                      {trailerInfo.vin || trailerInfo.vin_number || "Not available"}
+                                    </Typography>
+                                  </Box>
+                                </Grid>
+                                
+                                <Grid item xs={12}>
+                                  <Typography variant="caption" color="primary" sx={{ fontStyle: 'italic' }}>
+                                    (Trailer from Unit {selectedUnit.unit_number})
+                                  </Typography>
+                                </Grid>
                               </>
                             );
                           }
                         }
                         return (
-                          <Box sx={{ p: 1, color: 'text.secondary' }}>
-                            <Typography variant="body2">Unit has no trailer assigned</Typography>
-                          </Box>
+                          <Grid item xs={12}>
+                            <Box sx={{ p: 1.5, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
+                              <Typography variant="body2">Unit has no trailer assigned</Typography>
+                            </Box>
+                          </Grid>
                         );
                       })()
                     ) : (
-                      <Box sx={{ p: 1, color: 'text.secondary' }}>
-                        <Typography variant="body2">No trailer assigned</Typography>
-                      </Box>
+                      <Grid item xs={12}>
+                        <Box sx={{ p: 1.5, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
+                          <Typography variant="body2">No trailer assigned</Typography>
+                        </Box>
+                      </Grid>
                     )}
-                  </>
+                  </Grid>
                 )}
               </InfoCard>
               
@@ -6600,34 +6591,52 @@ const LoadViewPage = () => {
                     </Box>
                   </Box>
                 ) : (
-                  // Display mode for mile
-                  <>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
-                        <DetailItem>
-                          <DetailLabel>Loaded Miles</DetailLabel>
-                          <DetailValue>{load.mile ? `${load.mile} miles` : "Not assigned"}</DetailValue>
-                        </DetailItem>
-                        
-                        <DetailItem>
-                          <DetailLabel>Empty Miles</DetailLabel>
-                          <DetailValue>{load.empty_mile ? `${load.empty_mile} miles` : "Not assigned"}</DetailValue>
-                        </DetailItem>
-                      </Grid>
-                      
-                      <Grid item xs={12} md={6}>
-                        <DetailItem>
-                          <DetailLabel>Total Miles</DetailLabel>
-                          <DetailValue>{load.total_miles ? `${load.total_miles} miles` : "Not available"}</DetailValue>
-                        </DetailItem>
-                        
-                        <DetailItem>
-                          <DetailLabel>Per Mile Rate</DetailLabel>
-                          <DetailValue>{load.per_mile ? `$${load.per_mile}` : "Not assigned"}</DetailValue>
-                        </DetailItem>
-                      </Grid>
+                  // Display mode for mile - Improved Grid Layout
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                          Loaded Miles
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                          {load.mile ? `${load.mile} miles` : "Not assigned"}
+                        </Typography>
+                      </Box>
                     </Grid>
-                  </>
+                    
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                          Empty Miles
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                          {load.empty_mile ? `${load.empty_mile} miles` : "Not assigned"}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                          Total Miles
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                          {load.total_miles ? `${load.total_miles} miles` : "Not available"}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                          Per Mile Rate
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                          {load.per_mile ? `$${load.per_mile}` : "Not assigned"}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
                 )}
               </InfoCard>
               
@@ -6808,34 +6817,66 @@ const LoadViewPage = () => {
                     </Box>
                   </Box>
                 ) : (
-                  // Display mode for payment
-                  <>
-                    <DetailItem>
-                      <DetailLabel>Load Pay</DetailLabel>
-                      <DetailValue>{load.load_pay ? `$${load.load_pay}` : "Not assigned"}</DetailValue>
-                    </DetailItem>
+                  // Display mode for payment - Grid Layout
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                          Load Pay
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                          {load.load_pay ? `$${load.load_pay}` : "Not assigned"}
+                        </Typography>
+                      </Box>
+                    </Grid>
                     
-                    <DetailItem>
-                      <DetailLabel>Total Pay</DetailLabel>
-                      <DetailValue>{load.total_pay ? `$${load.total_pay}` : "Not assigned"}</DetailValue>
-                    </DetailItem>
+                    <Grid item xs={12} sm={6}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                          Total Pay
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                          {load.total_pay ? `$${load.total_pay}` : "Not assigned"}
+                        </Typography>
+                      </Box>
+                    </Grid>
                     
                     {otherPays.length > 0 && (
                       <>
-                        <Divider sx={{ my: 1 }} />
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600, my: 1 }}>Other Pays</Typography>
+                        <Grid item xs={12}>
+                          <Divider sx={{ my: 1 }} />
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5, color: '#202124' }}>
+                            Other Pays
+                          </Typography>
+                        </Grid>
                         
-                        {otherPays.map(pay => (
-                          <DetailItem key={pay.id} noBorder={pay === otherPays[otherPays.length - 1]}>
-                            <DetailLabel>{pay.pay_type || "Other Pay"}</DetailLabel>
-                            <DetailValue>
-                              {pay.amount ? `$${pay.amount}` : "No amount"}{pay.note ? ` - ${pay.note}` : ''}
-                            </DetailValue>
-                          </DetailItem>
+                        {otherPays.map((pay, index) => (
+                          <Grid item xs={12} sm={6} md={4} key={pay.id}>
+                            <Box sx={{ 
+                              p: 1.5, 
+                              bgcolor: '#f8f9fa', 
+                              borderRadius: 1,
+                              border: '1px solid #e8eaed'
+                            }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.5 }}>
+                                <Typography variant="body2" sx={{ fontWeight: 600, color: '#202124' }}>
+                                  {pay.pay_type || "Other Pay"}
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                  ${pay.amount || "0"}
+                                </Typography>
+                              </Box>
+                              {pay.note && (
+                                <Typography variant="caption" sx={{ color: '#5f6368', display: 'block', mt: 0.5 }}>
+                                  {pay.note}
+                                </Typography>
+                              )}
+                            </Box>
+                          </Grid>
                         ))}
                       </>
                     )}
-                  </>
+                  </Grid>
                 )}
               </InfoCard>
               
@@ -6846,497 +6887,303 @@ const LoadViewPage = () => {
                     <DocumentScanner />
                     Documents
                   </InfoCardTitle>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                                      {permissions.load_update && (
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={editingSection === 'documents' ? <Close /> : <EditIcon />}
-                      onClick={editingSection === 'documents' ? handleCancelEdit : () => handleEditSection('documents')}
-                    >
-                      {editingSection === 'documents' ? 'CANCEL' : 'EDIT'}
-                    </Button>
+                  {uploadProgress && Object.keys(uploadProgress).length > 0 && (
+                    <Chip 
+                      label={`${Object.keys(uploadProgress).length} uploading`}
+                      size="small" 
+                      color="primary"
+                      sx={{ ml: 2 }}
+                    />
                   )}
-                    <Button
-                      startIcon={<FileUpload />}
-                      size="small"
-                      variant="text"
-                      component="label"
-                    >
-                      Upload
-                      <input
-                        type="file"
-                        hidden
-                        onChange={(e) => handleFileUpload(e, 'document')}
-                      />
-                    </Button>
-                  </Box>
                 </InfoCardHeader>
                 
-                {editingSection === 'documents' ? (
-                  // Edit form for documents
-                  <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {/* Rate Con */}
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                        Rate Con
+                {/* Show upload progress */}
+                {uploadProgress && Object.entries(uploadProgress).map(([fileType, progress]) => (
+                  <FileUploadProgress key={fileType}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {progress.fileName}
                       </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <TextField 
-                          fullWidth
-                          disabled
-                          size="small"
-                          placeholder="No file selected"
-                          value={load.rate_con ? 'Rate Con Document' : ''}
-                        />
-                        <Button
-                          variant="outlined"
-                          component="label"
-                          size="small"
-                        >
-                          Browse
-                          <input
-                            type="file"
-                            hidden
-                            onChange={(e) => handleFileUpload(e, 'rate_con')}
-                          />
-                        </Button>
-                      </Box>
-                    </Box>
-                    
-                    {/* BOL */}
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                        Bill of Lading (BOL)
+                      <Typography variant="caption" color={progress.status === 'error' ? 'error' : 'primary'}>
+                        {progress.status === 'uploading' ? `${progress.progress}%` : 
+                         progress.status === 'completed' ? 'Completed' : 'Error'}
                       </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <TextField 
-                          fullWidth
-                          disabled
-                          size="small"
-                          placeholder="No file selected"
-                          value={load.bol ? 'BOL Document' : ''}
-                        />
-                        <Button
-                          variant="outlined"
-                          component="label"
-                          size="small"
-                        >
-                          Browse
-                          <input
-                            type="file"
-                            hidden
-                            onChange={(e) => handleFileUpload(e, 'bol')}
-                          />
-                        </Button>
-                      </Box>
                     </Box>
-                    
-                    {/* POD */}
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                        Proof of Delivery (POD)
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <TextField 
-                          fullWidth
-                          disabled
-                          size="small"
-                          placeholder="No file selected"
-                          value={load.pod ? 'POD Document' : ''}
-                        />
-                        <Button
-                          variant="outlined"
-                          component="label"
-                          size="small"
-                        >
-                          Browse
-                          <input
-                            type="file"
-                            hidden
-                            onChange={(e) => handleFileUpload(e, 'pod')}
-                          />
-                        </Button>
-                      </Box>
+                    <Box sx={{ width: '100%', height: 6, backgroundColor: '#e0e0e0', borderRadius: 3, overflow: 'hidden' }}>
+                      <Box 
+                        sx={{ 
+                          width: `${progress.progress}%`, 
+                          height: '100%', 
+                          backgroundColor: progress.status === 'error' ? '#f44336' : '#4caf50',
+                          transition: 'width 0.3s ease'
+                        }} 
+                      />
                     </Box>
-                    
-                    {/* Commercial Invoice */}
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                        Commercial Invoice
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <TextField 
-                          fullWidth
-                          disabled
-                          size="small"
-                          placeholder="No file selected"
-                          value={load.comercial_invoice ? 'Invoice Document' : ''}
-                        />
-                        <Button
-                          variant="outlined"
-                          component="label"
-                          size="small"
-                        >
-                          Browse
-                          <input
-                            type="file"
-                            hidden
-                            onChange={(e) => handleFileUpload(e, 'comercial_invoice')}
-                          />
-                        </Button>
+                  </FileUploadProgress>
+                ))}
+                
+                <Grid container spacing={2}>
+                  {/* Sorted Documents - Proper Order in 3 columns */}
+                  
+                  {/* 1. Rate Con */}
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ 
+                      borderRadius: 1.5, 
+                      border: '1px solid #e8eaed',
+                      p: 1.5,
+                      height: '100%',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        borderColor: '#1976d2'
+                      }
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                        <Box sx={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          backgroundColor: '#e3f2fd',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 1
+                        }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#1976d2', fontSize: '0.7rem' }}>
+                            1
+                          </Typography>
+                        </Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.8125rem', color: 'text.primary' }}>
+                          Rate Confirmation
+                        </Typography>
                       </Box>
+                      <FileUploadComponent
+                        fileType="rate_con"
+                        fileUrl={load.rate_con}
+                        fileName="Rate Con Document"
+                        onUpload={handleFileUpload}
+                        onDelete={openDeleteFileDialog}
+                        onView={handleViewFile}
+                      />
                     </Box>
-                    
-                    {/* Pictures */}
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                        Pictures
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <TextField 
-                          fullWidth
-                          disabled
-                          size="small"
-                          placeholder="No file selected"
-                          value={load.pictures ? 'Pictures Document' : ''}
-                        />
-                        <Button
-                          variant="outlined"
-                          component="label"
-                          size="small"
-                        >
-                          Browse
-                          <input
-                            type="file"
-                            hidden
-                            onChange={(e) => handleFileUpload(e, 'pictures')}
-                            accept="image/*"
-                            multiple
-                          />
-                        </Button>
+                  </Grid>
+                  
+                  {/* 2. BOL */}
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ 
+                      borderRadius: 1.5, 
+                      border: '1px solid #e8eaed',
+                      p: 1.5,
+                      height: '100%',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        borderColor: '#1976d2'
+                      }
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                        <Box sx={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          backgroundColor: '#e8f5e9',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 1
+                        }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#2e7d32', fontSize: '0.7rem' }}>
+                            2
+                          </Typography>
+                        </Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.8125rem', color: 'text.primary' }}>
+                          Bill of Lading
+                        </Typography>
                       </Box>
+                      <FileUploadComponent
+                        fileType="bol"
+                        fileUrl={load.bol}
+                        fileName="Bill of Lading"
+                        onUpload={handleFileUpload}
+                        onDelete={openDeleteFileDialog}
+                        onView={handleViewFile}
+                      />
                     </Box>
-
-                    {/* Tonu (new) */}
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                        Tonu
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <TextField 
-                          fullWidth
-                          disabled
-                          size="small"
-                          placeholder="No file selected"
-                          value={load.tonu ? 'Tonu Document' : ''}
-                        />
-                        <Button
-                          variant="outlined"
-                          component="label"
-                          size="small"
-                        >
-                          Browse
-                          <input
-                            type="file"
-                            hidden
-                            onChange={(e) => handleFileUpload(e, 'tonu')}
-                            accept="image/*,application/pdf"
-                          />
-                        </Button>
+                  </Grid>
+                  
+                  {/* 3. POD */}
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ 
+                      borderRadius: 1.5, 
+                      border: '1px solid #e8eaed',
+                      p: 1.5,
+                      height: '100%',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        borderColor: '#1976d2'
+                      }
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                        <Box sx={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          backgroundColor: '#fff3e0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 1
+                        }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#f57c00', fontSize: '0.7rem' }}>
+                            3
+                          </Typography>
+                        </Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.8125rem', color: 'text.primary' }}>
+                          Proof of Delivery
+                        </Typography>
                       </Box>
+                      <FileUploadComponent
+                        fileType="pod"
+                        fileUrl={load.pod}
+                        fileName="Proof of Delivery"
+                        onUpload={handleFileUpload}
+                        onDelete={openDeleteFileDialog}
+                        onView={handleViewFile}
+                      />
                     </Box>
-
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                      <Button 
-                        variant="outlined" 
-                        onClick={handleCancelEdit}
-                        sx={{ mr: 1 }}
-                      >
-                        Close
-                      </Button>
+                  </Grid>
+                  
+                  {/* 4. Commercial Invoice */}
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ 
+                      borderRadius: 1.5, 
+                      border: '1px solid #e8eaed',
+                      p: 1.5,
+                      height: '100%',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        borderColor: '#1976d2'
+                      }
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                        <Box sx={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          backgroundColor: '#f3e5f5',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 1
+                        }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#7b1fa2', fontSize: '0.7rem' }}>
+                            4
+                          </Typography>
+                        </Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.8125rem', color: 'text.primary' }}>
+                          Commercial Invoice
+                        </Typography>
+                      </Box>
+                      <FileUploadComponent
+                        fileType="comercial_invoice"
+                        fileUrl={load.comercial_invoice}
+                        fileName="Commercial Invoice"
+                        onUpload={handleFileUpload}
+                        onDelete={openDeleteFileDialog}
+                        onView={handleViewFile}
+                      />
                     </Box>
-                  </Box>
-                ) : (
-                  // Display mode for documents
-                  <>
-                    {/* Rate Con */}
-                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
-                      Rate Con
-                    </Typography>
-                    
-                    {load.rate_con ? (
-                      <FileItem>
-                        <FileIcon fileType={getFileType(load.rate_con)}>
-                          {getFileIcon(getFileType(load.rate_con))}
-                        </FileIcon>
-                        
-                        <FileDetails>
-                          <FileName>Rate Con Document</FileName>
-                          <FileInfo>Added on {new Date().toLocaleDateString()}</FileInfo>
-                        </FileDetails>
-                        
-                        <FileActions>
-                          <IconButton size="small" onClick={() => handleViewFile(load.rate_con, 'Rate Con')}>
-                            <Visibility fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" onClick={() => downloadFile(load.rate_con)}>
-                            <GetApp fontSize="small" />
-                          </IconButton>
-                        </FileActions>
-                      </FileItem>
-                    ) : (
-                      <Box component="label" sx={{ cursor: 'pointer', display: 'block', mb: 2 }}>
-                        <EmptyFilesMessage>
-                          <DocumentScanner />
-                          <Typography variant="body2">No Rate Con uploaded</Typography>
-                          <Button 
-                            variant="text" 
-                            size="small" 
-                            sx={{ mt: 0.5, fontSize: '0.75rem' }}
-                          >
-                            Upload Rate Con
-                          </Button>
-                          <input
-                            type="file"
-                            hidden
-                            onChange={(e) => handleFileUpload(e, 'rate_con')}
-                          />
-                        </EmptyFilesMessage>
+                  </Grid>
+                  
+                  {/* 5. Pictures */}
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ 
+                      borderRadius: 1.5, 
+                      border: '1px solid #e8eaed',
+                      p: 1.5,
+                      height: '100%',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        borderColor: '#1976d2'
+                      }
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                        <Box sx={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          backgroundColor: '#e0f2f1',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 1
+                        }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#00796b', fontSize: '0.7rem' }}>
+                            5
+                          </Typography>
+                        </Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.8125rem', color: 'text.primary' }}>
+                          Pictures
+                        </Typography>
                       </Box>
-                    )}
-                    
-                    {/* BOL */}
-                    <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
-                      Bill of Lading (BOL)
-                    </Typography>
-                    
-                    {load.bol ? (
-                      <FileItem>
-                        <FileIcon fileType={getFileType(load.bol)}>
-                          {getFileIcon(getFileType(load.bol))}
-                        </FileIcon>
-                        
-                        <FileDetails>
-                          <FileName>Bill of Lading</FileName>
-                          <FileInfo>Added on {new Date().toLocaleDateString()}</FileInfo>
-                        </FileDetails>
-                        
-                        <FileActions>
-                          <IconButton size="small" onClick={() => handleViewFile(load.bol, 'BOL')}>
-                            <Visibility fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" onClick={() => downloadFile(load.bol)}>
-                            <GetApp fontSize="small" />
-                          </IconButton>
-                        </FileActions>
-                      </FileItem>
-                    ) : (
-                      <Box component="label" sx={{ cursor: 'pointer', display: 'block', mb: 2 }}>
-                        <EmptyFilesMessage>
-                          <DocumentScanner />
-                          <Typography variant="body2">No BOL uploaded</Typography>
-                          <Button 
-                            variant="text" 
-                            size="small" 
-                            sx={{ mt: 0.5, fontSize: '0.75rem' }}
-                          >
-                            Upload BOL
-                          </Button>
-                          <input
-                            type="file"
-                            hidden
-                            onChange={(e) => handleFileUpload(e, 'bol')}
-                          />
-                        </EmptyFilesMessage>
+                      <FileUploadComponent
+                        fileType="pictures"
+                        fileUrl={load.pictures}
+                        fileName="Load Pictures"
+                        onUpload={handleFileUpload}
+                        onDelete={openDeleteFileDialog}
+                        onView={handleViewFile}
+                        allowMultiple={true}
+                      />
+                    </Box>
+                  </Grid>
+                  
+                  {/* 6. Tonu */}
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ 
+                      borderRadius: 1.5, 
+                      border: '1px solid #e8eaed',
+                      p: 1.5,
+                      height: '100%',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        borderColor: '#1976d2'
+                      }
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                        <Box sx={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          backgroundColor: '#fce4ec',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 1
+                        }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#c2185b', fontSize: '0.7rem' }}>
+                            6
+                          </Typography>
+                        </Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.8125rem', color: 'text.primary' }}>
+                          Tonu Document
+                        </Typography>
                       </Box>
-                    )}
-                    
-                    {/* POD */}
-                    <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
-                      Proof of Delivery (POD)
-                    </Typography>
-                    
-                    {load.pod ? (
-                      <FileItem>
-                        <FileIcon fileType={getFileType(load.pod)}>
-                          {getFileIcon(getFileType(load.pod))}
-                        </FileIcon>
-                        
-                        <FileDetails>
-                          <FileName>Proof of Delivery</FileName>
-                          <FileInfo>Added on {new Date().toLocaleDateString()}</FileInfo>
-                        </FileDetails>
-                        
-                        <FileActions>
-                          <IconButton size="small" onClick={() => handleViewFile(load.pod, 'POD')}>
-                            <Visibility fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" onClick={() => downloadFile(load.pod)}>
-                            <GetApp fontSize="small" />
-                          </IconButton>
-                        </FileActions>
-                      </FileItem>
-                    ) : (
-                      <Box component="label" sx={{ cursor: 'pointer', display: 'block', mb: 2 }}>
-                        <EmptyFilesMessage>
-                          <DocumentScanner />
-                          <Typography variant="body2">No POD uploaded</Typography>
-                          <Button 
-                            variant="text" 
-                            size="small" 
-                            sx={{ mt: 0.5, fontSize: '0.75rem' }}
-                          >
-                            Upload POD
-                          </Button>
-                          <input
-                            type="file"
-                            hidden
-                            onChange={(e) => handleFileUpload(e, 'pod')}
-                          />
-                        </EmptyFilesMessage>
-                      </Box>
-                    )}
-                    
-                    {/* Commercial Invoice */}
-                    <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
-                      Commercial Invoice
-                    </Typography>
-                    
-                    {load.comercial_invoice ? (
-                      <FileItem>
-                        <FileIcon fileType={getFileType(load.comercial_invoice)}>
-                          {getFileIcon(getFileType(load.comercial_invoice))}
-                        </FileIcon>
-                        
-                        <FileDetails>
-                          <FileName>Commercial Invoice</FileName>
-                          <FileInfo>Added on {new Date().toLocaleDateString()}</FileInfo>
-                        </FileDetails>
-                        
-                        <FileActions>
-                          <IconButton size="small" onClick={() => handleViewFile(load.comercial_invoice, 'Invoice')}>
-                            <Visibility fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" onClick={() => downloadFile(load.comercial_invoice)}>
-                            <GetApp fontSize="small" />
-                          </IconButton>
-                        </FileActions>
-                      </FileItem>
-                    ) : (
-                      <Box component="label" sx={{ cursor: 'pointer', display: 'block' }}>
-                        <EmptyFilesMessage>
-                          <DocumentScanner />
-                          <Typography variant="body2">No Commercial Invoice uploaded</Typography>
-                          <Button 
-                            variant="text" 
-                            size="small" 
-                            sx={{ mt: 0.5, fontSize: '0.75rem' }}
-                          >
-                            Upload Invoice
-                          </Button>
-                          <input
-                            type="file"
-                            hidden
-                            onChange={(e) => handleFileUpload(e, 'comercial_invoice')}
-                          />
-                        </EmptyFilesMessage>
-                      </Box>
-                    )}
-
-                    {/* Pictures */}
-                    <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
-                      Pictures
-                    </Typography>
-                    
-                    {load.pictures ? (
-                      <FileItem>
-                        <FileIcon fileType="image">
-                          <Image />
-                        </FileIcon>
-                        
-                        <FileDetails>
-                          <FileName>Load Pictures</FileName>
-                          <FileInfo>Added on {new Date().toLocaleDateString()}</FileInfo>
-                        </FileDetails>
-                        
-                        <FileActions>
-                          <IconButton size="small" onClick={() => handleViewFile(load.pictures, 'Pictures')}>
-                            <Visibility fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" onClick={() => downloadFile(load.pictures)}>
-                            <GetApp fontSize="small" />
-                          </IconButton>
-                        </FileActions>
-                      </FileItem>
-                    ) : (
-                      <Box component="label" sx={{ cursor: 'pointer', display: 'block' }}>
-                        <EmptyFilesMessage>
-                          <Image />
-                          <Typography variant="body2">No Pictures uploaded</Typography>
-                          <Button 
-                            variant="text" 
-                            size="small" 
-                            sx={{ mt: 0.5, fontSize: '0.75rem' }}
-                          >
-                            Upload Pictures
-                          </Button>
-                          <input
-                            type="file"
-                            hidden
-                            onChange={(e) => handleFileUpload(e, 'pictures')}
-                            accept="image/*"
-                            multiple
-                          />
-                        </EmptyFilesMessage>
-                      </Box>
-                    )}
-                    {/* Tonu (new) */}
-                    <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 600, fontSize: '0.85rem' }}>
-                      Tonu
-                    </Typography>
-                    {load.tonu ? (
-                      <FileItem>
-                        <FileIcon fileType={getFileType(load.tonu)}>
-                          {getFileIcon(getFileType(load.tonu))}
-                        </FileIcon>
-
-                        <FileDetails>
-                          <FileName>Tonu Document</FileName>
-                          <FileInfo>Added on {new Date().toLocaleDateString()}</FileInfo>
-                        </FileDetails>
-
-                        <FileActions>
-                          <IconButton size="small" onClick={() => handleViewFile(load.tonu, 'Tonu')}>
-                            <Visibility fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" onClick={() => downloadFile(load.tonu)}>
-                            <GetApp fontSize="small" />
-                          </IconButton>
-                        </FileActions>
-                      </FileItem>
-                    ) : (
-                      <Box component="label" sx={{ cursor: 'pointer', display: 'block' }}>
-                        <EmptyFilesMessage>
-                          <InsertDriveFile />
-                          <Typography variant="body2">No Tonu uploaded</Typography>
-                          <Button 
-                            variant="text" 
-                            size="small" 
-                            sx={{ mt: 0.5, fontSize: '0.75rem' }}
-                          >
-                            Upload Tonu
-                          </Button>
-                          <input
-                            type="file"
-                            hidden
-                            onChange={(e) => handleFileUpload(e, 'tonu')}
-                          />
-                        </EmptyFilesMessage>
-                      </Box>
-                    )}
-                  </>
-                )}
+                      <FileUploadComponent
+                        fileType="tonu"
+                        fileUrl={load.tonu}
+                        fileName="Tonu Document"
+                        onUpload={handleFileUpload}
+                        onDelete={openDeleteFileDialog}
+                        onView={handleViewFile}
+                      />
+                    </Box>
+                  </Grid>
+                </Grid>
               </InfoCard>
               
               {/* Notes */}
@@ -7393,8 +7240,9 @@ const LoadViewPage = () => {
               )}
             </>
           )}
-        </PanelContent>
-      </RightPanel>
+        </LeftPanelContent>
+      )}
+      </LeftPanel>
 
       {/* File Preview Modal */}
       <FilePreviewModal
@@ -7502,6 +7350,396 @@ const LoadViewPage = () => {
         </DialogActions>
       </Dialog>
 
+      {/* File Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteFileDialog}
+        onClose={closeDeleteFileDialog}
+        aria-labelledby="delete-file-dialog-title"
+        aria-describedby="delete-file-dialog-description"
+      >
+        <DialogTitle id="delete-file-dialog-title">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Delete color="error" />
+            Confirm File Deletion
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" id="delete-file-dialog-description">
+            Are you sure you want to delete this file? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={closeDeleteFileDialog}
+            variant="outlined"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={() => handleDeleteFile(fileToDelete)} 
+            variant="contained" 
+            color="error" 
+            startIcon={<Delete />}
+            autoFocus
+          >
+            Delete File
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Broker Information Modal */}
+      <Dialog
+        open={brokerInfoOpen}
+        onClose={() => setBrokerInfoOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <BusinessIcon color="primary" />
+            <Typography variant="h6">Broker Information</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  Company Name
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {load?.customer_broker?.company_name || "Not available"}
+                  </Typography>
+                  {load?.customer_broker?.company_name && (
+                    <IconButton 
+                      size="small" 
+                      onClick={() => handleCopyToClipboard(load.customer_broker.company_name, 'Company')}
+                    >
+                      <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
+                    </IconButton>
+                  )}
+                </Box>
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  MC Number
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {load?.customer_broker?.mc_number || "Not available"}
+                  </Typography>
+                  {load?.customer_broker?.mc_number && (
+                    <IconButton 
+                      size="small" 
+                      onClick={() => handleCopyToClipboard(load.customer_broker.mc_number, 'MC Number')}
+                    >
+                      <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
+                    </IconButton>
+                  )}
+                </Box>
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  Contact Number
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {load?.customer_broker?.contact_number || "Not available"}
+                  </Typography>
+                  {load?.customer_broker?.contact_number && (
+                    <IconButton 
+                      size="small" 
+                      onClick={() => handleCopyToClipboard(load.customer_broker.contact_number, 'Contact')}
+                    >
+                      <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
+                    </IconButton>
+                  )}
+                </Box>
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  Email Address
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {load?.customer_broker?.email_address || "Not available"}
+                  </Typography>
+                  {load?.customer_broker?.email_address && (
+                    <IconButton 
+                      size="small" 
+                      onClick={() => handleCopyToClipboard(load.customer_broker.email_address, 'Email')}
+                    >
+                      <ContentCopyIcon sx={{ fontSize: '0.9rem' }} />
+                    </IconButton>
+                  )}
+                </Box>
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  Address
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  {load?.customer_broker?.address1 && (
+                    <>
+                      {load.customer_broker.address1}
+                      {load.customer_broker.address2 && `, ${load.customer_broker.address2}`}
+                    </>
+                  )}
+                  {load?.customer_broker?.city && `, ${load.customer_broker.city}`}
+                  {load?.customer_broker?.state && `, ${load.customer_broker.state}`}
+                  {load?.customer_broker?.zip_code && ` ${load.customer_broker.zip_code}`}
+                  {!load?.customer_broker?.address1 && !load?.customer_broker?.city && "Not available"}
+                </Typography>
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  Billing Type
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  {load?.customer_broker?.billing_type || "Not available"}
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBrokerInfoOpen(false)}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Floating Chat Button */}
+      {!isLoadDataLoading && (
+        <FloatingChatButton onClick={() => setChatOpen(true)}>
+          <Badge badgeContent={chatMessages.length} color="error" max={99}>
+            <CiDeliveryTruck size={28} />
+          </Badge>
+        </FloatingChatButton>
+      )}
+
+      {/* Chat Dialog Modal */}
+      <ChatDialog
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        maxWidth={false}
+      >
+        <ChatDialogHeader>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="h6">Chat</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box
+                sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  backgroundColor: isSocketConnected ? '#10B981' : isSocketConnecting ? '#F59E0B' : '#6B7280',
+                }}
+              />
+              <Typography variant="caption" sx={{ fontSize: '0.7rem', opacity: 0.9 }}>
+                {isSocketConnected ? 'Real-time' : isSocketConnecting ? 'Connecting...' : 'HTTP API'}
+              </Typography>
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <IconButton onClick={handleRefreshChat} disabled={isChatLoading} size="small" sx={{ color: 'white' }}>
+              {isChatLoading ? (
+                <CircularProgress size={20} thickness={4} sx={{ color: 'white' }} />
+              ) : (
+                <RefreshIcon />
+              )}
+            </IconButton>
+            <IconButton onClick={() => setChatOpen(false)} size="small" sx={{ color: 'white' }}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </ChatDialogHeader>
+
+        <ChatDialogContent>
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column',
+            backgroundColor: "#ffffff",
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            <ChatBackgroundOverlay />
+            <ChatContentWrapper>
+              <Box sx={{ 
+                px: 2,
+                py: 1.5,
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                overflowY: 'auto',
+                position: 'relative',
+                '&::-webkit-scrollbar': {
+                  width: '4px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: 'transparent',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: 'rgba(0,0,0,0.2)',
+                  borderRadius: '4px',
+                },
+                '&::-webkit-scrollbar-thumb:hover': {
+                  background: 'rgba(0,0,0,0.3)',
+                },
+                gap: 1.5
+              }} ref={chatContainerRef}>
+                {isChatLoading && chatMessages.length === 0 ? (
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center', 
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                    zIndex: 10
+                  }}>
+                    <CircularProgress />
+                  </Box>
+                ) : (
+                  renderChatMessages()
+                )}
+                <div ref={chatEndRef} />
+              </Box>
+            </ChatContentWrapper>
+          </Box>
+          
+          <Box sx={{ position: 'relative', backgroundColor: 'white' }}>
+            {showEmojiPicker && (
+              <Box sx={{ 
+                position: 'absolute', 
+                bottom: '100%', 
+                right: 16, 
+                zIndex: 100,
+                boxShadow: 3,
+                borderRadius: 1,
+                overflow: 'hidden'
+              }}>
+                <EmojiPicker 
+                  onEmojiClick={onEmojiClick} 
+                  searchDisabled
+                  skinTonesDisabled
+                  width={300}
+                  height={350}
+                />
+              </Box>
+            )}
+            
+            {selectedFile && (
+              <AttachmentPreview>
+                <FilePreview>
+                  {isImageFile(selectedFile) ? (
+                    <Image fontSize="small" color="primary" />
+                  ) : (
+                    <InsertDriveFile fontSize="small" color="primary" />
+                  )}
+                  <Typography variant="body2" noWrap sx={{ flex: 1 }}>
+                    {selectedFile.name}
+                  </Typography>
+                </FilePreview>
+                <Tooltip title="Remove attachment">
+                  <IconButton size="small" onClick={handleCancelFileSelection}>
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </AttachmentPreview>
+            )}
+            
+            {editingMessage && (
+              <Box sx={{ 
+                p: 1, 
+                bgcolor: 'primary.light', 
+                borderRadius: '4px 4px 0 0',
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <Typography variant="body2">Editing message</Typography>
+                <IconButton size="small" onClick={handleCancelMessageEdit} sx={{ color: 'white' }}>
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            )}
+            
+            <MessageInput>
+              <input
+                type="file"
+                id="file-upload-modal"
+                style={{ display: 'none' }}
+                onChange={handleFileSelect}
+              />
+              <label htmlFor="file-upload-modal">
+                <IconButton component="span" color="primary">
+                  <AttachFile />
+                </IconButton>
+              </label>
+              
+              <TextField
+                fullWidth
+                placeholder={editingMessage ? "Edit your message..." : "Type a message..."}
+                value={newMessage}
+                onChange={(e) => handleTyping(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                onBlur={() => {
+                  const userId = parseInt(localStorage.getItem("userid"));
+                  if (userId && isSocketConnected) {
+                    chatSocketService.emitStoppedTyping(userId, parseInt(id));
+                  }
+                }}
+                onPaste={handlePaste}
+                size="small"
+                variant="outlined"
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton 
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        size="small"
+                        color="primary"
+                      >
+                        <CiDeliveryTruck size={20} />
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
+              />
+              
+              <IconButton
+                color="primary"
+                onClick={() => handleSendMessage()}
+                disabled={(!newMessage.trim() && !selectedFile && !editingMessage) || !permissions.chat_create}
+              >
+                <Send />
+              </IconButton>
+            </MessageInput>
+          </Box>
+        </ChatDialogContent>
+      </ChatDialog>
 
     </MainContainer>
   );

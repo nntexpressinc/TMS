@@ -805,7 +805,7 @@ const AccountingPage = () => {
     } catch (error) {
       console.error('Error in handleStubAction:', error);
       const responseData = error?.response?.data;
-      const serverErrors =
+      const serverErrors =  
         responseData && typeof responseData === 'object'
           ? Object.entries(responseData)
               .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
