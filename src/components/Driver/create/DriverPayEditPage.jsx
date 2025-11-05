@@ -13,7 +13,9 @@ import {
   Grid,
   IconButton,
   Alert,
-  CircularProgress
+  CircularProgress,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import { ApiService, ENDPOINTS } from '../../../api/auth';
 import { toast } from 'react-hot-toast';
@@ -34,6 +36,7 @@ const DriverPayEditPage = () => {
     picks_per: '',
     drops_per: '',
     wait_time: '',
+    empty: false,
     driver: parseInt(id, 10)
   });
 
@@ -56,6 +59,7 @@ const DriverPayEditPage = () => {
           picks_per: pay.picks_per || '',
           drops_per: pay.drops_per || '',
           wait_time: pay.wait_time || '',
+          empty: pay.empty || false,
           driver: parseInt(id, 10)
         });
         
@@ -71,10 +75,10 @@ const DriverPayEditPage = () => {
   }, [id, payId]);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -199,6 +203,19 @@ const DriverPayEditPage = () => {
                 value={formData.wait_time}
                 onChange={handleInputChange}
                 placeholder="Enter wait time"
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="empty"
+                    checked={formData.empty}
+                    onChange={handleInputChange}
+                  />
+                }
+                label="Include empty miles in Per Mile calculations"
               />
             </Grid>
           </Grid>

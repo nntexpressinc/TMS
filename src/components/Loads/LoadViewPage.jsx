@@ -97,7 +97,7 @@ const MainContainer = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   height: "calc(100vh - 64px)",
-  padding: theme.spacing(2),
+  padding: theme.spacing(0.75),
   backgroundColor: '#f8f9fa',
   overflow: "auto",
 }));
@@ -130,41 +130,41 @@ const PanelHeader = styled(Box)(({ theme }) => ({
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  padding: theme.spacing(2, 2.5),
+  padding: theme.spacing(0.75, 1),
   borderBottom: `1px solid #f0f2f5`,
   backgroundColor: '#fafbfc',
 }));
 
 const PanelContent = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(2.5),
+  padding: theme.spacing(0.75),
   flex: 1,
   overflowY: "auto",
   display: "flex",
   flexDirection: "column",
-  gap: theme.spacing(2),
+  gap: theme.spacing(0.5),
   position: 'relative',
   zIndex: 1
 }));
 
 const FormGroup = styled(Box)(({ theme }) => ({
-  marginBottom: theme.spacing(2),
+  marginBottom: theme.spacing(0.5),
 }));
 
 const FormLabel = styled(Typography)(({ theme }) => ({
-  fontSize: "0.875rem",
+  fontSize: "0.8rem",
   fontWeight: 500,
-  marginBottom: theme.spacing(1),
+  marginBottom: theme.spacing(0.5),
 }));
 
 const StyledTextarea = styled("textarea")(({ theme }) => ({
   width: "100%",
-  padding: theme.spacing(1.5),
+  padding: theme.spacing(1),
   border: `1px solid ${theme.palette.divider}`,
   borderRadius: theme.spacing(0.5),
   resize: "vertical",
-  minHeight: "80px",
+  minHeight: "60px",
   fontFamily: theme.typography.fontFamily,
-  fontSize: "0.875rem",
+  fontSize: "0.8rem",
   backgroundColor: "#f9f9f9",
   "&:focus": {
     outline: "none",
@@ -174,11 +174,11 @@ const StyledTextarea = styled("textarea")(({ theme }) => ({
 
 const StyledInput = styled("input")(({ theme }) => ({
   width: "100%",
-  padding: theme.spacing(1.5),
+  padding: theme.spacing(1),
   border: `1px solid ${theme.palette.divider}`,
   borderRadius: theme.spacing(0.5),
   fontFamily: theme.typography.fontFamily,
-  fontSize: "0.875rem",
+  fontSize: "0.8rem",
   backgroundColor: "#f9f9f9",
   "&:focus": {
     outline: "none",
@@ -272,7 +272,7 @@ const InfoItem = styled(Box)(({ theme }) => ({
   display: "flex",
   alignItems: "center",
   gap: theme.spacing(1),
-  marginBottom: theme.spacing(2),
+  marginBottom: theme.spacing(0.75),
 }));
 
 const InfoIcon = styled(Avatar)(({ theme }) => ({
@@ -405,10 +405,10 @@ const LeftPanel = styled(Panel)(({ theme }) => ({
 const LeftPanelContent = styled(Box)(({ theme }) => ({
   flex: 1,
   overflowY: "auto",
-  padding: theme.spacing(0, 2.5, 2.5),
+  padding: theme.spacing(0.5, 1, 1),
   display: "flex",
   flexDirection: "column",
-  gap: theme.spacing(2)
+  gap: theme.spacing(0.5)
 }));
 
 const MiddlePanel = styled(Panel)(({ theme }) => ({
@@ -482,8 +482,8 @@ const ArrowBackIcon = styled(ArrowBack)(({ theme }) => ({
 
 const StatusProgressContainer = styled(Box)(({ theme }) => ({
   display: "flex",
-  marginBottom: theme.spacing(2),
-  padding: theme.spacing(2),
+  marginBottom: theme.spacing(1),
+  padding: theme.spacing(1),
   backgroundColor: theme.palette.background.paper,
   borderRadius: theme.spacing(1),
   boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
@@ -516,7 +516,7 @@ const StatusProgressContainer = styled(Box)(({ theme }) => ({
 const StatusProgressTrack = styled(Box)(({ theme }) => ({
   display: "flex",
   alignItems: "center",
-  padding: theme.spacing(1, 0),
+  padding: theme.spacing(0.5, 0),
   minWidth: "max-content",
 }));
 
@@ -525,23 +525,23 @@ const StatusProgressItem = styled(Box)(({ theme, active, completed }) => ({
   flexDirection: "column",
   alignItems: "center",
   position: "relative",
-  padding: theme.spacing(1),
-  marginRight: theme.spacing(4),
-  width: 80,
+  padding: theme.spacing(0.5),
+  marginRight: theme.spacing(3),
+  width: 75,
   "&:not(:last-child)::after": {
     content: '""',
     position: "absolute",
-    left: 40,
+    left: 37.5,
     top: 12,
     height: 2,
-    width: 80,
+    width: 75,
     backgroundColor: completed ? theme.palette.primary.main : theme.palette.grey[300],
   }
 }));
 
 const StatusDot = styled(Box)(({ theme, active, completed }) => ({
-  width: 24,
-  height: 24,
+  width: 20,
+  height: 20,
   borderRadius: "50%",
   backgroundColor: active 
     ? theme.palette.primary.main 
@@ -552,8 +552,8 @@ const StatusDot = styled(Box)(({ theme, active, completed }) => ({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  fontSize: "0.75rem",
-  marginBottom: theme.spacing(1),
+  fontSize: "0.65rem",
+  marginBottom: theme.spacing(0.5),
   zIndex: 1,
   boxShadow: active ? "0 0 0 4px rgba(25, 118, 210, 0.2)" : "none",
 }));
@@ -565,7 +565,7 @@ const StatusLabel = styled(Typography)(({ theme, active, completed }) => ({
     : completed 
       ? theme.palette.text.primary 
       : theme.palette.text.secondary,
-  fontSize: "0.75rem",
+  fontSize: "0.65rem",
   textAlign: "center",
   maxWidth: "100%",
   overflow: "hidden",
@@ -576,8 +576,8 @@ const StatusLabel = styled(Typography)(({ theme, active, completed }) => ({
 const DetailCard = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.background.paper,
   borderRadius: theme.spacing(1),
-  padding: theme.spacing(2),
-  marginBottom: theme.spacing(2),
+  padding: theme.spacing(1, 1.25),
+  marginBottom: theme.spacing(0.75),
   boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
 }));
 
@@ -589,9 +589,9 @@ const InfoRow = styled(Box)(({ theme }) => ({
 
 const StopsContainer = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.background.paper,
-  borderRadius: theme.spacing(1.5),
-  padding: theme.spacing(2),
-  marginBottom: theme.spacing(2),
+  borderRadius: theme.spacing(1),
+  padding: theme.spacing(0.75, 1),
+  marginBottom: theme.spacing(0.75),
   boxShadow: "0 2px 8px 0 rgba(0, 0, 0, 0.08)",
   border: `1px solid ${theme.palette.divider}`,
 }));
@@ -599,15 +599,15 @@ const StopsContainer = styled(Box)(({ theme }) => ({
 const StopItem = styled(Box)(({ theme, isPickup, isCompact }) => ({
   display: "flex",
   borderLeft: `2px solid ${isPickup ? theme.palette.success.main : theme.palette.error.main}`,
-  paddingLeft: theme.spacing(1.5),
-  marginBottom: theme.spacing(isCompact ? 0.5 : 1),
+  paddingLeft: theme.spacing(1),
+  marginBottom: theme.spacing(isCompact ? 0.35 : 0.5),
   position: "relative",
   "&:not(:last-child)::after": {
     content: '""',
     position: "absolute",
     left: -1,
-    top: 20,
-    bottom: isCompact ? -6 : -8,
+    top: 16,
+    bottom: isCompact ? -2 : -4,
     width: 2,
     backgroundColor: theme.palette.grey[300],
   }
@@ -616,15 +616,15 @@ const StopItem = styled(Box)(({ theme, isPickup, isCompact }) => ({
 const StopIconContainer = styled(Box)(({ theme, isPickup, isCompact }) => ({
   backgroundColor: isPickup ? "rgba(76, 175, 80, 0.1)" : "rgba(244, 67, 54, 0.1)",
   borderRadius: "50%",
-  width: isCompact ? 24 : 32,
-  height: isCompact ? 24 : 32,
+  width: isCompact ? 20 : 26,
+  height: isCompact ? 20 : 26,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  marginRight: theme.spacing(isCompact ? 0.75 : 1.5),
+  marginRight: theme.spacing(isCompact ? 0.5 : 1),
   "& svg": {
     color: isPickup ? theme.palette.success.main : theme.palette.error.main,
-    fontSize: isCompact ? '0.75rem' : '1rem'
+    fontSize: isCompact ? '0.7rem' : '0.9rem'
   }
 }));
 
@@ -636,16 +636,16 @@ const StopHeader = styled(Box)(({ theme }) => ({
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-start",
-  marginBottom: theme.spacing(0.25),
+  marginBottom: theme.spacing(0.1),
 }));
 
 const StopAddress = styled(Typography)(({ theme }) => ({
   fontWeight: 500,
-  fontSize: "0.8125rem",
+  fontSize: "0.75rem",
 }));
 
 const StopDate = styled(Typography)(({ theme }) => ({
-  fontSize: "0.7rem",
+  fontSize: "0.65rem",
   color: theme.palette.text.secondary,
 }));
 
@@ -653,22 +653,22 @@ const StopsHeader = styled(Box)(({ theme }) => ({
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: theme.spacing(2)
+  marginBottom: theme.spacing(0.5)
 }));
 
 const StopEditContainer = styled(Box)(({ theme }) => ({
   border: `1px solid ${theme.palette.divider}`,
   borderRadius: theme.spacing(1),
-  padding: theme.spacing(2),
-  marginBottom: theme.spacing(2),
+  padding: theme.spacing(0.75, 1),
+  marginBottom: theme.spacing(0.75),
   backgroundColor: theme.palette.background.paper
 }));
 
 const StopButtonGroup = styled(Box)(({ theme }) => ({
   display: "flex",
   justifyContent: "flex-end",
-  gap: theme.spacing(1),
-  marginTop: theme.spacing(2)
+  gap: theme.spacing(0.75),
+  marginTop: theme.spacing(0.75)
 }));
 
 // Add new styled component for the status selector
@@ -697,9 +697,9 @@ const StatusIconContainer = styled(Box)(({ theme, color }) => ({
 }));
 
 const InfoCard = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(2, 2.5),
-  marginBottom: theme.spacing(2),
-  borderRadius: theme.spacing(1.5),
+  padding: theme.spacing(0.75, 1),
+  marginBottom: theme.spacing(0.75),
+  borderRadius: theme.spacing(1),
   boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
   border: `1px solid ${theme.palette.divider}`,
   backgroundColor: '#fff',
@@ -713,8 +713,8 @@ const InfoCardHeader = styled(Box)(({ theme }) => ({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: theme.spacing(2),
-  paddingBottom: theme.spacing(1.5),
+  marginBottom: theme.spacing(0.5),
+  paddingBottom: theme.spacing(0.5),
   borderBottom: `1px solid #f0f2f5`,
 }));
 
@@ -722,18 +722,18 @@ const InfoCardTitle = styled(Typography)(({ theme }) => ({
   fontWeight: 600,
   display: 'flex',
   alignItems: 'center',
-  gap: theme.spacing(1.5),
-  fontSize: '1.05rem',
+  gap: theme.spacing(0.75),
+  fontSize: '0.85rem',
   color: '#202124',
   '& svg': {
-    fontSize: '1.2rem',
+    fontSize: '0.95rem',
     color: theme.palette.primary.main,
   }
 }));
 
 const DetailItem = styled(Box)(({ theme, noBorder }) => ({
   display: 'flex',
-  padding: theme.spacing(1, 0),
+  padding: theme.spacing(0.25, 0),
   borderBottom: noBorder ? 'none' : `1px solid #f0f2f5`,
   '&:last-child': {
     borderBottom: 'none',
@@ -741,26 +741,26 @@ const DetailItem = styled(Box)(({ theme, noBorder }) => ({
 }));
 
 const DetailLabel = styled(Typography)(({ theme }) => ({
-  width: '150px',
-  fontSize: '0.875rem',
+  width: '110px',
+  fontSize: '0.75rem',
   color: '#5f6368',
   fontWeight: 500,
-  lineHeight: 1.6,
+  lineHeight: 1.3,
   flexShrink: 0,
 }));
 
 const DetailValue = styled(Typography)(({ theme }) => ({
   flex: 1,
-  fontSize: '0.875rem',
+  fontSize: '0.75rem',
   fontWeight: 400,
-  lineHeight: 1.6,
+  lineHeight: 1.3,
   color: '#202124',
 }));
 
 const FileItem = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
-  padding: theme.spacing(0.75, 0),
+  padding: theme.spacing(0.5, 0),
   borderBottom: `1px solid ${theme.palette.divider}`,
   '&:last-child': {
     borderBottom: 'none',
@@ -1351,11 +1351,11 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
         </DialogTitle>
         <DialogContent>
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 1 }}>
               {error}
             </Alert>
           )}
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid container spacing={0.5} sx={{ mt: 0.5 }}>
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -1475,7 +1475,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
                 <IconButton 
                   color="primary"
                   onClick={handleAddBroker}
-                  sx={{ mt: 1 }}
+                  sx={{ mt: 0.5 }}
                 >
                   <AddIcon />
                 </IconButton>
@@ -1510,7 +1510,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
           </Box>
         </DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid container spacing={0.5} sx={{ mt: 0.5 }}>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -2916,8 +2916,8 @@ const LoadViewPage = () => {
           mt: 1,
           display: 'flex',
           alignItems: 'center',
-          gap: 1.5,
-          p: 1.5,
+          gap: 1,
+          p: 1,
           bgcolor: 'rgba(229, 57, 53, 0.1)',
           borderRadius: 2,
           maxWidth: '320px',
@@ -2988,8 +2988,8 @@ const LoadViewPage = () => {
           mt: 1,
           display: 'flex',
           alignItems: 'center',
-          gap: 1.5,
-          p: 1.5,
+          gap: 1,
+          p: 1,
           bgcolor: 'rgba(25, 118, 210, 0.1)',
           borderRadius: 2,
           maxWidth: '320px',
@@ -3046,8 +3046,8 @@ const LoadViewPage = () => {
           mt: 1,
           display: 'flex',
           alignItems: 'center',
-          gap: 1.5,
-          p: 1.5,
+          gap: 1,
+          p: 1,
           bgcolor: 'rgba(0,0,0,0.04)',
           borderRadius: 2,
           maxWidth: '320px',
@@ -4286,7 +4286,7 @@ const LoadViewPage = () => {
   if (error || !load) {
   return (
       <Box sx={{ p: 3, textAlign: "center" }}>
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 1 }}>
           {error || "Load not found"}
         </Alert>
         <Button variant="contained" onClick={() => navigate("/loads")}>
@@ -4749,7 +4749,7 @@ const LoadViewPage = () => {
                       <MdCheckCircle size={18} />
                     }
                   </IconButton> */}
-                  <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
                     <Button 
                       startIcon={<RefreshIcon />} 
                       size="small" 
@@ -4780,7 +4780,7 @@ const LoadViewPage = () => {
                     New Stop
                   </Typography>
                   
-                  <Grid container spacing={2}>
+                  <Grid container spacing={0.5}>
                     <Grid item xs={12} md={6}>
                       <FormControl fullWidth size="small">
                         <InputLabel>Stop Type</InputLabel>
@@ -5061,7 +5061,7 @@ const LoadViewPage = () => {
               {/* Show error message if stops failed to load */}
               {stopsError && (
                 <Box sx={{ 
-                  p: 2, 
+                  p: 1, 
                   mx: 2, 
                   mb: 2, 
                   bgcolor: 'error.light', 
@@ -5101,12 +5101,12 @@ const LoadViewPage = () => {
 
               {/* Show stops when not adding a new one - Grid Layout */}
               {!isAddingStop && !isStopsLoading && (load.stop && load.stop.length > 0 ? (
-                <Grid container spacing={2} sx={{ px: 2 }}>
+                <Grid container spacing={0.5} sx={{ px: 2 }}>
                   {sortStopsInOrder(load.stop).map(stop => (
                     editingStop === stop.id ? (
                       <Grid item xs={12} key={stop.id}>
                         <StopEditContainer>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                             <Typography variant="subtitle2" gutterBottom>
                               Edit Stop
                             </Typography>
@@ -5121,7 +5121,7 @@ const LoadViewPage = () => {
                             </Button>
                           </Box>
                       
-                      <Grid container spacing={2}>
+                      <Grid container spacing={0.5}>
                         <Grid item xs={12} md={6}>
                           <FormControl fullWidth size="small">
                             <InputLabel>Stop Type</InputLabel>
@@ -5411,9 +5411,9 @@ const LoadViewPage = () => {
                   ) : (
                     <Grid item xs={12} sm={6} md={4} key={stop.id}>
                       <Box sx={{
-                        p: 2,
+                        p: 0.75,
                         border: `2px solid ${stop.stop_name === "PICKUP" ? '#4caf50' : stop.stop_name === "DELIVERY" ? '#f44336' : '#2196f3'}`,
-                        borderRadius: 2,
+                        borderRadius: 1,
                         bgcolor: 'white',
                         position: 'relative',
                         transition: 'all 0.2s ease',
@@ -5428,25 +5428,25 @@ const LoadViewPage = () => {
                         {/* Stop Type Badge */}
                         <Box sx={{
                           position: 'absolute',
-                          top: -12,
-                          left: 16,
+                          top: -10,
+                          left: 12,
                           bgcolor: stop.stop_name === "PICKUP" ? '#4caf50' : stop.stop_name === "DELIVERY" ? '#f44336' : '#2196f3',
                           color: 'white',
-                          px: 1.5,
-                          py: 0.5,
-                          borderRadius: 1,
-                          fontSize: '0.75rem',
+                          px: 1,
+                          py: 0.25,
+                          borderRadius: 0.75,
+                          fontSize: '0.7rem',
                           fontWeight: 600,
                           display: 'flex',
                           alignItems: 'center',
                           gap: 0.5
                         }}>
                           {stop.stop_name === "PICKUP" ? (
-                            <><MdFileUpload size={14} /> Pick Up</>
+                            <><MdFileUpload size={12} /> Pick Up</>
                           ) : stop.stop_name === "DELIVERY" ? (
-                            <><MdFileDownload size={14} /> Delivery</>
+                            <><MdFileDownload size={12} /> Delivery</>
                           ) : (
-                            <><TimelineIcon sx={{ fontSize: 14 }} /> {stop.stop_name}</>
+                            <><TimelineIcon sx={{ fontSize: 12 }} /> {stop.stop_name}</>
                           )}
                         </Box>
                         
@@ -5456,9 +5456,10 @@ const LoadViewPage = () => {
                           onClick={() => handleEditStop(stop)}
                           sx={{
                             position: 'absolute',
-                            top: 8,
-                            right: 8,
+                            top: 6,
+                            right: 6,
                             bgcolor: 'background.paper',
+                            padding: 0.5,
                             '&:hover': { bgcolor: 'action.hover' }
                           }}
                         >
@@ -5467,13 +5468,13 @@ const LoadViewPage = () => {
                         
                         {/* Company Name */}
                         {stop.company_name && (
-                          <Typography variant="subtitle2" sx={{ mt: 1.5, mb: 0.5, fontWeight: 600, fontSize: '0.9rem' }}>
+                          <Typography variant="subtitle2" sx={{ mt: 1, mb: 0.25, fontWeight: 600, fontSize: '0.8rem' }}>
                             {stop.company_name}
                           </Typography>
                         )}
                         
                         {/* Address */}
-                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem', mb: 1 }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', mb: 0.5 }}>
                           {stop.address1 || "No address"}
                           {stop.city && `, ${stop.city}`}
                           {stop.state && `, ${stop.state}`}
@@ -5481,8 +5482,8 @@ const LoadViewPage = () => {
                         </Typography>
                         
                         {/* Date/Time */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
                             {stop.appointmentdate ? (
                               <>📅 {formatTimeForDisplay(stop.appointmentdate)}</>
                             ) : stop.fcfs ? (
@@ -5493,7 +5494,7 @@ const LoadViewPage = () => {
                         
                         {/* Contact */}
                         {stop.contact_name && (
-                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.8rem' }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.7rem' }}>
                             👤 {stop.contact_name}
                           </Typography>
                         )}
@@ -5506,23 +5507,23 @@ const LoadViewPage = () => {
                 !isAddingStop && !isStopsLoading && !stopsError && (
                   <Box sx={{ 
                     textAlign: 'center', 
-                    p: 4, 
+                    p: 2, 
                     color: 'text.secondary',
                     border: '2px dashed',
                     borderColor: 'divider',
-                    borderRadius: 2,
+                    borderRadius: 1,
                     mx: 2
                   }}>
-                    <LocalShippingIcon sx={{ fontSize: 40, mb: 2, opacity: 0.5 }} />
-                    <Typography variant="body1" gutterBottom>
+                    <LocalShippingIcon sx={{ fontSize: 32, mb: 0.75, opacity: 0.5 }} />
+                    <Typography variant="body2" gutterBottom sx={{ fontWeight: 600 }}>
                       No stops configured yet
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
                       Add pickup, delivery, and intermediate stops to define your route
                     </Typography>
                     <Button 
                       variant="contained" 
-                      size="medium" 
+                      size="small" 
                       startIcon={<AddIcon />}
                       onClick={handleAddStop}
                     >
@@ -5533,7 +5534,7 @@ const LoadViewPage = () => {
               ))}
             </StopsContainer>
 
-            <Divider sx={{ my: 2 }} />
+            <Divider sx={{ my: 0.5 }} />
           {isLoadDataLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
               <CircularProgress />
@@ -5549,10 +5550,10 @@ const LoadViewPage = () => {
                   </InfoCardTitle>
                 </InfoCardHeader>
                 
-                <Grid container spacing={2}>
+                <Grid container spacing={0.5}>
                   {/* Load Status */}
                   <Grid item xs={12} sm={6}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                       <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
                         Load Status
                       </Typography>
@@ -5571,7 +5572,7 @@ const LoadViewPage = () => {
                         >
                           {loadStatusOptions.map((option) => (
                             <MenuItem key={option.value} value={option.value}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                 <Box sx={{
                                   width: 8,
                                   height: 8,
@@ -5591,7 +5592,7 @@ const LoadViewPage = () => {
                   
                   {/* Invoice Status */}
                   <Grid item xs={12} sm={6}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                       <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
                         Invoice Status
                       </Typography>
@@ -5610,7 +5611,7 @@ const LoadViewPage = () => {
                         >
                           {invoiceStatusOptions.map((option) => (
                             <MenuItem key={option.value} value={option.value}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                 <Box sx={{
                                   width: 8,
                                   height: 8,
@@ -5651,7 +5652,7 @@ const LoadViewPage = () => {
                 
                 {editingSection === 'basic' ? (
                   // Edit form for basic information
-                  <Grid container spacing={2}>
+                  <Grid container spacing={0.5}>
                     <Grid item xs={12} sm={6} md={4}>
                       <TextField
                         fullWidth
@@ -5748,7 +5749,7 @@ const LoadViewPage = () => {
                   </Grid>
                 ) : (
                   // Display mode for load information - Grid Layout
-                  <Grid container spacing={2}>
+                  <Grid container spacing={0.5}>
                     {/* Primary IDs */}
                     <Grid item xs={12} sm={6}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -5889,9 +5890,9 @@ const LoadViewPage = () => {
                 
                 {editingSection === 'personnel' ? (
                   // Edit form for personnel
-                  <Grid container spacing={2}>
+                  <Grid container spacing={0.5}>
                     <Grid item xs={12} sm={6}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <FormControl fullWidth size="small">
                           <InputLabel>Driver</InputLabel>
                           <Select
@@ -5919,7 +5920,7 @@ const LoadViewPage = () => {
                     </Grid>
                     
                     <Grid item xs={12} sm={6}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <FormControl fullWidth size="small">
                           <InputLabel>Dispatcher</InputLabel>
                           <Select
@@ -5961,7 +5962,7 @@ const LoadViewPage = () => {
                   </Grid>
                 ) : (
                   // Display mode for personnel - Grid Layout
-                  <Grid container spacing={2}>
+                  <Grid container spacing={0.5}>
                     <Grid item xs={12} sm={6}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
@@ -6010,12 +6011,12 @@ const LoadViewPage = () => {
                 
                 {editingSection === 'equipment' ? (
                   // Edit form for equipment
-                  <Grid container spacing={2}>
+                  <Grid container spacing={0.5}>
                     <Grid item xs={12}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>Truck</Typography>
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <FormControl fullWidth size="small">
                           <InputLabel>Truck</InputLabel>
                           <Select
@@ -6079,7 +6080,7 @@ const LoadViewPage = () => {
                       <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>Trailer</Typography>
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <FormControl fullWidth size="small">
                           <InputLabel>Trailer</InputLabel>
                           <Select
@@ -6179,10 +6180,10 @@ const LoadViewPage = () => {
                   </Grid>
                 ) : (
                   // Display mode for equipment - Grid Layout
-                  <Grid container spacing={3}>
+                  <Grid container spacing={0.5}>
                     {/* Truck information */}
                     <Grid item xs={12}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#202124', mb: 1.5 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#202124', mb: 0.75 }}>
                         Truck Information
                       </Typography>
                     </Grid>
@@ -6299,7 +6300,7 @@ const LoadViewPage = () => {
                         }
                         return (
                           <Grid item xs={12}>
-                            <Box sx={{ p: 1.5, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
+                            <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
                               <Typography variant="body2">Unit has no truck assigned</Typography>
                             </Box>
                           </Grid>
@@ -6307,7 +6308,7 @@ const LoadViewPage = () => {
                       })()
                     ) : (
                       <Grid item xs={12}>
-                        <Box sx={{ p: 1.5, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
+                        <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
                           <Typography variant="body2">No truck assigned</Typography>
                         </Box>
                       </Grid>
@@ -6315,8 +6316,8 @@ const LoadViewPage = () => {
                     
                     {/* Trailer information */}
                     <Grid item xs={12}>
-                      <Divider sx={{ my: 1 }} />
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#202124', mt: 2, mb: 1.5 }}>
+                      <Divider sx={{ my: 0.5 }} />
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#202124', mt: 1, mb: 0.75 }}>
                         Trailer Information
                       </Typography>
                     </Grid>
@@ -6411,7 +6412,7 @@ const LoadViewPage = () => {
                         }
                         return (
                           <Grid item xs={12}>
-                            <Box sx={{ p: 1.5, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
+                            <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
                               <Typography variant="body2">Unit has no trailer assigned</Typography>
                             </Box>
                           </Grid>
@@ -6419,7 +6420,7 @@ const LoadViewPage = () => {
                       })()
                     ) : (
                       <Grid item xs={12}>
-                        <Box sx={{ p: 1.5, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
+                        <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
                           <Typography variant="body2">No trailer assigned</Typography>
                         </Box>
                       </Grid>
@@ -6451,7 +6452,7 @@ const LoadViewPage = () => {
                 {editingSection === 'mile' ? (
                   // Edit form for mile
                   <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Grid container spacing={2}>
+                    <Grid container spacing={0.5}>
                       <Grid item xs={12} md={6}>
                         <TextField
                           fullWidth
@@ -6532,7 +6533,7 @@ const LoadViewPage = () => {
                     </Grid>
                     
                     <Box sx={{ 
-                      p: 2, 
+                      p: 1, 
                       bgcolor: '#f0f7ff', 
                       borderRadius: 1, 
                       border: '1px solid #e1f0ff',
@@ -6543,7 +6544,7 @@ const LoadViewPage = () => {
                       <Typography variant="subtitle2" color="primary">
                         Calculated Values (Auto)
                       </Typography>
-                      <Grid container spacing={2}>
+                      <Grid container spacing={0.5}>
                         <Grid item xs={12} md={6}>
                           <TextField
                             fullWidth
@@ -6579,7 +6580,7 @@ const LoadViewPage = () => {
                       </Grid>
                     </Box>
                     
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
                       <Button 
                         variant="contained" 
                         onClick={handleSaveChanges}
@@ -6592,7 +6593,7 @@ const LoadViewPage = () => {
                   </Box>
                 ) : (
                   // Display mode for mile - Improved Grid Layout
-                  <Grid container spacing={2}>
+                  <Grid container spacing={0.5}>
                     <Grid item xs={12} sm={6} md={3}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
@@ -6701,10 +6702,10 @@ const LoadViewPage = () => {
                       }}
                     />
                     
-                    <Divider sx={{ my: 1 }} />
+                    <Divider sx={{ my: 0.5 }} />
                     
                     <Typography variant="subtitle2">Add Other Pay</Typography>
-                    <Grid container spacing={2}>
+                    <Grid container spacing={0.5}>
                       <Grid item xs={12} md={4}>
                         <TextField
                           fullWidth
@@ -6770,7 +6771,7 @@ const LoadViewPage = () => {
                     
                     {otherPays.length > 0 && (
                       <>
-                        <Typography variant="subtitle2" sx={{ mt: 1 }}>Existing Other Pays</Typography>
+                        <Typography variant="subtitle2" sx={{ mt: 0.5 }}>Existing Other Pays</Typography>
                         <Box sx={{ maxHeight: '200px', overflowY: 'auto' }}>
                           {otherPays.map(pay => (
                             <Box 
@@ -6805,7 +6806,7 @@ const LoadViewPage = () => {
                       </>
                     )}
                     
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
                       <Button 
                         variant="contained" 
                         onClick={handleSaveChanges}
@@ -6818,7 +6819,7 @@ const LoadViewPage = () => {
                   </Box>
                 ) : (
                   // Display mode for payment - Grid Layout
-                  <Grid container spacing={2}>
+                  <Grid container spacing={0.5}>
                     <Grid item xs={12} sm={6}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
@@ -6844,8 +6845,8 @@ const LoadViewPage = () => {
                     {otherPays.length > 0 && (
                       <>
                         <Grid item xs={12}>
-                          <Divider sx={{ my: 1 }} />
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5, color: '#202124' }}>
+                          <Divider sx={{ my: 0.5 }} />
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.75, color: '#202124' }}>
                             Other Pays
                           </Typography>
                         </Grid>
@@ -6853,7 +6854,7 @@ const LoadViewPage = () => {
                         {otherPays.map((pay, index) => (
                           <Grid item xs={12} sm={6} md={4} key={pay.id}>
                             <Box sx={{ 
-                              p: 1.5, 
+                              p: 1, 
                               bgcolor: '#f8f9fa', 
                               borderRadius: 1,
                               border: '1px solid #e8eaed'
@@ -6922,15 +6923,15 @@ const LoadViewPage = () => {
                   </FileUploadProgress>
                 ))}
                 
-                <Grid container spacing={2}>
+                <Grid container spacing={0.5}>
                   {/* Sorted Documents - Proper Order in 3 columns */}
                   
                   {/* 1. Rate Con */}
                   <Grid item xs={12} sm={6} md={4}>
                     <Box sx={{ 
-                      borderRadius: 1.5, 
+                      borderRadius: 1, 
                       border: '1px solid #e8eaed',
-                      p: 1.5,
+                      p: 1,
                       height: '100%',
                       transition: 'all 0.2s ease',
                       '&:hover': {
@@ -6938,7 +6939,7 @@ const LoadViewPage = () => {
                         borderColor: '#1976d2'
                       }
                     }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
                         <Box sx={{
                           width: 28,
                           height: 28,
@@ -6971,9 +6972,9 @@ const LoadViewPage = () => {
                   {/* 2. BOL */}
                   <Grid item xs={12} sm={6} md={4}>
                     <Box sx={{ 
-                      borderRadius: 1.5, 
+                      borderRadius: 1, 
                       border: '1px solid #e8eaed',
-                      p: 1.5,
+                      p: 1,
                       height: '100%',
                       transition: 'all 0.2s ease',
                       '&:hover': {
@@ -6981,7 +6982,7 @@ const LoadViewPage = () => {
                         borderColor: '#1976d2'
                       }
                     }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
                         <Box sx={{
                           width: 28,
                           height: 28,
@@ -7014,9 +7015,9 @@ const LoadViewPage = () => {
                   {/* 3. POD */}
                   <Grid item xs={12} sm={6} md={4}>
                     <Box sx={{ 
-                      borderRadius: 1.5, 
+                      borderRadius: 1, 
                       border: '1px solid #e8eaed',
-                      p: 1.5,
+                      p: 1,
                       height: '100%',
                       transition: 'all 0.2s ease',
                       '&:hover': {
@@ -7024,7 +7025,7 @@ const LoadViewPage = () => {
                         borderColor: '#1976d2'
                       }
                     }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
                         <Box sx={{
                           width: 28,
                           height: 28,
@@ -7057,9 +7058,9 @@ const LoadViewPage = () => {
                   {/* 4. Commercial Invoice */}
                   <Grid item xs={12} sm={6} md={4}>
                     <Box sx={{ 
-                      borderRadius: 1.5, 
+                      borderRadius: 1, 
                       border: '1px solid #e8eaed',
-                      p: 1.5,
+                      p: 1,
                       height: '100%',
                       transition: 'all 0.2s ease',
                       '&:hover': {
@@ -7067,7 +7068,7 @@ const LoadViewPage = () => {
                         borderColor: '#1976d2'
                       }
                     }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
                         <Box sx={{
                           width: 28,
                           height: 28,
@@ -7100,9 +7101,9 @@ const LoadViewPage = () => {
                   {/* 5. Pictures */}
                   <Grid item xs={12} sm={6} md={4}>
                     <Box sx={{ 
-                      borderRadius: 1.5, 
+                      borderRadius: 1, 
                       border: '1px solid #e8eaed',
-                      p: 1.5,
+                      p: 1,
                       height: '100%',
                       transition: 'all 0.2s ease',
                       '&:hover': {
@@ -7110,7 +7111,7 @@ const LoadViewPage = () => {
                         borderColor: '#1976d2'
                       }
                     }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
                         <Box sx={{
                           width: 28,
                           height: 28,
@@ -7144,9 +7145,9 @@ const LoadViewPage = () => {
                   {/* 6. Tonu */}
                   <Grid item xs={12} sm={6} md={4}>
                     <Box sx={{ 
-                      borderRadius: 1.5, 
+                      borderRadius: 1, 
                       border: '1px solid #e8eaed',
-                      p: 1.5,
+                      p: 1,
                       height: '100%',
                       transition: 'all 0.2s ease',
                       '&:hover': {
@@ -7154,7 +7155,7 @@ const LoadViewPage = () => {
                         borderColor: '#1976d2'
                       }
                     }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
                         <Box sx={{
                           width: 28,
                           height: 28,
@@ -7219,7 +7220,7 @@ const LoadViewPage = () => {
                         onChange={handleFormChange}
                       />
                       
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
                         <Button 
                           variant="contained" 
                           onClick={handleSaveChanges}
@@ -7358,7 +7359,7 @@ const LoadViewPage = () => {
         aria-describedby="delete-file-dialog-description"
       >
         <DialogTitle id="delete-file-dialog-title">
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Delete color="error" />
             Confirm File Deletion
           </Box>
@@ -7395,13 +7396,13 @@ const LoadViewPage = () => {
         fullWidth
       >
         <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <BusinessIcon color="primary" />
             <Typography variant="h6">Broker Information</Typography>
           </Box>
         </DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid container spacing={0.5} sx={{ mt: 0.5 }}>
             <Grid item xs={12} md={6}>
               <Box>
                 <Typography variant="caption" color="text.secondary">
@@ -7541,7 +7542,7 @@ const LoadViewPage = () => {
         maxWidth={false}
       >
         <ChatDialogHeader>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Typography variant="h6">Chat</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Box
@@ -7557,7 +7558,7 @@ const LoadViewPage = () => {
               </Typography>
             </Box>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <IconButton onClick={handleRefreshChat} disabled={isChatLoading} size="small" sx={{ color: 'white' }}>
               {isChatLoading ? (
                 <CircularProgress size={20} thickness={4} sx={{ color: 'white' }} />
