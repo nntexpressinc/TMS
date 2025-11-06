@@ -20,6 +20,7 @@ import {
   Snackbar,
   Avatar,
   Badge,
+  Collapse,
   
   Chip,
   Modal,
@@ -82,7 +83,8 @@ import {
   Receipt as ReceiptIcon,
   Badge as BadgeIcon,
   ContentCopy as ContentCopyIcon,
-  Timeline as TimelineIcon
+  Timeline as TimelineIcon,
+  ExpandMore
 } from "@mui/icons-material";
 import { MdFileUpload, MdFileDownload, MdLocalShipping, MdDirectionsCar, MdAssignmentTurnedIn, MdDoneAll, MdAltRoute, MdCheckCircle, MdHome } from 'react-icons/md';
 import { ApiService } from "../../api/auth";
@@ -1704,6 +1706,22 @@ const LoadViewPage = () => {
   const [permissions, setPermissions] = useState({});
   const [isStopsLoading, setIsStopsLoading] = useState(false);
   const [stopsError, setStopsError] = useState(null);
+  const [expandedSections, setExpandedSections] = useState({
+    basic: false,
+    personnel: false,
+    equipment: false,
+    truck: false,
+    trailer: false,
+    mile: false,
+    payment: false,
+    notes: false,
+  });
+  const toggleSection = (section) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
   // Socket.IO chat state
   const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [isSocketConnecting, setIsSocketConnecting] = useState(false);
@@ -1733,6 +1751,41 @@ const LoadViewPage = () => {
     stopId: null,
     stopName: ''
   });
+  useEffect(() => {
+    if (!editingSection) return;
+    setExpandedSections((prev) => {
+      const next = { ...prev };
+      if (editingSection === 'basic') {
+        next.basic = true;
+      }
+      if (editingSection === 'personnel') {
+        next.personnel = true;
+      }
+      if (editingSection === 'equipment') {
+        next.equipment = true;
+        next.truck = true;
+        next.trailer = true;
+      }
+      if (editingSection === 'mile') {
+        next.mile = true;
+      }
+      if (editingSection === 'payment') {
+        next.payment = true;
+      }
+      if (editingSection === 'notes') {
+        next.notes = true;
+      }
+      return next;
+    });
+  }, [editingSection]);
+  const isBasicExpanded = expandedSections.basic || editingSection === 'basic';
+  const isPersonnelExpanded = expandedSections.personnel || editingSection === 'personnel';
+  const isEquipmentExpanded = expandedSections.equipment || editingSection === 'equipment';
+  const isTruckExpanded = expandedSections.truck;
+  const isTrailerExpanded = expandedSections.trailer;
+  const isMileExpanded = expandedSections.mile || editingSection === 'mile';
+  const isPaymentExpanded = expandedSections.payment || editingSection === 'payment';
+  const isNotesExpanded = expandedSections.notes || editingSection === 'notes';
   
   // Read permissions from localStorage
   useEffect(() => {
@@ -4690,28 +4743,112 @@ const LoadViewPage = () => {
               Load Details
             </Typography>
           </Box>
-          
-          <IconButton onClick={() => {
-            setIsLoadDataLoading(true);
-            ApiService.getData(`/load/${id}/`)
-              .then(data => {
-                setLoad(data);
-                fetchAllStops();
-              })
-              .catch(error => {
-                console.error("Error fetching load data:", error);
-                showSnackbar("Error updating data", "error");
-              })
-              .finally(() => {
-                setIsLoadDataLoading(false);
-              });
-          }} disabled={isLoadDataLoading}>
-            {isLoadDataLoading ? (
-              <CircularProgress size={24} thickness={4} />
-            ) : (
-              <RefreshIcon />
-            )}
-          </IconButton>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end',
+              maxWidth: '70%'
+            }}
+          >
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel>Load Status</InputLabel>
+              <Select
+                label="Load Status"
+                value={load?.load_status || ''}
+                onChange={handleStatusChange}
+                disabled={!load || isUpdatingStatus || !permissions.load_update}
+                sx={{
+                  '& .MuiSelect-select': {
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    py: 0.5,
+                  }
+                }}
+              >
+                {loadStatusOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          backgroundColor: option.color
+                        }}
+                      />
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {option.label}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel>Invoice Status</InputLabel>
+              <Select
+                label="Invoice Status"
+                value={load?.invoice_status || ''}
+                onChange={handleInvoiceStatusChange}
+                disabled={!load || isUpdatingStatus || !permissions.load_update}
+                sx={{
+                  '& .MuiSelect-select': {
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    py: 0.5,
+                  }
+                }}
+              >
+                {invoiceStatusOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          backgroundColor: option.color
+                        }}
+                      />
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {option.label}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <IconButton
+              onClick={() => {
+                setIsLoadDataLoading(true);
+                ApiService.getData(`/load/${id}/`)
+                  .then(data => {
+                    setLoad(data);
+                    fetchAllStops();
+                  })
+                  .catch(error => {
+                    console.error("Error fetching load data:", error);
+                    showSnackbar("Error updating data", "error");
+                  })
+                  .finally(() => {
+                    setIsLoadDataLoading(false);
+                  });
+              }}
+              disabled={isLoadDataLoading}
+              sx={{ ml: 0.5 }}
+            >
+              {isLoadDataLoading ? (
+                <CircularProgress size={22} thickness={4} />
+              ) : (
+                <RefreshIcon />
+              )}
+            </IconButton>
+          </Box>
         </PanelHeader>
 
         {isLoadDataLoading ? (
@@ -5541,115 +5678,54 @@ const LoadViewPage = () => {
             </Box>
           ) : (
             <>
-              {/* Status Section - NEW */}
-              <InfoCard>
-                <InfoCardHeader>
-                  <InfoCardTitle>
-                    <AssignmentIcon />
-                    Status
-                  </InfoCardTitle>
-                </InfoCardHeader>
-                
-                <Grid container spacing={0.5}>
-                  {/* Load Status */}
-                  <Grid item xs={12} sm={6}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
-                        Load Status
-                      </Typography>
-                      <FormControl fullWidth size="small">
-                        <Select
-                          value={load.load_status || ''}
-                          onChange={handleStatusChange}
-                          disabled={isUpdatingStatus || !permissions.load_update}
-                          sx={{
-                            '& .MuiSelect-select': {
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1
-                            }
-                          }}
-                        >
-                          {loadStatusOptions.map((option) => (
-                            <MenuItem key={option.value} value={option.value}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <Box sx={{
-                                  width: 8,
-                                  height: 8,
-                                  borderRadius: '50%',
-                                  backgroundColor: option.color
-                                }} />
-                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                  {option.label}
-                                </Typography>
-                              </Box>
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Box>
-                  </Grid>
-                  
-                  {/* Invoice Status */}
-                  <Grid item xs={12} sm={6}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
-                        Invoice Status
-                      </Typography>
-                      <FormControl fullWidth size="small">
-                        <Select
-                          value={load.invoice_status || ''}
-                          onChange={handleInvoiceStatusChange}
-                          disabled={isUpdatingStatus || !permissions.load_update}
-                          sx={{
-                            '& .MuiSelect-select': {
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1
-                            }
-                          }}
-                        >
-                          {invoiceStatusOptions.map((option) => (
-                            <MenuItem key={option.value} value={option.value}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <Box sx={{
-                                  width: 8,
-                                  height: 8,
-                                  borderRadius: '50%',
-                                  backgroundColor: option.color
-                                }} />
-                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                  {option.label}
-                                </Typography>
-                              </Box>
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </InfoCard>
-            
               {/* Load Information */}
               <InfoCard>
                 <InfoCardHeader>
-                  <InfoCardTitle>
-                    <Info />
-                    Load Information
-                  </InfoCardTitle>
-                  {permissions.load_update && (
-                    <Button
-                      variant="outlined"
+                  <Box
+                    sx={{ display: 'flex', alignItems: 'center', gap: 0.75, cursor: 'pointer', flex: 1 }}
+                    onClick={() => toggleSection('basic')}
+                  >
+                    <InfoCardTitle component="div">
+                      <Info />
+                      Load Information
+                    </InfoCardTitle>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    {permissions.load_update && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={editingSection === 'basic' ? <Close /> : <EditIcon />}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (editingSection === 'basic') {
+                            handleCancelEdit();
+                          } else {
+                            handleEditSection('basic');
+                          }
+                        }}
+                      >
+                        {editingSection === 'basic' ? 'CANCEL' : 'EDIT'}
+                      </Button>
+                    )}
+                    <IconButton
                       size="small"
-                      startIcon={editingSection === 'basic' ? <Close /> : <EditIcon />}
-                      onClick={editingSection === 'basic' ? handleCancelEdit : () => handleEditSection('basic')}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        toggleSection('basic');
+                      }}
+                      sx={{
+                        transform: isBasicExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s ease',
+                      }}
                     >
-                      {editingSection === 'basic' ? 'CANCEL' : 'EDIT'}
-                    </Button>
-                  )}
+                      <ExpandMore fontSize="small" />
+                    </IconButton>
+                  </Box>
                 </InfoCardHeader>
                 
+                <Collapse in={isBasicExpanded} timeout="auto" unmountOnExit>
+                  <Box sx={{ mt: 0.5 }}>
                 {editingSection === 'basic' ? (
                   // Edit form for basic information
                   <Grid container spacing={0.5}>
@@ -5867,148 +5943,209 @@ const LoadViewPage = () => {
                     </Grid>
                   </Grid>
                 )}
+                  </Box>
+                </Collapse>
               </InfoCard>
               
               {/* Personnel Information */}
               <InfoCard>
                 <InfoCardHeader>
-                  <InfoCardTitle>
-                    <PersonOutline />
-                    Personnel
-                  </InfoCardTitle>
-                  {permissions.load_update && (
-                    <Button
-                      variant="outlined"
+                  <Box
+                    sx={{ display: 'flex', alignItems: 'center', gap: 0.75, cursor: 'pointer', flex: 1 }}
+                    onClick={() => toggleSection('personnel')}
+                  >
+                    <InfoCardTitle component="div">
+                      <PersonOutline />
+                      Personnel
+                    </InfoCardTitle>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    {permissions.load_update && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={editingSection === 'personnel' ? <Close /> : <EditIcon />}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (editingSection === 'personnel') {
+                            handleCancelEdit();
+                          } else {
+                            handleEditSection('personnel');
+                          }
+                        }}
+                      >
+                        {editingSection === 'personnel' ? 'CANCEL' : 'EDIT'}
+                      </Button>
+                    )}
+                    <IconButton
                       size="small"
-                      startIcon={editingSection === 'personnel' ? <Close /> : <EditIcon />}
-                      onClick={editingSection === 'personnel' ? handleCancelEdit : () => handleEditSection('personnel')}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        toggleSection('personnel');
+                      }}
+                      sx={{
+                        transform: isPersonnelExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s ease',
+                      }}
                     >
-                      {editingSection === 'personnel' ? 'CANCEL' : 'EDIT'}
-                    </Button>
-                  )}
+                      <ExpandMore fontSize="small" />
+                    </IconButton>
+                  </Box>
                 </InfoCardHeader>
-                
-                {editingSection === 'personnel' ? (
-                  // Edit form for personnel
-                  <Grid container spacing={0.5}>
-                    <Grid item xs={12} sm={6}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <FormControl fullWidth size="small">
-                          <InputLabel>Driver</InputLabel>
-                          <Select
-                            name="driver"
-                            value={editFormData.driver || ''}
-                            onChange={handleFormChange}
-                            label="Driver"
-                          >
-                            <MenuItem value="">None</MenuItem>
-                            {drivers.map(driver => (
-                              <MenuItem key={driver.id} value={driver.id}>
-                                {`${driver.user?.first_name || ''} ${driver.user?.last_name || ''}`}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                        <IconButton 
-                          color="primary" 
-                          onClick={handleAddDriver}
-                          size="small"
-                        >
-                          <AddIcon />
-                        </IconButton>
-                      </Box>
-                    </Grid>
-                    
-                    <Grid item xs={12} sm={6}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <FormControl fullWidth size="small">
-                          <InputLabel>Dispatcher</InputLabel>
-                          <Select
-                            name="dispatcher"
-                            value={editFormData.dispatcher || ''}
-                            onChange={handleFormChange}
-                            label="Dispatcher"
-                          >
-                            <MenuItem value="">None</MenuItem>
-                            {dispatchers.map(dispatcher => (
-                              <MenuItem key={dispatcher.id} value={dispatcher.id}>
-                                {dispatcher.nickname || dispatcher.email}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                        <IconButton 
-                          color="primary" 
-                          onClick={handleAddDispatcher}
-                          size="small"
-                        >
-                          <AddIcon />
-                        </IconButton>
-                      </Box>
-                    </Grid>
-                    
-                    <Grid item xs={12}>
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-                        <Button 
-                          variant="contained" 
-                          onClick={handleSaveChanges}
-                          disabled={isSaving}
-                          startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
-                        >
-                          Save
-                        </Button>
-                      </Box>
-                    </Grid>
-                  </Grid>
-                ) : (
-                  // Display mode for personnel - Grid Layout
-                  <Grid container spacing={0.5}>
-                    <Grid item xs={12} sm={6}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
-                          Driver
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.875rem' }}>
-                          {load.driver ? 
-                            `${load.driver.user?.first_name || ''} ${load.driver.user?.last_name || ''}`.trim() : 
-                            "Not assigned"}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    
-                    <Grid item xs={12} sm={6}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
-                          Dispatcher
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.875rem' }}>
-                          {load.dispatcher?.nickname || "Not assigned"}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  </Grid>
-                )}
+                <Collapse in={isPersonnelExpanded} timeout="auto" unmountOnExit>
+                  <Box sx={{ mt: 0.5 }}>
+                    {editingSection === 'personnel' ? (
+                      // Edit form for personnel
+                      <Grid container spacing={0.5}>
+                        <Grid item xs={12} sm={6}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <FormControl fullWidth size="small">
+                              <InputLabel>Driver</InputLabel>
+                              <Select
+                                name="driver"
+                                value={editFormData.driver || ''}
+                                onChange={handleFormChange}
+                                label="Driver"
+                              >
+                                <MenuItem value="">None</MenuItem>
+                                {drivers.map(driver => (
+                                  <MenuItem key={driver.id} value={driver.id}>
+                                    {`${driver.user?.first_name || ''} ${driver.user?.last_name || ''}`}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                            <IconButton 
+                              color="primary" 
+                              onClick={handleAddDriver}
+                              size="small"
+                            >
+                              <AddIcon />
+                            </IconButton>
+                          </Box>
+                        </Grid>
+                        
+                        <Grid item xs={12} sm={6}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <FormControl fullWidth size="small">
+                              <InputLabel>Dispatcher</InputLabel>
+                              <Select
+                                name="dispatcher"
+                                value={editFormData.dispatcher || ''}
+                                onChange={handleFormChange}
+                                label="Dispatcher"
+                              >
+                                <MenuItem value="">None</MenuItem>
+                                {dispatchers.map(dispatcher => (
+                                  <MenuItem key={dispatcher.id} value={dispatcher.id}>
+                                    {dispatcher.nickname || dispatcher.email}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                            <IconButton 
+                              color="primary" 
+                              onClick={handleAddDispatcher}
+                              size="small"
+                            >
+                              <AddIcon />
+                            </IconButton>
+                          </Box>
+                        </Grid>
+                        
+                        <Grid item xs={12}>
+                          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                            <Button 
+                              variant="contained" 
+                              onClick={handleSaveChanges}
+                              disabled={isSaving}
+                              startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
+                            >
+                              Save
+                            </Button>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    ) : (
+                      // Display mode for personnel - Grid Layout
+                      <Grid container spacing={0.5}>
+                        <Grid item xs={12} sm={6}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
+                              Driver
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.875rem' }}>
+                              {load.driver ? 
+                                `${load.driver.user?.first_name || ''} ${load.driver.user?.last_name || ''}`.trim() : 
+                                "Not assigned"}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        
+                        <Grid item xs={12} sm={6}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
+                              Dispatcher
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.875rem' }}>
+                              {load.dispatcher?.nickname || "Not assigned"}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    )}
+                  </Box>
+                </Collapse>
               </InfoCard>
               
               {/* Vehicle Information */}
               <InfoCard>
                 <InfoCardHeader>
-                  <InfoCardTitle>
-                    <DriveEta />
-                    Equipment
-                  </InfoCardTitle>
-                  {permissions.load_update && (
-                    <Button
-                      variant="outlined"
+                  <Box
+                    sx={{ display: 'flex', alignItems: 'center', gap: 0.75, cursor: 'pointer', flex: 1 }}
+                    onClick={() => toggleSection('equipment')}
+                  >
+                    <InfoCardTitle component="div">
+                      <DriveEta />
+                      Equipment
+                    </InfoCardTitle>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    {permissions.load_update && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={editingSection === 'equipment' ? <Close /> : <EditIcon />}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (editingSection === 'equipment') {
+                            handleCancelEdit();
+                          } else {
+                            handleEditSection('equipment');
+                          }
+                        }}
+                      >
+                        {editingSection === 'equipment' ? 'CANCEL' : 'EDIT'}
+                      </Button>
+                    )}
+                    <IconButton
                       size="small"
-                      startIcon={editingSection === 'equipment' ? <Close /> : <EditIcon />}
-                      onClick={editingSection === 'equipment' ? handleCancelEdit : () => handleEditSection('equipment')}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        toggleSection('equipment');
+                      }}
+                      sx={{
+                        transform: isEquipmentExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s ease',
+                      }}
                     >
-                      {editingSection === 'equipment' ? 'CANCEL' : 'EDIT'}
-                    </Button>
-                  )}
+                      <ExpandMore fontSize="small" />
+                    </IconButton>
+                  </Box>
                 </InfoCardHeader>
                 
+                <Collapse in={isEquipmentExpanded} timeout="auto" unmountOnExit>
+                  <Box sx={{ mt: 0.5 }}>
                 {editingSection === 'equipment' ? (
                   // Edit form for equipment
                   <Grid container spacing={0.5}>
@@ -6179,276 +6316,355 @@ const LoadViewPage = () => {
                     </Grid>
                   </Grid>
                 ) : (
-                  // Display mode for equipment - Grid Layout
-                  <Grid container spacing={0.5}>
-                    {/* Truck information */}
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#202124', mb: 0.75 }}>
-                        Truck Information
-                      </Typography>
-                    </Grid>
-                    
-                    {load.truck ? (
-                      <>
-                        <Grid item xs={12} sm={6} md={3}>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
-                              Make/Model
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                              {`${load.truck.make || ''} ${load.truck.model || ''}`}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6} md={3}>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
-                              Unit Number
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                              {load.truck.unit_number || "Not available"}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6} md={3}>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
-                              Plate Number
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                              {load.truck.plate_number || "Not available"}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6} md={3}>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
-                              VIN Number
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                              {load.truck.vin || "Not available"}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                      </>
-                    ) : load.unit_id ? (
-                      // If unit is selected, show truck information from the unit
-                      (() => {
-                        const selectedUnit = units.find(unit => unit.id === load.unit_id);
-                        if (selectedUnit && selectedUnit.truck && selectedUnit.truck.length > 0) {
-                          const truckId = selectedUnit.truck[0];
-                          const truckInfo = trucks.find(truck => truck.id === truckId);
-                          
-                          if (truckInfo) {
-                            return (
-                              <>
-                                <Grid item xs={12} sm={6} md={3}>
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                    <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
-                                      Make/Model
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                                      {`${truckInfo.make || ''} ${truckInfo.model || ''}`}
-                                    </Typography>
-                                  </Box>
-                                </Grid>
-                                
-                                <Grid item xs={12} sm={6} md={3}>
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                    <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
-                                      Unit Number
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                                      {truckInfo.unit_number || "Not available"}
-                                    </Typography>
-                                  </Box>
-                                </Grid>
-                                
-                                <Grid item xs={12} sm={6} md={3}>
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                    <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
-                                      Plate Number
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                                      {truckInfo.plate_number || "Not available"}
-                                    </Typography>
-                                  </Box>
-                                </Grid>
-                                
-                                <Grid item xs={12} sm={6} md={3}>
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                    <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
-                                      VIN Number
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                                      {truckInfo.vin || "Not available"}
-                                    </Typography>
-                                  </Box>
-                                </Grid>
-                                
-                                <Grid item xs={12}>
-                                  <Typography variant="caption" color="primary" sx={{ fontStyle: 'italic' }}>
-                                    (Truck from Unit {selectedUnit.unit_number})
-                                  </Typography>
-                                </Grid>
-                              </>
-                            );
-                          }
-                        }
-                        return (
-                          <Grid item xs={12}>
-                            <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
-                              <Typography variant="body2">Unit has no truck assigned</Typography>
-                            </Box>
-                          </Grid>
-                        );
-                      })()
-                    ) : (
-                      <Grid item xs={12}>
-                        <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
-                          <Typography variant="body2">No truck assigned</Typography>
+                  // Display mode for equipment - Collapsible sections
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          p: 0.75,
+                          borderRadius: 1,
+                          backgroundColor: '#f8f9fb',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.2s ease',
+                          '&:hover': { backgroundColor: '#f1f3f4' }
+                        }}
+                        onClick={() => toggleSection('truck')}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <CiDeliveryTruck size={20} color="#1a73e8" />
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#202124' }}>
+                            Truck Information
+                          </Typography>
                         </Box>
-                      </Grid>
-                    )}
-                    
-                    {/* Trailer information */}
-                    <Grid item xs={12}>
-                      <Divider sx={{ my: 0.5 }} />
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#202124', mt: 1, mb: 0.75 }}>
-                        Trailer Information
-                      </Typography>
-                    </Grid>
-                    
-                    {load.trailer ? (
-                      <>
-                        <Grid item xs={12} sm={6} md={4}>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
-                              Type
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                              {load.trailer.trailer_type || load.trailer.type || "Not available"}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6} md={4}>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
-                              Unit Number
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                              {load.trailer.unit_number || "Not available"}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6} md={4}>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                            <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
-                              VIN Number
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                              {load.trailer.vin || load.trailer.vin_number || "Not available"}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                      </>
-                    ) : load.unit_id ? (
-                      // If unit is selected, show trailer information from the unit
-                      (() => {
-                        const selectedUnit = units.find(unit => unit.id === load.unit_id);
-                        if (selectedUnit && selectedUnit.trailer && selectedUnit.trailer.length > 0) {
-                          const trailerId = selectedUnit.trailer[0];
-                          const trailerInfo = trailers.find(trailer => trailer.id === trailerId);
-                          
-                          if (trailerInfo) {
-                            return (
-                              <>
-                                <Grid item xs={12} sm={6} md={4}>
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                    <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
-                                      Type
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                                      {trailerInfo.trailer_type || trailerInfo.type || "Not available"}
-                                    </Typography>
-                                  </Box>
-                                </Grid>
-                                
-                                <Grid item xs={12} sm={6} md={4}>
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                    <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
-                                      Unit Number
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                                      {trailerInfo.unit_number || "Not available"}
-                                    </Typography>
-                                  </Box>
-                                </Grid>
-                                
-                                <Grid item xs={12} sm={6} md={4}>
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                    <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
-                                      VIN Number
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                                      {trailerInfo.vin || trailerInfo.vin_number || "Not available"}
-                                    </Typography>
-                                  </Box>
-                                </Grid>
-                                
-                                <Grid item xs={12}>
-                                  <Typography variant="caption" color="primary" sx={{ fontStyle: 'italic' }}>
-                                    (Trailer from Unit {selectedUnit.unit_number})
+                        <ExpandMore
+                          sx={{
+                            transform: isTruckExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                            transition: 'transform 0.2s ease'
+                          }}
+                        />
+                      </Box>
+                      <Collapse in={isTruckExpanded} timeout="auto" unmountOnExit>
+                        <Grid container spacing={0.5} sx={{ mt: 0.5 }}>
+                          {load.truck ? (
+                            <>
+                              <Grid item xs={12} sm={6} md={3}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                    Make/Model
                                   </Typography>
+                                  <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                    {`${load.truck.make || ''} ${load.truck.model || ''}`}
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              
+                              <Grid item xs={12} sm={6} md={3}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                    Unit Number
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                    {load.truck.unit_number || "Not available"}
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              
+                              <Grid item xs={12} sm={6} md={3}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                    Plate Number
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                    {load.truck.plate_number || "Not available"}
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              
+                              <Grid item xs={12} sm={6} md={3}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                    VIN Number
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                    {load.truck.vin || "Not available"}
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                            </>
+                          ) : load.unit_id ? (
+                            (() => {
+                              const selectedUnit = units.find(unit => unit.id === load.unit_id);
+                              if (selectedUnit && selectedUnit.truck && selectedUnit.truck.length > 0) {
+                                const truckId = selectedUnit.truck[0];
+                                const truckInfo = trucks.find(truck => truck.id === truckId);
+                                
+                                if (truckInfo) {
+                                  return (
+                                    <>
+                                      <Grid item xs={12} sm={6} md={3}>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                          <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                            Make/Model
+                                          </Typography>
+                                          <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                            {`${truckInfo.make || ''} ${truckInfo.model || ''}`}
+                                          </Typography>
+                                        </Box>
+                                      </Grid>
+                                      
+                                      <Grid item xs={12} sm={6} md={3}>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                          <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                            Unit Number
+                                          </Typography>
+                                          <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                            {truckInfo.unit_number || "Not available"}
+                                          </Typography>
+                                        </Box>
+                                      </Grid>
+                                      
+                                      <Grid item xs={12} sm={6} md={3}>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                          <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                            Plate Number
+                                          </Typography>
+                                          <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                            {truckInfo.plate_number || "Not available"}
+                                          </Typography>
+                                        </Box>
+                                      </Grid>
+                                      
+                                      <Grid item xs={12} sm={6} md={3}>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                          <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                            VIN Number
+                                          </Typography>
+                                          <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                            {truckInfo.vin || "Not available"}
+                                          </Typography>
+                                        </Box>
+                                      </Grid>
+                                      
+                                      <Grid item xs={12}>
+                                        <Typography variant="caption" color="primary" sx={{ fontStyle: 'italic' }}>
+                                          (Truck from Unit {selectedUnit.unit_number})
+                                        </Typography>
+                                      </Grid>
+                                    </>
+                                  );
+                                }
+                              }
+                              return (
+                                <Grid item xs={12}>
+                                  <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
+                                    <Typography variant="body2">Unit has no truck assigned</Typography>
+                                  </Box>
                                 </Grid>
-                              </>
-                            );
-                          }
-                        }
-                        return (
-                          <Grid item xs={12}>
-                            <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
-                              <Typography variant="body2">Unit has no trailer assigned</Typography>
-                            </Box>
-                          </Grid>
-                        );
-                      })()
-                    ) : (
-                      <Grid item xs={12}>
-                        <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
-                          <Typography variant="body2">No trailer assigned</Typography>
+                              );
+                            })()
+                          ) : (
+                            <Grid item xs={12}>
+                              <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
+                                <Typography variant="body2">No truck assigned</Typography>
+                              </Box>
+                            </Grid>
+                          )}
+                        </Grid>
+                      </Collapse>
+                    </Box>
+                    <Divider sx={{ my: 0.5 }} />
+                    <Box>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          p: 0.75,
+                          borderRadius: 1,
+                          backgroundColor: '#f8f9fb',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.2s ease',
+                          '&:hover': { backgroundColor: '#f1f3f4' }
+                        }}
+                        onClick={() => toggleSection('trailer')}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <LocalShippingIcon sx={{ color: 'primary.main', fontSize: '1.1rem' }} />
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#202124' }}>
+                            Trailer Information
+                          </Typography>
                         </Box>
-                      </Grid>
-                    )}
-                  </Grid>
+                        <ExpandMore
+                          sx={{
+                            transform: isTrailerExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                            transition: 'transform 0.2s ease'
+                          }}
+                        />
+                      </Box>
+                      <Collapse in={isTrailerExpanded} timeout="auto" unmountOnExit>
+                        <Grid container spacing={0.5} sx={{ mt: 0.5 }}>
+                          {load.trailer ? (
+                            <>
+                              <Grid item xs={12} sm={6} md={4}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                    Type
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                    {load.trailer.trailer_type || load.trailer.type || "Not available"}
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              
+                              <Grid item xs={12} sm={6} md={4}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                    Unit Number
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                    {load.trailer.unit_number || "Not available"}
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              
+                              <Grid item xs={12} sm={6} md={4}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                    VIN Number
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                    {load.trailer.vin || load.trailer.vin_number || "Not available"}
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                            </>
+                          ) : load.unit_id ? (
+                            (() => {
+                              const selectedUnit = units.find(unit => unit.id === load.unit_id);
+                              if (selectedUnit && selectedUnit.trailer && selectedUnit.trailer.length > 0) {
+                                const trailerId = selectedUnit.trailer[0];
+                                const trailerInfo = trailers.find(trailer => trailer.id === trailerId);
+                                
+                                if (trailerInfo) {
+                                  return (
+                                    <>
+                                      <Grid item xs={12} sm={6} md={4}>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                          <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                            Type
+                                          </Typography>
+                                          <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                            {trailerInfo.trailer_type || trailerInfo.type || "Not available"}
+                                          </Typography>
+                                        </Box>
+                                      </Grid>
+                                      
+                                      <Grid item xs={12} sm={6} md={4}>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                          <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                            Unit Number
+                                          </Typography>
+                                          <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                            {trailerInfo.unit_number || "Not available"}
+                                          </Typography>
+                                        </Box>
+                                      </Grid>
+                                      
+                                      <Grid item xs={12} sm={6} md={4}>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                          <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.75rem' }}>
+                                            VIN Number
+                                          </Typography>
+                                          <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
+                                            {trailerInfo.vin || trailerInfo.vin_number || "Not available"}
+                                          </Typography>
+                                        </Box>
+                                      </Grid>
+                                      
+                                      <Grid item xs={12}>
+                                        <Typography variant="caption" color="primary" sx={{ fontStyle: 'italic' }}>
+                                          (Trailer from Unit {selectedUnit.unit_number})
+                                        </Typography>
+                                      </Grid>
+                                    </>
+                                  );
+                                }
+                              }
+                              return (
+                                <Grid item xs={12}>
+                                  <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
+                                    <Typography variant="body2">Unit has no trailer assigned</Typography>
+                                  </Box>
+                                </Grid>
+                              );
+                            })()
+                          ) : (
+                            <Grid item xs={12}>
+                              <Box sx={{ p: 1, bgcolor: '#f8f9fa', borderRadius: 1, color: 'text.secondary' }}>
+                                <Typography variant="body2">No trailer assigned</Typography>
+                              </Box>
+                            </Grid>
+                          )}
+                        </Grid>
+                      </Collapse>
+                    </Box>
+                  </Box>
                 )}
+                  </Box>
+                </Collapse>
               </InfoCard>
               
               {/* Mile Information */}
               <InfoCard>
                 <InfoCardHeader>
-                  <InfoCardTitle>
-                    <DirectionsIcon />
-                    Mile Information
-                  </InfoCardTitle>
-                  {permissions.load_update && (
-                    <Button
-                      variant="outlined"
+                  <Box
+                    sx={{ display: 'flex', alignItems: 'center', gap: 0.75, cursor: 'pointer', flex: 1 }}
+                    onClick={() => toggleSection('mile')}
+                  >
+                    <InfoCardTitle component="div">
+                      <DirectionsIcon />
+                      Mile Information
+                    </InfoCardTitle>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    {permissions.load_update && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={editingSection === 'mile' ? <Close /> : <EditIcon />}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (editingSection === 'mile') {
+                            handleCancelEdit();
+                          } else {
+                            handleEditSection('mile');
+                          }
+                        }}
+                      >
+                        {editingSection === 'mile' ? 'CANCEL' : 'EDIT'}
+                      </Button>
+                    )}
+                    <IconButton
                       size="small"
-                      startIcon={editingSection === 'mile' ? <Close /> : <EditIcon />}
-                      onClick={editingSection === 'mile' ? handleCancelEdit : () => handleEditSection('mile')}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        toggleSection('mile');
+                      }}
+                      sx={{
+                        transform: isMileExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s ease',
+                      }}
                     >
-                      
-                      {editingSection === 'mile' ? 'CANCEL' : 'EDIT'}
-                    </Button>
-                  )}
+                      <ExpandMore fontSize="small" />
+                    </IconButton>
+                  </Box>
                 </InfoCardHeader>
-                
+
+                <Collapse in={isMileExpanded} timeout="auto" unmountOnExit>
+                  <Box sx={{ mt: 0.5 }}>
                 {editingSection === 'mile' ? (
                   // Edit form for mile
                   <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -6639,27 +6855,58 @@ const LoadViewPage = () => {
                     </Grid>
                   </Grid>
                 )}
+                  </Box>
+                </Collapse>
               </InfoCard>
               
               {/* Payment Information */}
               <InfoCard>
                 <InfoCardHeader>
-                  <InfoCardTitle>
-                    <AttachMoneyIcon />
-                    Payment Details
-                  </InfoCardTitle>
-                  {permissions.load_update && (
-                    <Button
-                      variant="outlined"
+                  <Box
+                    sx={{ display: 'flex', alignItems: 'center', gap: 0.75, cursor: 'pointer', flex: 1 }}
+                    onClick={() => toggleSection('payment')}
+                  >
+                    <InfoCardTitle component="div">
+                      <AttachMoneyIcon />
+                      Payment Details
+                    </InfoCardTitle>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    {permissions.load_update && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={editingSection === 'payment' ? <Close /> : <EditIcon />}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (editingSection === 'payment') {
+                            handleCancelEdit();
+                          } else {
+                            handleEditSection('payment');
+                          }
+                        }}
+                      >
+                        {editingSection === 'payment' ? 'CANCEL' : 'EDIT'}
+                      </Button>
+                    )}
+                    <IconButton
                       size="small"
-                      startIcon={editingSection === 'payment' ? <Close /> : <EditIcon />}
-                      onClick={editingSection === 'payment' ? handleCancelEdit : () => handleEditSection('payment')}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        toggleSection('payment');
+                      }}
+                      sx={{
+                        transform: isPaymentExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s ease',
+                      }}
                     >
-                      {editingSection === 'payment' ? 'CANCEL' : 'EDIT'}
-                    </Button>
-                  )}
+                      <ExpandMore fontSize="small" />
+                    </IconButton>
+                  </Box>
                 </InfoCardHeader>
                 
+                <Collapse in={isPaymentExpanded} timeout="auto" unmountOnExit>
+                  <Box sx={{ mt: 0.5 }}>
                 {editingSection === 'payment' ? (
                   // Edit form for payment
                   <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -6879,6 +7126,8 @@ const LoadViewPage = () => {
                     )}
                   </Grid>
                 )}
+                  </Box>
+                </Collapse>
               </InfoCard>
               
               {/* Documents */}
@@ -7191,52 +7440,83 @@ const LoadViewPage = () => {
               {(load.note || editingSection === 'notes') && (
                 <InfoCard>
                   <InfoCardHeader>
-                    <InfoCardTitle>
-                      <Description />
-                      Notes
-                    </InfoCardTitle>
-                                      {permissions.load_update && (
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={editingSection === 'notes' ? <Close /> : <EditIcon />}
-                      onClick={editingSection === 'notes' ? handleCancelEdit : () => handleEditSection('notes')}
+                    <Box
+                      sx={{ display: 'flex', alignItems: 'center', gap: 0.75, cursor: 'pointer', flex: 1 }}
+                      onClick={() => toggleSection('notes')}
                     >
-                      {editingSection === 'notes' ? 'CANCEL' : 'EDIT'}
-                    </Button>
-                  )}
+                      <InfoCardTitle component="div">
+                        <Description />
+                        Notes
+                      </InfoCardTitle>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      {permissions.load_update && (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={editingSection === 'notes' ? <Close /> : <EditIcon />}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (editingSection === 'notes') {
+                              handleCancelEdit();
+                            } else {
+                              handleEditSection('notes');
+                            }
+                          }}
+                        >
+                          {editingSection === 'notes' ? 'CANCEL' : 'EDIT'}
+                        </Button>
+                      )}
+                      <IconButton
+                        size="small"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleSection('notes');
+                        }}
+                        sx={{
+                          transform: isNotesExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s ease',
+                        }}
+                      >
+                        <ExpandMore fontSize="small" />
+                      </IconButton>
+                    </Box>
                   </InfoCardHeader>
                   
-                  {editingSection === 'notes' ? (
-                    // Edit form for notes
-                    <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={4}
-                        label="Notes"
-                        name="note"
-                        value={editFormData.note}
-                        onChange={handleFormChange}
-                      />
-                      
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-                        <Button 
-                          variant="contained" 
-                          onClick={handleSaveChanges}
-                          disabled={isSaving}
-                          startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
-                        >
-                          Save
-                        </Button>
-                      </Box>
+                  <Collapse in={isNotesExpanded} timeout="auto" unmountOnExit>
+                    <Box sx={{ mt: 0.5 }}>
+                      {editingSection === 'notes' ? (
+                        // Edit form for notes
+                        <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={4}
+                            label="Notes"
+                            name="note"
+                            value={editFormData.note}
+                            onChange={handleFormChange}
+                          />
+                          
+                          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                            <Button 
+                              variant="contained" 
+                              onClick={handleSaveChanges}
+                              disabled={isSaving}
+                              startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
+                            >
+                              Save
+                            </Button>
+                          </Box>
+                        </Box>
+                      ) : (
+                        // Display mode for notes
+                        <Typography variant="body2" sx={{ p: 1 }}>
+                          {load.note}
+                        </Typography>
+                      )}
                     </Box>
-                  ) : (
-                    // Display mode for notes
-                    <Typography variant="body2" sx={{ p: 1 }}>
-                      {load.note}
-                    </Typography>
-                  )}
+                  </Collapse>
                 </InfoCard>
               )}
             </>
