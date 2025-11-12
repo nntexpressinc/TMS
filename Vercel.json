@@ -12,7 +12,9 @@
         }
     ],
     "env": {
-        "NODE_OPTIONS": "--openssl-legacy-provider"
+        "NODE_OPTIONS": "--openssl-legacy-provider",
+        "GENERATE_SOURCEMAP": "false",
+        "DISABLE_ESLINT_PLUGIN": "true"
     }
 }
   
