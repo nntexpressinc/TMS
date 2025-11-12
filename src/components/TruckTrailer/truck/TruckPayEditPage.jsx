@@ -12,7 +12,6 @@ import {
   MenuItem,
   Grid,
   IconButton,
-  Alert,
   CircularProgress,
   FormControlLabel,
   Checkbox
@@ -27,7 +26,6 @@ const TruckPayEditPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [truckData, setTruckData] = useState(null);
-  const [payData, setPayData] = useState(null);
   const [formData, setFormData] = useState({
     pay_type: 'Percentage',
     currency: 'USD',
@@ -49,7 +47,6 @@ const TruckPayEditPage = () => {
         ]);
         
         setTruckData(truck);
-        setPayData(pay);
         
         setFormData({
           pay_type: pay.pay_type || 'Percentage',

@@ -6,13 +6,8 @@ import {
   Paper,
   TextField,
   Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Grid,
   IconButton,
-  Alert,
   CircularProgress
 } from '@mui/material';
 import { ApiService, ENDPOINTS } from '../../../api/auth';
@@ -25,7 +20,6 @@ const TruckExpenseEditPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [truckData, setTruckData] = useState(null);
-  const [expenseData, setExpenseData] = useState(null);
   const [formData, setFormData] = useState({
     transaction_type: '+',
     description: '',
@@ -44,7 +38,6 @@ const TruckExpenseEditPage = () => {
           ApiService.getData(ENDPOINTS.DRIVER_EXPENSE_DETAIL(expenseId))
         ]);
         setTruckData(truck);
-        setExpenseData(expense);
         setFormData({
           transaction_type: expense.transaction_type || '+',
           description: expense.description || '',
