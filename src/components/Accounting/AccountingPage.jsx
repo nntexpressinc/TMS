@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getDriversSummary, getDriverCompletedLoads, postPaystubAction, createDriverExpense } from '../../api/paySystem';
+import { getDriversSummary, getDriverCompletedLoads, getTruckCompletedLoads, postPaystubAction, createDriverExpense, createTruckExpense } from '../../api/paySystem';
 import { testApiConnection } from '../../api/testConnection';
 import './AccountingPage.css';
 
@@ -78,58 +78,51 @@ const partitionDrivers = (payload) => {
   console.log('Partitioning drivers from payload:', payload);
   
   if (!payload) {
-    return { company: [], owner: [] };
+    return { company: [], owner: [], trucks: [] };
   }
 
   const company = [];
   const owner = [];
+  const trucks = [];
 
-  const tryAppend = (list) => {
-    ensureArray(list).forEach((item) => {
-      const driver = normalizeDriver(item);
-      if (driver) {
-        // Use driver_type field to determine if it's a company driver or owner operator
-        if (driver.driver_type === 'COMPANY_DRIVER') {
-          company.push(driver);
-        } else if (driver.driver_type === 'OWNER_OPERATOR') {
-          owner.push(driver);
-        } else {
-          // Fallback to is_owner logic for compatibility
-          if (driver.is_owner) {
-            owner.push(driver);
-          } else {
-            company.push(driver);
-          }
-        }
+  // The API response structure: { company_drivers: [...], owner_drivers: [...], trucks: [...] }
+  // Company drivers are already separated in company_drivers array
+  if (payload.company_drivers && Array.isArray(payload.company_drivers)) {
+    payload.company_drivers.forEach((driver) => {
+      const normalized = normalizeDriver(driver);
+      if (normalized) {
+        company.push(normalized);
       }
     });
-  };
+  }
 
-  // If payload is an array, treat it as a list of drivers
-  if (Array.isArray(payload)) {
-    tryAppend(payload);
-  } else {
-    // Try different possible structures
-    tryAppend(payload.company_drivers);
-    tryAppend(payload.owner_drivers);
-    tryAppend(payload.results);
-    tryAppend(payload.drivers);
-    
-    // If no specific structure found, try all values
-    if (!company.length && !owner.length && typeof payload === 'object') {
-      Object.values(payload).forEach((value) => {
-        if (Array.isArray(value)) {
-          tryAppend(value);
-        }
-      });
-    }
+  // Owner operators are already separated in owner_drivers array
+  if (payload.owner_drivers && Array.isArray(payload.owner_drivers)) {
+    payload.owner_drivers.forEach((driver) => {
+      const normalized = normalizeDriver(driver);
+      if (normalized) {
+        owner.push(normalized);
+      }
+    });
+  }
+
+  // Extract trucks from the payload - they come pre-formatted
+  if (payload.trucks && Array.isArray(payload.trucks)) {
+    payload.trucks.forEach((truck) => {
+      if (truck && truck.id) {
+        trucks.push({
+          ...truck,
+          type: truck.type || 'Truck'
+        });
+      }
+    });
   }
 
   const dedupe = (list) => {
     const seen = new Set();
-    return list.filter((driver) => {
-      if (seen.has(driver.id)) return false;
-      seen.add(driver.id);
+    return list.filter((item) => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
       return true;
     });
   };
@@ -137,9 +130,14 @@ const partitionDrivers = (payload) => {
   const result = {
     company: dedupe(company),
     owner: dedupe(owner),
+    trucks: dedupe(trucks),
   };
   
   console.log('Partitioned drivers result:', result);
+  console.log('Company drivers count:', result.company.length);
+  console.log('Owner operators count:', result.owner.length);
+  console.log('Trucks count:', result.trucks.length);
+  
   return result;
 };
 
@@ -189,7 +187,7 @@ const AccountingPage = () => {
 
   console.log('AccountingPage render started');
 
-  const [summary, setSummary] = useState({ company: [], owner: [] });
+  const [summary, setSummary] = useState({ company: [], owner: [], trucks: [] });
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState('');
 
@@ -198,6 +196,7 @@ const AccountingPage = () => {
 
   const [selectedDriverId, setSelectedDriverId] = useState(null);
   const [selectedDriverMeta, setSelectedDriverMeta] = useState(null);
+  const [selectedEntityType, setSelectedEntityType] = useState(null); // 'driver' or 'truck'
 
   // Set default date range to current week
   const getDefaultDateRange = () => {
@@ -245,11 +244,28 @@ const AccountingPage = () => {
   const abortControllerRef = useRef(null);
 
   const filteredDrivers = useMemo(() => {
-    const list = sidebarView === 'owner' ? summary.owner : summary.company;
+    let list;
+    if (sidebarView === 'trucks') {
+      list = summary.trucks;
+    } else {
+      list = sidebarView === 'owner' ? summary.owner : summary.company;
+    }
+    
     if (!driverSearch.trim()) return list;
     const term = driverSearch.trim().toLowerCase();
+    
+    // For trucks, search by unit_number and make_model
+    if (sidebarView === 'trucks') {
+      return list.filter((truck) => {
+        const unitNumber = truck.unit_number || '';
+        const makeModel = truck.make_model || '';
+        return unitNumber.toLowerCase().includes(term) || makeModel.toLowerCase().includes(term);
+      });
+    }
+    
+    // For drivers, search by name
     return list.filter((driver) => getDriverName(driver).toLowerCase().includes(term));
-  }, [sidebarView, summary.owner, summary.company, driverSearch]);
+  }, [sidebarView, summary.owner, summary.company, summary.trucks, driverSearch]);
 
   const persistState = useCallback((state) => {
     try {
@@ -390,11 +406,11 @@ const AccountingPage = () => {
     }
   }, [t]);
 
-  // FIXED: Fetch driver details function that prevents duplicate calls
+  // FIXED: Fetch driver/truck details function that prevents duplicate calls
   const fetchDriverDetails = useCallback(
-    async (driverId, fromDate, toDate) => {
-      if (!driverId) {
-        console.warn('fetchDriverDetails called without driver ID:', { driverId, fromDate, toDate });
+    async (entityId, fromDate, toDate, entityType) => {
+      if (!entityId || !entityType) {
+        console.warn('fetchDriverDetails called without entity ID or type:', { entityId, fromDate, toDate, entityType });
         return;
       }
       
@@ -423,10 +439,16 @@ const AccountingPage = () => {
           params.to_date = toDate;
         }
         
-        console.log('Fetching driver completed loads with params:', { driverId, params });
+        console.log(`Fetching ${entityType} completed loads with params:`, { entityId, params });
         
-        const response = await getDriverCompletedLoads(driverId, params);
-        console.log('Driver completed loads response:', response);
+        let response;
+        if (entityType === 'truck') {
+          response = await getTruckCompletedLoads(entityId, params);
+        } else {
+          response = await getDriverCompletedLoads(entityId, params);
+        }
+        
+        console.log(`${entityType} completed loads response:`, response);
         console.log('Response type:', Array.isArray(response) ? 'Array' : typeof response);
         
         // Handle response - the API returns an object with loads and expenses arrays
@@ -460,10 +482,10 @@ const AccountingPage = () => {
         const dataToHydrate = {
           loads: loadsData,
           expenses: expensesData,
-          driver: { id: driverId }
+          driver: { id: entityId }
         };
         
-        hydrateDriverData(dataToHydrate, driverId);
+        hydrateDriverData(dataToHydrate, entityId);
         
       } catch (error) {
         // Ignore abort errors
@@ -481,7 +503,7 @@ const AccountingPage = () => {
         setDriverError(message);
         
         // Set empty data structure on error
-        setDriverData({ loads: [], driver: { id: driverId } });
+        setDriverData({ loads: [], expenses: [], driver: { id: entityId } });
         setSelectedLoadIds([]);
         setSelectedOtherPayIds([]);
       } finally {
@@ -495,17 +517,32 @@ const AccountingPage = () => {
 
   // Handle state restoration when summary data is loaded
   useEffect(() => {
-    if (summary.company.length > 0 || summary.owner.length > 0) {
+    if (summary.company.length > 0 || summary.owner.length > 0 || summary.trucks.length > 0) {
       if (!persistedHydrated) {
         const saved = restorePersistedState();
-        const fullList = [...summary.company, ...summary.owner];
+        const fullList = [...summary.company, ...summary.owner, ...summary.trucks];
 
         if (saved && saved.driverId) {
-          const found = fullList.find((driver) => driver.id === saved.driverId);
+          const found = fullList.find((item) => item.id === saved.driverId);
           if (found) {
-            setSidebarView(found.is_owner ? 'owner' : 'company');
+            // Determine the entity type
+            const isTruck = summary.trucks.some(t => t.id === found.id);
+            const isOwner = !isTruck && summary.owner.some(o => o.id === found.id);
+            
+            if (isTruck) {
+              setSidebarView('trucks');
+              setSelectedEntityType('truck');
+            } else if (isOwner) {
+              setSidebarView('owner');
+              setSelectedEntityType('driver');
+            } else {
+              setSidebarView('company');
+              setSelectedEntityType('driver');
+            }
+            
             setSelectedDriverId(found.id);
             setSelectedDriverMeta(found);
+            
             if (saved.from && saved.to) {
               setDateRange({
                 from: saved.from,
@@ -515,19 +552,21 @@ const AccountingPage = () => {
           }
         }
 
-        const shouldForceCompany = summary.company.length > 0 && summary.owner.length === 0;
-        const shouldForceOwner = summary.owner.length > 0 && summary.company.length === 0;
+        const shouldForceCompany = summary.company.length > 0 && summary.owner.length === 0 && summary.trucks.length === 0;
+        const shouldForceOwner = summary.owner.length > 0 && summary.company.length === 0 && summary.trucks.length === 0;
+        const shouldForceTrucks = summary.trucks.length > 0 && summary.company.length === 0 && summary.owner.length === 0;
 
         setSidebarView((prev) => {
           if (shouldForceCompany) return 'company';
           if (shouldForceOwner) return 'owner';
+          if (shouldForceTrucks) return 'trucks';
           return prev || 'company';
         });
 
         setPersistedHydrated(true);
       }
     }
-  }, [summary.company.length, summary.owner.length, persistedHydrated, restorePersistedState]);
+  }, [summary.company.length, summary.owner.length, summary.trucks.length, persistedHydrated, restorePersistedState]);
 
   // Initial load of drivers summary - ONLY ONCE
   useEffect(() => {
@@ -538,24 +577,26 @@ const AccountingPage = () => {
   // FIXED: Fetch driver details when driver or date range changes
   // Using a more controlled approach with cleanup
   useEffect(() => {
-    if (!selectedDriverId || !dateRange.from || !dateRange.to) {
+    if (!selectedDriverId || !dateRange.from || !dateRange.to || !selectedEntityType) {
       console.log('Skipping fetch - missing params:', { 
         selectedDriverId, 
         from: dateRange.from, 
-        to: dateRange.to 
+        to: dateRange.to,
+        selectedEntityType
       });
       return;
     }
 
-    console.log('Driver or date changed, scheduling fetch:', { 
+    console.log('Driver/Truck or date changed, scheduling fetch:', { 
       selectedDriverId, 
       from: dateRange.from, 
-      to: dateRange.to 
+      to: dateRange.to,
+      entityType: selectedEntityType
     });
     
     // Debounce the fetch to prevent rapid successive calls
     const timeoutId = setTimeout(() => {
-      fetchDriverDetails(selectedDriverId, dateRange.from, dateRange.to);
+      fetchDriverDetails(selectedDriverId, dateRange.from, dateRange.to, selectedEntityType);
     }, 300); // Increased debounce time to 300ms
     
     return () => {
@@ -565,7 +606,7 @@ const AccountingPage = () => {
         abortControllerRef.current.abort();
       }
     };
-  }, [selectedDriverId, dateRange.from, dateRange.to, fetchDriverDetails]);
+  }, [selectedDriverId, dateRange.from, dateRange.to, selectedEntityType, fetchDriverDetails]);
 
   // Persist state changes - with debouncing
   useEffect(() => {
@@ -597,22 +638,26 @@ const AccountingPage = () => {
   }, [lastStub]);
 
   const handleDriverSelect = useCallback(
-    (driver) => {
-      console.log('Driver selected:', driver);
+    (item) => {
+      console.log('Item selected:', item);
       
-      if (selectedDriverId !== driver.id) {
-        setSelectedDriverId(driver.id);
-        setSelectedDriverMeta(driver);
+      const isTruck = sidebarView === 'trucks';
+      const entityType = isTruck ? 'truck' : 'driver';
+      
+      if (selectedDriverId !== item.id || selectedEntityType !== entityType) {
+        setSelectedDriverId(item.id);
+        setSelectedDriverMeta(item);
+        setSelectedEntityType(entityType);
         setDriverError('');
         setLastStub(null);
         
         // Clear existing data to show loading state
-        setDriverData({ loads: [], driver: null });
+        setDriverData({ loads: [], expenses: [], driver: null });
         setSelectedLoadIds([]);
         setSelectedOtherPayIds([]);
       }
     },
-    [selectedDriverId]
+    [selectedDriverId, selectedEntityType, sidebarView]
   );
 
   const handleDateChange = useCallback((key, value) => {
@@ -679,7 +724,7 @@ const AccountingPage = () => {
 
   const handleCreateExpense = useCallback((transactionType) => {
     if (!selectedDriverId) {
-      setActionError(t('Please select a driver first'));
+      setActionError(t('Please select a driver or truck first'));
       return;
     }
     
@@ -710,17 +755,28 @@ const AccountingPage = () => {
     
     try {
       const payload = {
-        driver: selectedDriverId,
         description: expenseFormData.description,
         amount: parseFloat(expenseFormData.amount),
         expense_date: expenseFormData.expense_date,
         transaction_type: expenseFormData.transaction_type
       };
 
-      await createDriverExpense(payload);
+      // Add driver or truck ID based on entity type
+      if (selectedEntityType === 'truck') {
+        payload.truck = selectedDriverId;
+      } else {
+        payload.driver = selectedDriverId;
+      }
+
+      // Use appropriate API function based on entity type
+      if (selectedEntityType === 'truck') {
+        await createTruckExpense(payload);
+      } else {
+        await createDriverExpense(payload);
+      }
       
-      // Refresh the driver data to show the new expense
-      await fetchDriverDetails(selectedDriverId, dateRange.from, dateRange.to);
+      // Refresh the driver/truck data to show the new expense
+      await fetchDriverDetails(selectedDriverId, dateRange.from, dateRange.to, selectedEntityType);
       
       setShowExpenseModal(false);
       
@@ -742,7 +798,7 @@ const AccountingPage = () => {
 
   const handleStubAction = async (type) => {
     if (!selectedDriverId) {
-      setActionError(t('Please select a driver before continuing'));
+      setActionError(t('Please select a driver or truck before continuing'));
       return;
     }
 
@@ -760,12 +816,18 @@ const AccountingPage = () => {
       const payType = type === 'preview' ? 'preview_stub' : 'generate_stub';
       
       const payload = {
-        driver_id: selectedDriverId,
         load_ids: selectedLoadIds,
         pay_type: payType,
         from_date: dateRange.from,
         to_date: dateRange.to,
       };
+
+      // Add driver_id or truck_id based on entity type
+      if (selectedEntityType === 'truck') {
+        payload.truck_id = selectedDriverId;
+      } else {
+        payload.driver_id = selectedDriverId;
+      }
 
       // Only include other_pays_id if there are selected other pays
       if (selectedOtherPayIds.length > 0) {
@@ -780,6 +842,7 @@ const AccountingPage = () => {
       console.log('Posting paystub action with payload:', payload);
       console.log('Selected other pay IDs:', selectedOtherPayIds);
       console.log('Selected expense IDs:', selectedExpenseIds);
+      console.log('Entity type:', selectedEntityType);
 
       const response = await postPaystubAction(payload);
       console.log('Paystub action response:', response);
@@ -789,7 +852,8 @@ const AccountingPage = () => {
       if (response && typeof response === 'object') {
         const newStub = {
           ...response,
-          driver_id: selectedDriverId,
+          driver_id: selectedEntityType === 'driver' ? selectedDriverId : undefined,
+          truck_id: selectedEntityType === 'truck' ? selectedDriverId : undefined,
           type: payType,
           timestamp: new Date().toISOString(), // Add timestamp to ensure uniqueness
         };
@@ -896,11 +960,17 @@ const AccountingPage = () => {
             >
               {t('Owner Operators')}
             </button>
+            <button
+              className={sidebarView === 'trucks' ? 'active' : ''}
+              onClick={() => setSidebarView('trucks')}
+            >
+              {t('Trucks')}
+            </button>
           </div>
           <input
             type="search"
             className="sidebar-search"
-            placeholder={t('Search drivers')}
+            placeholder={sidebarView === 'trucks' ? t('Search trucks') : t('Search drivers')}
             value={driverSearch}
             onChange={(e) => setDriverSearch(e.target.value)}
             disabled={summaryLoading}
@@ -910,31 +980,49 @@ const AccountingPage = () => {
           {summaryLoading && <div className="sidebar-status">{t('Loading drivers...')}</div>}
           {summaryError && <div className="sidebar-error">{summaryError}</div>}
           {!summaryLoading && !summaryError && filteredDrivers.length === 0 && (
-            <div className="sidebar-status">{t('No drivers found')}</div>
+            <div className="sidebar-status">
+              {sidebarView === 'trucks' ? t('No trucks found') : t('No drivers found')}
+            </div>
           )}
-          {!summaryLoading && !summaryError && filteredDrivers.map((driver) => (
-            <button
-              key={driver.id}
-              className={`driver-pill ${
-                selectedDriverId === driver.id ? 'driver-pill--active' : ''
-              }`}
-              onClick={() => handleDriverSelect(driver)}
-            >
-              <span className="driver-pill__name">{getDriverName(driver)}</span>
-              {driver.unit_number && (
-                <span className="driver-pill__meta">{driver.unit_number}</span>
-              )}
-            </button>
-          ))}
+          {!summaryLoading && !summaryError && filteredDrivers.map((item) => {
+            const isTruck = sidebarView === 'trucks';
+            const isSelected = selectedDriverId === item.id && 
+              (isTruck ? selectedEntityType === 'truck' : selectedEntityType === 'driver');
+            
+            return (
+              <button
+                key={item.id}
+                className={`driver-pill ${isSelected ? 'driver-pill--active' : ''}`}
+                onClick={() => handleDriverSelect(item)}
+              >
+                <span className="driver-pill__name">
+                  {isTruck ? (item.unit_number || item.make_model || `Truck ${item.id}`) : getDriverName(item)}
+                </span>
+                {!isTruck && item.unit_number && (
+                  <span className="driver-pill__meta">{item.unit_number}</span>
+                )}
+                {isTruck && item.make_model && (
+                  <span className="driver-pill__meta">{item.make_model}</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       <div className="driver-pay-page__main">
         <div className="main-header">
           <div>
-            <div className="main-header__eyebrow">{t('Selected Driver')}</div>
+            <div className="main-header__eyebrow">
+              {selectedEntityType === 'truck' ? t('Selected Truck') : t('Selected Driver')}
+            </div>
             <div className="main-header__title">
-              {selectedDriverMeta ? getDriverName(selectedDriverMeta) : t('Pick a driver')}
+              {selectedDriverMeta 
+                ? (selectedEntityType === 'truck' 
+                  ? (selectedDriverMeta.unit_number || selectedDriverMeta.make_model || `Truck ${selectedDriverMeta.id}`)
+                  : getDriverName(selectedDriverMeta))
+                : (selectedEntityType === 'truck' ? t('Pick a truck') : t('Pick a driver'))
+              }
             </div>
           </div>
           <div className="date-range">

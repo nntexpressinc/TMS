@@ -20,12 +20,12 @@ const ensureArray = (value) => {
 
 export const getDriversSummary = async () => {
   try {
-    // Use the correct endpoint that works in Postman
-    const response = await ApiService.getData('/pay-system/drivers/');
+    // Use the drivers-summary endpoint that returns company_drivers, owner_drivers, and trucks
+    const response = await ApiService.getData('/pay-system/drivers-summary/');
     console.log('Raw API response from getDriversSummary:', response);
     console.log('Response type:', Array.isArray(response) ? 'Array' : typeof response);
    
-    // The response is already an array of drivers
+    // The response contains company_drivers, owner_drivers, and trucks arrays
     return response;
   } catch (error) {
     console.error('Error fetching drivers summary:', error);
@@ -66,6 +66,47 @@ export const getDriverCompletedLoads = async (driverId, params = {}) => {
     
   } catch (error) {
     console.error('Error fetching completed loads:', error);
+    console.error('Error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    throw error;
+  }
+};
+
+export const getTruckCompletedLoads = async (truckId, params = {}) => {
+  try {
+    if (!truckId) {
+      throw new Error('Truck id is required');
+    }
+   
+    console.log('getTruckCompletedLoads - Truck ID:', truckId);
+    console.log('getTruckCompletedLoads - Params:', params);
+   
+    // Build the query string for date filtering
+    const query = buildQueryString(params);
+    const endpoint = `/pay-system/trucks/${truckId}/completed-loads/${query}`;
+   
+    console.log('getTruckCompletedLoads - Calling endpoint:', endpoint);
+    console.log('getTruckCompletedLoads - Full URL would be:', `https://nnt.nntexpressinc.com/api${endpoint}`);
+   
+    const response = await ApiService.getData(endpoint);
+    console.log('getTruckCompletedLoads - Raw API response:', response);
+    console.log('getTruckCompletedLoads - Response type:', Array.isArray(response) ? 'Array' : typeof response);
+    console.log('getTruckCompletedLoads - Response keys:', response && typeof response === 'object' ? Object.keys(response) : 'N/A');
+    console.log('getTruckCompletedLoads - Has loads:', response && response.loads ? 'YES' : 'NO');
+    console.log('getTruckCompletedLoads - Has expenses:', response && response.expenses ? 'YES' : 'NO');
+    if (response && response.expenses) {
+      console.log('getTruckCompletedLoads - Expenses array:', response.expenses);
+      console.log('getTruckCompletedLoads - Expenses count:', response.expenses.length);
+    }
+   
+    // Return the response as-is
+    return response;
+    
+  } catch (error) {
+    console.error('Error fetching truck completed loads:', error);
     console.error('Error details:', {
       message: error.message,
       response: error.response?.data,
@@ -429,6 +470,32 @@ export const deleteDriverExpense = async (id) => {
     return response;
   } catch (error) {
     console.error('Error deleting driver expense:', error);
+    throw error;
+  }
+};
+
+// ============================================================================
+// TRUCK EXPENSE CRUD FUNCTIONS
+// ============================================================================
+
+/**
+ * Create a new truck expense
+ * @param {Object} payload - Truck expense data
+ * @returns {Promise<Object>} Created truck expense
+ */
+export const createTruckExpense = async (payload) => {
+  try {
+    if (!payload) {
+      throw new Error('Payload is required');
+    }
+    
+    console.log('Creating truck expense:', payload);
+    const response = await ApiService.postData('/driver/expense/', payload);
+    console.log('Created truck expense:', response);
+    
+    return response;
+  } catch (error) {
+    console.error('Error creating truck expense:', error);
     throw error;
   }
 };
