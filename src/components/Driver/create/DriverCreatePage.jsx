@@ -192,6 +192,18 @@ const DriverCreatePage = () => {
       try {
         const response = await ApiService.getData("/auth/role/");
         setRoles(response);
+        
+        // Automatically find and assign the driver role
+        const driverRole = response.find(role => 
+          role.name && role.name.toLowerCase() === 'driver'
+        );
+        
+        if (driverRole) {
+          setUserData(prev => ({
+            ...prev,
+            role: driverRole.id
+          }));
+        }
       } catch (error) {
         console.error("Error fetching roles:", error);
         toast.error("Failed to fetch roles");
@@ -408,11 +420,10 @@ const DriverCreatePage = () => {
           { 
             name: 'role', 
             label: 'Role', 
-            type: 'select',
+            type: 'text',
             required: true,
-            value: userData.role,
-            onChange: handleUserChange,
-            options: roles.map(role => ({ value: role.id, label: role.name }))
+            value: roles.find(role => role.id === userData.role)?.name || 'Driver',
+            disabled: true
           },
           { 
             name: 'profile_photo', 

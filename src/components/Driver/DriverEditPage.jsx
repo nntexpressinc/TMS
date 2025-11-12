@@ -232,10 +232,9 @@ const DriverEditPage = () => {
         }
       }
       
-      // Ensure role is set to driver if not present
-      if (!cleanUserData.role) {
-        cleanUserData.role = 'driver';
-      }
+      // Role should not be changed in edit mode - it's fixed based on the entity type
+      // We remove it from the data to avoid accidental changes
+      delete cleanUserData.role;
       
       // Remove any undefined or null values
       Object.keys(cleanUserData).forEach(key => {

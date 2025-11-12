@@ -41,6 +41,10 @@ import UnitManagementPage from "./components/ManageUsers/UnitManagementPage";
 import TeamManagementPage from "./components/ManageUsers/TeamManagementPage";
 import TruckView from "./components/TruckTrailer/truck/TruckView";
 import TruckEdit from "./components/TruckTrailer/truck/TruckEdit";
+import TruckPayCreatePage from "./components/TruckTrailer/truck/TruckPayCreatePage";
+import TruckPayEditPage from "./components/TruckTrailer/truck/TruckPayEditPage";
+import TruckExpenseCreatePage from "./components/TruckTrailer/truck/TruckExpenseCreatePage";
+import TruckExpenseEditPage from "./components/TruckTrailer/truck/TruckExpenseEditPage";
 import TrailerView from "./components/TruckTrailer/trailer/TrailerView";
 import TrailerEdit from "./components/TruckTrailer/trailer/TrailerEdit";
 import DispatcherViewPage from "./components/Dispatcher/DispatcherViewPage";
@@ -376,6 +380,46 @@ const App = () => {
                 <PermissionGuard permissionKey="truck_edit">
                   <PrivateRoute>
                     <TruckEdit />
+                  </PrivateRoute>
+                </PermissionGuard>
+              }
+            />
+            <Route
+              path="truck/:id/pay/create"
+              element={
+                <PermissionGuard permissionKey="truck_pay_create">
+                  <PrivateRoute>
+                    <TruckPayCreatePage />
+                  </PrivateRoute>
+                </PermissionGuard>
+              }
+            />
+            <Route
+              path="truck/:id/pay/:payId/edit"
+              element={
+                <PermissionGuard permissionKey="truck_pay_edit">
+                  <PrivateRoute>
+                    <TruckPayEditPage />
+                  </PrivateRoute>
+                </PermissionGuard>
+              }
+            />
+            <Route
+              path="truck/:id/expense/create"
+              element={
+                <PermissionGuard permissionKey="truck_expense_create">
+                  <PrivateRoute>
+                    <TruckExpenseCreatePage />
+                  </PrivateRoute>
+                </PermissionGuard>
+              }
+            />
+            <Route
+              path="truck/:id/expense/:expenseId/edit"
+              element={
+                <PermissionGuard permissionKey="truck_expense_edit">
+                  <PrivateRoute>
+                    <TruckExpenseEditPage />
                   </PrivateRoute>
                 </PermissionGuard>
               }

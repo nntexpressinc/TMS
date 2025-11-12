@@ -107,6 +107,18 @@ const EmployeeCreatePage = () => {
       try {
         const response = await ApiService.getData("/auth/role/");
         setRoles(response);
+        
+        // Automatically find and assign the employee role
+        const employeeRole = response.find(role => 
+          role.name && role.name.toLowerCase() === 'employee'
+        );
+        
+        if (employeeRole) {
+          setUserData(prev => ({
+            ...prev,
+            role: employeeRole.id
+          }));
+        }
       } catch (error) {
         console.error("Error fetching roles:", error);
         toast.error("Failed to fetch roles");
@@ -255,11 +267,10 @@ const EmployeeCreatePage = () => {
           { 
             name: 'role', 
             label: 'Role', 
-            type: 'select',
+            type: 'text',
             required: true,
-            value: userData.role,
-            onChange: handleUserChange,
-            options: roles.map(role => ({ value: role.id, label: role.name }))
+            value: roles.find(role => role.id === userData.role)?.name || 'Employee',
+            disabled: true
           },
           { 
             name: 'profile_photo', 

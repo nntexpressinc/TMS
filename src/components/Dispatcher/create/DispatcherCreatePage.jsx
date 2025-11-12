@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Button,
@@ -27,49 +27,12 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { toast } from 'react-hot-toast';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-
-const US_STATES = [
-  { code: 'AL', name: 'Alabama' }, { code: 'AK', name: 'Alaska' }, { code: 'AZ', name: 'Arizona' },
-  { code: 'AR', name: 'Arkansas' }, { code: 'CA', name: 'California' }, { code: 'CO', name: 'Colorado' },
-  { code: 'CT', name: 'Connecticut' }, { code: 'DE', name: 'Delaware' }, { code: 'FL', name: 'Florida' },
-  { code: 'GA', name: 'Georgia' }, { code: 'HI', name: 'Hawaii' }, { code: 'ID', name: 'Idaho' },
-  { code: 'IL', name: 'Illinois' }, { code: 'IN', name: 'Indiana' }, { code: 'IA', name: 'Iowa' },
-  { code: 'KS', name: 'Kansas' }, { code: 'KY', name: 'Kentucky' }, { code: 'LA', name: 'Louisiana' },
-  { code: 'ME', name: 'Maine' }, { code: 'MD', name: 'Maryland' }, { code: 'MA', name: 'Massachusetts' },
-  { code: 'MI', name: 'Michigan' }, { code: 'MN', name: 'Minnesota' }, { code: 'MS', name: 'Mississippi' },
-  { code: 'MO', name: 'Missouri' }, { code: 'MT', name: 'Montana' }, { code: 'NE', name: 'Nebraska' },
-  { code: 'NV', name: 'Nevada' }, { code: 'NH', name: 'New Hampshire' }, { code: 'NJ', name: 'New Jersey' },
-  { code: 'NM', name: 'New Mexico' }, { code: 'NY', name: 'New York' }, { code: 'NC', name: 'North Carolina' },
-  { code: 'ND', name: 'North Dakota' }, { code: 'OH', name: 'Ohio' }, { code: 'OK', name: 'Oklahoma' },
-  { code: 'OR', name: 'Oregon' }, { code: 'PA', name: 'Pennsylvania' }, { code: 'RI', name: 'Rhode Island' },
-  { code: 'SC', name: 'South Carolina' }, { code: 'SD', name: 'South Dakota' }, { code: 'TN', name: 'Tennessee' },
-  { code: 'TX', name: 'Texas' }, { code: 'UT', name: 'Utah' }, { code: 'VT', name: 'Vermont' },
-  { code: 'VA', name: 'Virginia' }, { code: 'WA', name: 'Washington' }, { code: 'WV', name: 'West Virginia' },
-  { code: 'WI', name: 'Wisconsin' }, { code: 'WY', name: 'Wyoming' }
-];
-
-const employeeStatuses = [
-  { value: 'ACTIVE (DF)', label: 'ACTIVE (DF)' },
-  { value: 'Terminate', label: 'Terminate' },
-  { value: 'Applicant', label: 'Applicant' },
-  { value: '', label: 'None' },
-  { value: null, label: 'Null' }
-];
-const positions = [
-  { value: 'EMPLOYEE', label: 'Employee' },
-  { value: 'MANAGER', label: 'Manager' },
-  { value: '', label: 'None' },
-  { value: null, label: 'Null' }
-];
-const mcNumbers = [
-  { value: 'ADMIN OR COMPANY MC', label: 'Admin or Company MC' },
-  { value: '', label: 'None' },
-  { value: null, label: 'Null' }
-];
+import { US_STATES, EMPLOYMENT_STATUSES, DISPATCHER_POSITIONS, MC_NUMBERS } from '../../../constants/formConstants';
+import { useAutoAssignRole } from '../../../hooks/useAutoAssignRole';
+import { validateUserForm, buildErrorMessage, prepareUserFormData } from '../../../utils/formValidation';
 
 const DispatcherCreatePage = () => {
   const [loading, setLoading] = useState(false);
-  const [roles, setRoles] = useState([]);
   const [userData, setUserData] = useState({
     email: "",
     company_name: "",
@@ -103,18 +66,8 @@ const DispatcherCreatePage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        const response = await ApiService.getData("/auth/role/");
-        setRoles(response);
-      } catch (error) {
-        console.error("Error fetching roles:", error);
-        toast.error("Failed to fetch roles");
-      }
-    };
-    fetchRoles();
-  }, []);
+  // Use custom hook for auto role assignment
+  const { roles } = useAutoAssignRole('dispatcher', setUserData);
 
   const handleUserChange = (e) => {
     const { name, value } = e.target;
@@ -138,63 +91,28 @@ const DispatcherCreatePage = () => {
     }
   };
   const handleTogglePassword = () => setShowPassword((show) => !show);
+  
   const validateForm = () => {
-    if (!userData.email || !userData.password || !userData.first_name || !userData.last_name) {
-      setError("Please fill in all required fields");
-      return false;
-    }
-    if (userData.password.length < 8) {
-      setError("Password must be at least 8 characters long");
-      return false;
-    }
-    if (!userData.email.includes('@')) {
-      setError("Please enter a valid email address");
+    const validation = validateUserForm(userData, true);
+    if (!validation.isValid) {
+      const errorMsg = buildErrorMessage(validation.errors);
+      setError(errorMsg);
       return false;
     }
     return true;
   };
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
     setLoading(true);
     setError(null);
     try {
-      // 1. Create user first - FormData ishlatamiz
-      const userFormData = new FormData();
-      userFormData.append('email', userData.email);
-      userFormData.append('company_name', userData.company_name || '');
-      userFormData.append('first_name', userData.first_name);
-      userFormData.append('last_name', userData.last_name);
-      userFormData.append('telephone', userData.telephone);
-      userFormData.append('city', userData.city);
-      userFormData.append('address', userData.address);
-      userFormData.append('country', userData.country);
-      userFormData.append('state', userData.state);
-      userFormData.append('postal_zip', userData.postal_zip);
+      // 1. Create user first using utility function
+      const userFormData = prepareUserFormData(userData, profilePhotoFile);
       
-      // ext maydonini butun son sifatida qo'shamiz yoki umuman qo'shmaymiz
-      if (userData.ext && userData.ext.trim() !== '') {
-        // Raqamga aylantirish uchun harakat qilamiz
-        const extValue = parseInt(userData.ext);
-        if (!isNaN(extValue)) {
-          userFormData.append('ext', extValue);
-        }
-      }
-      
-      userFormData.append('fax', userData.fax || '');
-      userFormData.append('role', userData.role);
-      userFormData.append('password', userData.password);
-      userFormData.append('password2', userData.password);
-      
-      // Profile photo o'zgargan bo'lsa
-      if (profilePhotoFile) {
-        // Rasmni ham birga yuboramiz
-        userFormData.append('profile_photo', profilePhotoFile);
-      }
-      
-      // FormData ishlatib API ga yuboramiz
       const userResponse = await ApiService.postRegister(
-        "/auth/register/",
+        "/auth/register/", 
         userFormData
       );
       
@@ -208,9 +126,15 @@ const DispatcherCreatePage = () => {
       const formattedDispatcherData = {
         user: userResponse.user_id,
         nickname: dispatcherData.nickname || null,
-        employee_status: employeeStatuses.some(e => e.value === dispatcherData.employee_status) ? dispatcherData.employee_status || null : null,
-        mc_number: mcNumbers.some(e => e.value === dispatcherData.mc_number) ? dispatcherData.mc_number || null : null,
-        position: positions.some(e => e.value === dispatcherData.position) ? dispatcherData.position || null : null,
+        employee_status: EMPLOYMENT_STATUSES.some(e => e.value === dispatcherData.employee_status) 
+          ? dispatcherData.employee_status 
+          : null,
+        mc_number: MC_NUMBERS.some(e => e.value === dispatcherData.mc_number) 
+          ? dispatcherData.mc_number 
+          : null,
+        position: DISPATCHER_POSITIONS.some(e => e.value === dispatcherData.position) 
+          ? dispatcherData.position 
+          : null,
         company_name: dispatcherData.company_name || null,
         office: dispatcherData.office || null
       };
@@ -269,11 +193,10 @@ const DispatcherCreatePage = () => {
           { 
             name: 'role', 
             label: 'Role', 
-            type: 'select',
+            type: 'text',
             required: true,
-            value: userData.role,
-            onChange: handleUserChange,
-            options: roles.map(role => ({ value: role.id, label: role.name }))
+            value: roles.find(role => role.id === userData.role)?.name || 'Dispatcher',
+            disabled: true
           },
           { 
             name: 'profile_photo', 
@@ -296,7 +219,7 @@ const DispatcherCreatePage = () => {
             name: 'employee_status', 
             label: 'Employee Status', 
             type: 'select',
-            options: employeeStatuses,
+            options: EMPLOYMENT_STATUSES,
             value: dispatcherData.employee_status,
             onChange: handleDispatcherChange
           },
@@ -304,7 +227,7 @@ const DispatcherCreatePage = () => {
             name: 'mc_number', 
             label: 'MC Number', 
             type: 'select',
-            options: mcNumbers,
+            options: MC_NUMBERS,
             value: dispatcherData.mc_number,
             onChange: handleDispatcherChange
           }
@@ -314,7 +237,7 @@ const DispatcherCreatePage = () => {
             name: 'position', 
             label: 'Position', 
             type: 'select',
-            options: positions,
+            options: DISPATCHER_POSITIONS,
             value: dispatcherData.position,
             onChange: handleDispatcherChange
           },

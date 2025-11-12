@@ -161,9 +161,14 @@ const getPerformanceColor = (rating) => {
 const DashboardPage = () => {
   // State hooks inside the component
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState({
-    startDate: new Date(),
-    endDate: new Date()
+  const [dateRange, setDateRange] = useState(() => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return {
+      startDate: firstDay,
+      endDate: lastDay
+    };
   });
   const [expandedTeam, setExpandedTeam] = useState(null);
   const [teamStats, setTeamStats] = useState({

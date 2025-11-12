@@ -164,9 +164,10 @@ const EmployeeEditPage = () => {
         formDataToSend.append('profile_photo', profilePhotoFile);
       }
 
-      // Ensure role is set to employee if not present
-      if (!formDataToSend.get('role')) {
-        formDataToSend.append('role', 'employee');
+      // Role should not be changed in edit mode - it's fixed based on the entity type
+      // We remove it from the data to avoid accidental changes
+      if (formDataToSend.has('role')) {
+        formDataToSend.delete('role');
       }
 
       console.log('Selected user ID:', userData.id);

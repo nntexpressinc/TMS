@@ -10,24 +10,10 @@
     <link rel="icon" href="light-logo.png" />
     <title>TMS</title>
     <script>
-      // Xavfsizlik sozlamalari
+      // Security settings - HTTPS redirect only
       if (window.location.hostname !== 'localhost' && window.location.protocol !== 'https:') {
         window.location.href = 'https://' + window.location.hostname + window.location.pathname;
       }
-      
-      // Developer tools'ni oldini olish
-      document.addEventListener('keydown', function(e) {
-        if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
-          e.preventDefault();
-          return false;
-        }
-      });
-      
-      // Context menu'ni o'chirish
-      document.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        return false;
-      });
     </script>
   </head>
   <body>
