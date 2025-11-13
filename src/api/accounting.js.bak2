@@ -730,3 +730,4 @@ export const getUninvoicedCompletedLoads = async (delivery_date, page = 1, page_
     throw error;
   }
 };
+};

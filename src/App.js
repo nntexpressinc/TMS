@@ -24,6 +24,8 @@ import AccountingPageWrapper from "./components/Accounting/AccountingPageWrapper
 import InvoicesPage from "./components/Accounting/InvoicesPage";
 import InvoiceCreatePage from "./components/Accounting/invoices/InvoiceCreatePage";
 import InvoiceViewPage from "./components/Accounting/invoices/InvoiceViewPage";
+import AmazonInvoiceDetail from "./components/Accounting/AmazonInvoiceDetail";
+import AmazonRelayPaymentDetail from "./components/Accounting/AmazonRelayPaymentDetail";
 import PrivateRoute from "./components/PrivateRoute";
 import Layout from "./components/Layout/Layout";
 import { SidebarProvider } from "./components/SidebarContext";
@@ -54,6 +56,7 @@ import EmployeeEditPage from "./components/Employee/EmployeeEditPage";
 import IftaPage from "./components/IFTA/IftaPage";
 import PermissionDenied from "./components/PermissionDenied";
 import SettingsPage from "./components/Settings/SettingsPage";
+import CompanyManagementPage from "./components/Settings/CompanyManagementPage";
 import PermissionGuard from "./components/PermissionGuard";
 
 const App = () => {
@@ -486,11 +489,31 @@ const App = () => {
               }
             />
             <Route
+              path="invoices/amazon/:id"
+              element={
+                <PermissionGuard permissionKey="accounting">
+                  <PrivateRoute>
+                    <AmazonInvoiceDetail />
+                  </PrivateRoute>
+                </PermissionGuard>
+              }
+            />
+            <Route
               path="invoices/:id"
               element={
                 <PermissionGuard permissionKey="accounting">
                   <PrivateRoute>
                     <InvoiceViewPage />
+                  </PrivateRoute>
+                </PermissionGuard>
+              }
+            />
+            <Route
+              path="accounting/amazon-relay/:id"
+              element={
+                <PermissionGuard permissionKey="accounting">
+                  <PrivateRoute>
+                    <AmazonRelayPaymentDetail />
                   </PrivateRoute>
                 </PermissionGuard>
               }
@@ -541,6 +564,14 @@ const App = () => {
               element={
                 <PrivateRoute>
                   <SettingsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="company-management"
+              element={
+                <PrivateRoute>
+                  <CompanyManagementPage />
                 </PrivateRoute>
               }
             />

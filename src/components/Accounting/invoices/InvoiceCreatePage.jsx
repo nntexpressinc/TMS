@@ -43,12 +43,22 @@ const InvoiceCreatePage = () => {
         loads: selectedLoads.map(s => s.value)
       };
 
-      await createInvoice(payload);
-      toast.success(t('Invoice created successfully'));
-      navigate('/invoices');
+      const response = await createInvoice(payload);
+      
+      // Backend returns { success, type, message, data }
+      if (response && response.success) {
+        toast.success(response.message || t('Invoice created successfully'));
+        navigate('/invoices');
+      } else {
+        toast.error(response.error || t('Failed to create invoice'));
+      }
     } catch (error) {
       console.error('Error creating invoice:', error);
-      toast.error(t('Failed to create invoice'));
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.detail || 
+                          error?.message || 
+                          t('Failed to create invoice');
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

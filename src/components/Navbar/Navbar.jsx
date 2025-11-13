@@ -17,7 +17,8 @@ import {
   Notifications as NotificationsIcon, 
   Settings as SettingsIcon,
   Logout as LogoutIcon,
-  Person as PersonIcon
+  Person as PersonIcon,
+  Business as BusinessIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -30,6 +31,7 @@ const Navbar = () => {
   const { isSidebarOpen } = useSidebar();
   const [user, setUser] = useState(null);
   const [roleName, setRoleName] = useState('');
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [notifications] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
@@ -47,6 +49,11 @@ const Navbar = () => {
     navigate('/settings');
   };
 
+  const handleCompanyManagementClick = () => {
+    handleClose();
+    navigate('/company-management');
+  };
+
   const handleLogout = () => {
     localStorage.clear();
     navigate('/login');
@@ -61,8 +68,11 @@ const Navbar = () => {
       try {
         decodedRole = decodeURIComponent(escape(atob(roleNameEnc)));
         setRoleName(decodedRole);
+        // Check if role is Super Admin
+        setIsSuperAdmin(decodedRole.toLowerCase().includes('super admin'));
       } catch (e) {
         setRoleName("");
+        setIsSuperAdmin(false);
       }
     }
     if (permissionsEnc) {
@@ -358,6 +368,14 @@ const Navbar = () => {
               </ListItemIcon>
               Profile Settings
             </MenuItem>
+            {isSuperAdmin && (
+              <MenuItem onClick={handleCompanyManagementClick} sx={{ py: 1.5 }}>
+                <ListItemIcon>
+                  <BusinessIcon fontSize="small" />
+                </ListItemIcon>
+                Company Management
+              </MenuItem>
+            )}
             <MenuItem onClick={handleLogout} sx={{ py: 1.5, color: 'error.main' }}>
               <ListItemIcon>
                 <LogoutIcon fontSize="small" color="error" />

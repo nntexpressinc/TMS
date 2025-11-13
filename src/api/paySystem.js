@@ -499,3 +499,150 @@ export const createTruckExpense = async (payload) => {
     throw error;
   }
 };
+
+// ============================================================================
+// AMAZON RELAY CRUD FUNCTIONS
+// ============================================================================
+
+/**
+ * Get all Amazon Relay payments with optional filters
+ * @param {Object} params - Query parameters (work_period_start, work_period_end, status)
+ * @returns {Promise<Object>} Amazon Relay payments with pagination
+ */
+export const getAmazonRelayPayments = async (params = {}) => {
+  try {
+    const query = buildQueryString(params);
+    const endpoint = `/amazon-relay/${query}`;
+    
+    console.log('Fetching Amazon Relay payments:', endpoint);
+    const response = await ApiService.getData(endpoint);
+    console.log('Amazon Relay payments response:', response);
+    
+    return response;
+  } catch (error) {
+    console.error('Error fetching Amazon Relay payments:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get a single Amazon Relay payment by ID
+ * @param {number} id - Amazon Relay payment ID
+ * @returns {Promise<Object>} Detailed Amazon Relay payment with loads
+ */
+export const getAmazonRelayPayment = async (id) => {
+  try {
+    if (!id) {
+      throw new Error('Payment ID is required');
+    }
+    
+    const endpoint = `/amazon-relay/${id}/`;
+    console.log('Fetching Amazon Relay payment:', endpoint);
+    
+    const response = await ApiService.getData(endpoint);
+    console.log('Amazon Relay payment response:', response);
+    
+    return response;
+  } catch (error) {
+    console.error('Error fetching Amazon Relay payment:', error);
+    throw error;
+  }
+};
+
+/**
+ * Upload Amazon Relay Excel file with payment data
+ * @param {FormData} formData - FormData containing file and metadata
+ * @returns {Promise<Object>} Created Amazon Relay payment
+ */
+export const uploadAmazonRelayFile = async (formData) => {
+  try {
+    if (!formData) {
+      throw new Error('FormData is required');
+    }
+    
+    console.log('Uploading Amazon Relay file');
+    const response = await ApiService.postData('/amazon-relay/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    console.log('Amazon Relay file upload response:', response);
+    
+    return response;
+  } catch (error) {
+    console.error('Error uploading Amazon Relay file:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update Amazon Relay payment (e.g., approval status)
+ * @param {number} id - Amazon Relay payment ID
+ * @param {Object} payload - Update data
+ * @returns {Promise<Object>} Updated Amazon Relay payment
+ */
+export const updateAmazonRelayPayment = async (id, payload) => {
+  try {
+    if (!id) {
+      throw new Error('Payment ID is required');
+    }
+    if (!payload) {
+      throw new Error('Payload is required');
+    }
+    
+    console.log('Updating Amazon Relay payment:', id, payload);
+    const response = await ApiService.putData(`/amazon-relay/${id}/`, payload);
+    console.log('Updated Amazon Relay payment:', response);
+    
+    return response;
+  } catch (error) {
+    console.error('Error updating Amazon Relay payment:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete an Amazon Relay payment
+ * @param {number} id - Amazon Relay payment ID
+ * @returns {Promise<Object>} Deletion confirmation
+ */
+export const deleteAmazonRelayPayment = async (id) => {
+  try {
+    if (!id) {
+      throw new Error('Payment ID is required');
+    }
+    
+    console.log('Deleting Amazon Relay payment:', id);
+    const response = await ApiService.deleteData(`/amazon-relay/${id}/`);
+    console.log('Deleted Amazon Relay payment:', response);
+    
+    return response;
+  } catch (error) {
+    console.error('Error deleting Amazon Relay payment:', error);
+    throw error;
+  }
+};
+
+/**
+ * Export Amazon Relay payment to Excel
+ * @param {number} id - Amazon Relay payment ID
+ * @returns {Promise<Blob>} Excel file blob
+ */
+export const exportAmazonRelayPayment = async (id) => {
+  try {
+    if (!id) {
+      throw new Error('Payment ID is required');
+    }
+    
+    console.log('Exporting Amazon Relay payment:', id);
+    const response = await ApiService.getData(`/amazon-relay/${id}/export/`, {
+      responseType: 'blob',
+    });
+    console.log('Amazon Relay export response:', response);
+    
+    return response;
+  } catch (error) {
+    console.error('Error exporting Amazon Relay payment:', error);
+    throw error;
+  }
+};

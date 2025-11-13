@@ -5,11 +5,16 @@ import { FaPlus } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { getInvoices } from '../../api/accounting';
 import './invoices/InvoicesPage.css';
-import { Button } from '@mui/material';
+import { Button, CircularProgress, Box } from '@mui/material';
+import AmazonInvoiceUpload from './AmazonInvoiceUpload';
+import AmazonInvoiceList from './AmazonInvoiceList';
+import useCompanyType from '../../hooks/useCompanyType';
 
 const InvoicesPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { companyType, isAmazon, isOther, loading: companyLoading } = useCompanyType();
+  
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fromDate, setFromDate] = useState('');
@@ -17,6 +22,7 @@ const InvoicesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [amazonInvoiceRefreshTrigger, setAmazonInvoiceRefreshTrigger] = useState(0);
 
   const fetchInvoices = async () => {
     try {
@@ -37,8 +43,10 @@ const InvoicesPage = () => {
   };
 
   useEffect(() => {
-    fetchInvoices();
-  }, [currentPage, itemsPerPage]);
+    if (isOther) {
+      fetchInvoices();
+    }
+  }, [currentPage, itemsPerPage, isOther]);
 
   const handleFromDateChange = (e) => {
     setFromDate(e.target.value);
@@ -60,6 +68,39 @@ const InvoicesPage = () => {
     setCurrentPage(page);
   };
 
+  const handleAmazonInvoiceUploadSuccess = (invoiceData) => {
+    setAmazonInvoiceRefreshTrigger(prev => prev + 1);
+    
+    if (invoiceData && invoiceData.id) {
+      toast.success(t('Invoice uploaded and processed successfully'));
+      navigate(`/invoices/amazon/${invoiceData.id}`);
+    }
+  };
+
+  // Show loading state while detecting company type
+  if (companyLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Render Amazon Invoice Interface for Amazon companies
+  if (isAmazon) {
+    return (
+      <div className="accounting-container">
+        <div className="header-section">
+          <h2>{t('Amazon Relay Invoices')}</h2>
+        </div>
+        
+        <AmazonInvoiceUpload onUploadSuccess={handleAmazonInvoiceUploadSuccess} />
+        <AmazonInvoiceList refreshTrigger={amazonInvoiceRefreshTrigger} />
+      </div>
+    );
+  }
+
+  // Render Traditional Invoice Interface for Other companies
   return (
     <div className="accounting-container">
       <div className="header-section">

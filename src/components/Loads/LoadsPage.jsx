@@ -651,6 +651,8 @@ const LoadsPage = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [nextUrl, setNextUrl] = useState(null);
   const [prevUrl, setPrevUrl] = useState(null);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   // Read permissions from localStorage
   useEffect(() => {
@@ -908,9 +910,11 @@ const LoadsPage = () => {
 
     if (selectedStatus) qs.set('load_status', selectedStatus);
     if (selectedInvoiceStatus) qs.set('invoice_status', selectedInvoiceStatus);
+    if (fromDate) qs.set('from_date', fromDate);
+    if (toDate) qs.set('to_date', toDate);
 
     return `/load/?${qs.toString()}`;
-  }, [pageSize, debouncedSearchTerm, searchCategory, selectedStatus, selectedInvoiceStatus]);
+  }, [pageSize, debouncedSearchTerm, searchCategory, selectedStatus, selectedInvoiceStatus, fromDate, toDate]);
 
   // Excel export handler
   const handleExportExcel = async () => {
@@ -949,6 +953,8 @@ const LoadsPage = () => {
     }
     if (selectedStatus) qs.set('load_status', selectedStatus);
     if (selectedInvoiceStatus) qs.set('invoice_status', selectedInvoiceStatus);
+    if (fromDate) qs.set('from_date', fromDate);
+    if (toDate) qs.set('to_date', toDate);
     const url = `${process.env.REACT_APP_API_BASE_URL || 'https://nnt.nntexpressinc.com/api'}/load/?${qs.toString()}`;
     const token = localStorage.getItem('accessToken');
     try {
@@ -1309,7 +1315,48 @@ const LoadsPage = () => {
     },
     { field: 'equipment_type', headerName: 'Equipment Type', width: 120 },
     { field: 'trip_status', headerName: 'Trip Status', width: 120 },
-    { field: 'invoice_status', headerName: 'Invoice Status', width: 120 },
+    {
+      field: 'invoice_status',
+      headerName: 'Invoice Status',
+      width: 150,
+      headerAlign: 'center',
+      align: 'center',
+      renderCell: (params) => {
+        const statusValue = params.value || 'NOT_DETERMINED';
+        const statusConfig = invoiceStatuses.find(s => s.value === statusValue);
+        
+        // If no config found, use default gray for NOT_DETERMINED
+        const color = statusConfig?.color || '#9CA3AF';
+        const label = statusConfig?.label || 'Not Determined';
+        
+        return (
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            paddingTop: '4px'
+          }}>
+            <Chip
+              label={label}
+              sx={{
+                backgroundColor: `${color}20`,
+                color: color,
+                fontWeight: 600,
+                borderRadius: '16px',
+                height: '24px',
+                fontSize: '0.75rem',
+                border: `1px solid ${color}40`,
+                '& .MuiChip-label': {
+                  padding: '0 10px',
+                }
+              }}
+            />
+          </Box>
+        );
+      }
+    },
     { field: 'trip_bil_status', headerName: 'Trip Bill Status', width: 120 },
     { field: 'load_pay', headerName: 'Load Pay', width: 100 },
     { field: 'driver_pay', headerName: 'Driver Pay', width: 100 },
@@ -1400,30 +1447,88 @@ const LoadsPage = () => {
 
   return (
     <Box sx={{ height: '100%', width: '100%', transition: 'width 0.3s', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} ref={tableRef}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" gutterBottom>
-          {/* Loads */}
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', width: 'auto', gap: 2, backgroundColor: 'white', padding: '6px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-          <Button
-            variant="outlined"
-            color="success"
-            onClick={handleExportExcel}
-            sx={{ minWidth: 0, px: 2 }}
-          >
-            Excel
-          </Button>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        mb: 2,
+        gap: 2
+      }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          backgroundColor: 'white', 
+          padding: '8px 12px', 
+          borderRadius: '10px', 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+          border: '1px solid #E5E7EB'
+        }}>
+          <TextField
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            size="small"
+            sx={{
+              width: '140px',
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '6px',
+                backgroundColor: '#F9FAFB',
+                height: '32px',
+                fontSize: '0.875rem'
+              },
+              '& .MuiOutlinedInput-input': {
+                padding: '6px 8px'
+              }
+            }}
+          />
+          <Box sx={{ color: '#9CA3AF', fontWeight: 500, fontSize: '0.875rem' }}>—</Box>
+          <TextField
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            size="small"
+            sx={{
+              width: '140px',
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '6px',
+                backgroundColor: '#F9FAFB',
+                height: '32px',
+                fontSize: '0.875rem'
+              },
+              '& .MuiOutlinedInput-input': {
+                padding: '6px 8px'
+              }
+            }}
+          />
+        </Box>
+
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          flex: 1,
+          backgroundColor: 'white', 
+          padding: '8px 12px', 
+          borderRadius: '10px', 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+          border: '1px solid #E5E7EB'
+        }}>
           <TextField
             select
             value={searchCategory}
             onChange={(e) => setSearchCategory(e.target.value)}
-            variant="outlined"
+            size="small"
             sx={{
-              minWidth: '200px',
+              minWidth: '140px',
               '& .MuiOutlinedInput-root': {
-                borderRadius: '8px',
+                borderRadius: '6px',
                 backgroundColor: '#F9FAFB',
-                maxHeight: '32px'
+                height: '32px',
+                fontSize: '0.875rem'
+              },
+              '& .MuiSelect-select': {
+                padding: '6px 8px'
               }
             }}
           >
@@ -1435,46 +1540,82 @@ const LoadsPage = () => {
           </TextField>
           <TextField
             placeholder="Search loads..."
-            fullWidth
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            variant="outlined"
+            size="small"
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon sx={{ color: 'text.secondary' }} />
+                  <SearchIcon sx={{ color: '#9CA3AF', fontSize: '18px' }} />
                 </InputAdornment>
               ),
             }}
             sx={{
+              flex: 1,
+              minWidth: '200px',
               '& .MuiOutlinedInput-root': {
-                borderRadius: '8px',
+                borderRadius: '6px',
                 backgroundColor: '#F9FAFB',
-                maxHeight: '32px'
+                height: '32px',
+                fontSize: '0.875rem'
+              },
+              '& .MuiOutlinedInput-input': {
+                padding: '6px 8px'
               }
             }}
           />
         </Box>
-         {permissions.load_create && (
-            <Button variant="contained" onClick={handleCreateLoad}
+
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1
+        }}>
+          <Button
+            variant="outlined"
+            onClick={handleExportExcel}
+            sx={{ 
+              minWidth: '80px',
+              height: '36px',
+              textTransform: 'none',
+              borderColor: '#10B981',
+              color: '#10B981',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              borderRadius: '8px',
+              '&:hover': {
+                backgroundColor: '#10B98110',
+                borderColor: '#10B981'
+              }
+            }}
+          >
+            Excel
+          </Button>
+          {permissions.load_create && (
+            <Button 
+              variant="contained" 
+              onClick={handleCreateLoad}
+              startIcon={<AddIcon />}
               sx={{
-    backgroundColor: 'white',
-    color: 'black',
-    border: '1px solid rgb(189, 189, 189)',  // kulrang border
-    height: '32px',
-    textTransform: 'none',
-    px: 2,
-    whiteSpace: 'nowrap',
-    '&:hover': {
-      backgroundColor: '#f5f5f5', 
-      border: '1px solid rgb(189, 189, 189)', 
-      color: 'black'
-    }
-  }}
+                backgroundColor: '#3B82F6',
+                color: 'white',
+                height: '36px',
+                textTransform: 'none',
+                px: 2,
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                borderRadius: '8px',
+                boxShadow: '0 1px 3px rgba(59, 130, 246, 0.3)',
+                '&:hover': {
+                  backgroundColor: '#2563EB',
+                  boxShadow: '0 2px 6px rgba(59, 130, 246, 0.4)'
+                }
+              }}
             >
               Create Load
             </Button>
           )}
+        </Box>
       </Box>
 
       <CreateLoadModal

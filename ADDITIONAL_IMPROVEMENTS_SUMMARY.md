@@ -330,46 +330,111 @@ All requested features have been implemented and tested:
 - [x] Redesigned Unit Management display
 - [x] Removed redundant unit dropdowns when viewing specific unit
 - [x] Added modern "Move" button for specific unit views
-- [x] Implemented collapsible detail views
-- [x] Added modern styling with gradients and animations
-- [x] Improved empty states
-- [x] Enhanced status badges with colors
-- [x] Added hover effects and transitions
+
+
+## ✅ Company Model Updated & Full CRUD Implemented
+
+I've successfully added the `company_type` choices field to the Company model and implemented full CRUD operations. Here's what was done:
+
+### **1. Company Model Changes** (models.py)
+
+Added new fields to the Company model:
+- **`company_type`**: CharField with choices (`amazon` or `other`), default `other`
+- **`created_at`**: Auto-generated timestamp on creation
+- **`updated_at`**: Auto-updated timestamp on modification
+- Added Meta class with ordering and verbose names
+- Improved `__str__` method with fallback
+
+```python
+COMPANY_TYPE_CHOICES = [
+    ('amazon', 'Amazon'),
+    ('other', 'Other'),
+]
+```
+
+### **2. Updated Serializer** (auth.py)
+
+Enhanced `CompanySerializer`:
+- Explicitly defined all fields including new `company_type`, `created_at`, `updated_at`
+- Added validation for company_name (required and trimmed)
+- Set `created_at` and `updated_at` as read-only fields
+
+### **3. Full CRUD Views** (auth.py)
+
+**`CompanyListCreateView`** - List & Create
+- **GET** `/api/auth/company/` - List all companies (ordered by newest first)
+- **POST** `/api/auth/company/` - Create a new company
+
+**`CompanyDetailView`** (NEW) - Retrieve, Update & Delete
+- **GET** `/api/auth/company/{id}/` - Get specific company details
+- **PUT/PATCH** `/api/auth/company/{id}/` - Update company
+- **DELETE** `/api/auth/company/{id}/` - Delete company (with safety check)
+
+### **4. URL Patterns** (urls.py)
+
+Added new endpoint:
+```python
+path('auth/company/<int:pk>/', CompanyDetailView.as_view(), name='company-detail')
+```
+
+### **5. Safety Features**
+
+- **Delete Protection**: Cannot delete a company if it has users assigned
+- Returns detailed error message with user count
+- Validates company_name is not empty
 
 ---
 
-## 🎉 Final Results
+### **API Usage Examples**
 
-### What You Get:
-1. ✨ **Complete visibility** - See units on all view pages
-2. 🔍 **Fast searching** - Find units instantly by typing
-3. 🔄 **Automatic sync** - Change once, updates everywhere
-4. 🎨 **Professional design** - Modern, clean, beautiful interface
-5. 📊 **Better information display** - Collapsible, organized, clear
-6. ⚡ **Improved workflows** - Fewer clicks, faster operations
-7. 💫 **Delightful interactions** - Smooth animations, instant feedback
+#### **Create Company (POST)**
+```bash
+POST /api/auth/company/
+{
+  "company_name": "Amazon Logistics",
+  "company_type": "amazon",
+  "phone": "123-456-7890",
+  "address": "123 Main St",
+  "city": "Seattle",
+  "state": "WA",
+  "zip": "98101"
+}
+```
 
-### Time Saved:
-- **Before**: 5-10 clicks to manage unit assignments
-- **After**: 2-3 clicks with instant search and move buttons
+#### **List Companies (GET)**
+```bash
+GET /api/auth/company/
+```
 
-### User Satisfaction:
-- ⭐⭐⭐⭐⭐ Professional appearance
-- ⭐⭐⭐⭐⭐ Easy to use
-- ⭐⭐⭐⭐⭐ Fast and efficient
-- ⭐⭐⭐⭐⭐ Modern and intuitive
+#### **Get Company Details (GET)**
+```bash
+GET /api/auth/company/1/
+```
 
----
+#### **Update Company (PUT/PATCH)**
+```bash
+PUT /api/auth/company/1/
+{
+  "company_name": "Amazon Freight",
+  "company_type": "amazon",
+  "phone": "555-555-5555"
+}
+```
 
-## 🎊 Conclusion
+#### **Delete Company (DELETE)**
+```bash
+DELETE /api/auth/company/1/
 
-All your requested improvements have been successfully implemented! The system is now:
+# Success Response:
+{
+  "success": true,
+  "message": "Company \"Amazon Freight\" has been deleted successfully."
+}
 
-- **More visible** - Units shown everywhere they're needed
-- **Easier to search** - Autocomplete makes finding units instant
-- **Properly synchronized** - Changes automatically reflected across sections
-- **More professional** - Modern design that looks and feels great
-- **User-friendly** - Intuitive workflows that save time
-
-**Enjoy your enhanced Unit & Team Management system!** 🚀
-
+# Error if company has users:
+{
+  "success": false,
+  "error": "Cannot delete company. It has 5 user(s) assigned.",
+  "detail": "Please reassign or delete all users before deleting the company."
+}
+```
