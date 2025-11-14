@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Typography, Box, Button, TextField, MenuItem, Chip, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, createFilterOptions, FormControl, InputLabel, Select, Grid, Alert, Snackbar, CircularProgress, InputAdornment } from "@mui/material";
 import { DataGrid } from '@mui/x-data-grid';
 import { ApiService } from "../../api/auth";
+import { updateLoadStatus } from "../../api/loads";
 import { useNavigate } from 'react-router-dom';
 import './LoadsPage.css';
 import { useSidebar } from "../SidebarContext";
@@ -653,6 +654,13 @@ const LoadsPage = () => {
   const [prevUrl, setPrevUrl] = useState(null);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [statusChangeDialog, setStatusChangeDialog] = useState({
+    open: false,
+    loadId: null,
+    loadName: '',
+    currentStatus: '',
+    newStatus: ''
+  });
 
   // Read permissions from localStorage
   useEffect(() => {
@@ -679,16 +687,16 @@ const LoadsPage = () => {
   }, [searchTerm]);
 
   const loadStatuses = [
-    { value: 'open', label: 'Open', icon: <MdLocalShipping />, color: '#3B82F6' },
-    { value: 'covered', label: 'Covered', icon: <MdDirectionsCar />, color: '#10B981' },
-    { value: 'dispatched', label: 'Dispatched', icon: <MdAssignmentTurnedIn />, color: '#6366F1' },
-    { value: 'loading', label: 'Loading', icon: <MdFileUpload />, color: '#F59E0B' },
-    { value: 'on_route', label: 'On Route', icon: <MdAltRoute />, color: '#3B82F6' },
-    { value: 'unloading', label: 'Unloading', icon: <MdFileDownload />, color: '#F59E0B' },
-    { value: 'delivered', label: 'Delivered', icon: <MdDoneAll />, color: '#10B981' },
-    { value: 'completed', label: 'Completed', icon: <MdCheckCircle />, color: '#059669' },
-    { value: 'in_yard', label: 'In Yard', icon: <MdHome />, color: '#6B7280' },
-    { value: 'canceled', label: 'Canceled', icon: <MdHome />, color: '#EF4444' }
+    { value: 'OPEN', label: 'Open', icon: <MdLocalShipping />, color: '#3B82F6' },
+    { value: 'COVERED', label: 'Covered', icon: <MdDirectionsCar />, color: '#10B981' },
+    { value: 'DISPATCHED', label: 'Dispatched', icon: <MdAssignmentTurnedIn />, color: '#6366F1' },
+    { value: 'LOADING', label: 'Loading', icon: <MdFileUpload />, color: '#F59E0B' },
+    { value: 'ON_ROUTE', label: 'On Route', icon: <MdAltRoute />, color: '#3B82F6' },
+    { value: 'UNLOADING', label: 'Unloading', icon: <MdFileDownload />, color: '#F59E0B' },
+    { value: 'DELIVERED', label: 'Delivered', icon: <MdDoneAll />, color: '#10B981' },
+    { value: 'COMPLETED', label: 'Completed', icon: <MdCheckCircle />, color: '#059669' },
+    { value: 'IN_YARD', label: 'In Yard', icon: <MdHome />, color: '#6B7280' },
+    { value: 'CANCELED', label: 'Canceled', icon: <MdHome />, color: '#EF4444' }
   ];
 
   const invoiceStatuses = [
@@ -779,7 +787,7 @@ const LoadsPage = () => {
       const formattedData = arr.map(load => ({
         id: load.id,
         created_by: load.created_by?.nickname || '',
-        customer_broker: load.customer_broker?.company_name || '',
+        customer_broker: load.customer_broker || null, // Keep as object, not string
         driver: load.driver || null,
         dispatcher: load.dispatcher?.nickname || '',
         created_by_id: load.created_by?.id,
@@ -817,7 +825,8 @@ const LoadsPage = () => {
         pod: load.pod,
         document: load.document,
         comercial_invoice: load.comercial_invoice,
-        tags: load.tags
+        tags: load.tags,
+        stop: load.stop || [] // Add stop field
       }));
 
       setLoads(formattedData);
@@ -1047,11 +1056,85 @@ const LoadsPage = () => {
     }
   };
 
+  const handleLoadStatusChange = async (params) => {
+    const loadId = params.id;
+    const newStatus = params.value;
+    
+    try {
+      // Use putData like LoadViewPage does
+      await ApiService.putData(`/load/${loadId}/`, {
+        load_status: newStatus
+      });
+      
+      // Update local state
+      setLoads(prevLoads => 
+        prevLoads.map(load => 
+          load.id === loadId ? { ...load, load_status: newStatus } : load
+        )
+      );
+      setFilteredLoads(prevFiltered => 
+        prevFiltered.map(load => 
+          load.id === loadId ? { ...load, load_status: newStatus } : load
+        )
+      );
+      
+      // Close dialog
+      setStatusChangeDialog({
+        open: false,
+        loadId: null,
+        loadName: '',
+        currentStatus: '',
+        newStatus: ''
+      });
+    } catch (error) {
+      console.error('Error updating load status:', error);
+      alert('Failed to update load status');
+    }
+  };
+
+  const handleStatusClick = (loadId, loadName, currentStatus) => {
+    setStatusChangeDialog({
+      open: true,
+      loadId,
+      loadName,
+      currentStatus,
+      newStatus: currentStatus
+    });
+  };
+
+  const handleStatusDialogClose = () => {
+    setStatusChangeDialog({
+      open: false,
+      loadId: null,
+      loadName: '',
+      currentStatus: '',
+      newStatus: ''
+    });
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (statusChangeDialog.loadId && statusChangeDialog.newStatus) {
+      await handleLoadStatusChange({
+        id: statusChangeDialog.loadId,
+        value: statusChangeDialog.newStatus
+      });
+    }
+  };
+
+  const getRowClassName = (params) => {
+    const status = params.row.load_status?.toUpperCase();
+    const statusConfig = loadStatuses.find(s => s.value === status);
+    
+    if (!statusConfig) return '';
+    
+    return `row-status-${status.toLowerCase()}`;
+  };
+
   const columns = [
     {
       field: 'id',
       headerName: 'ID',
-      width: 200,
+      width: 80,
       align: 'center',
       headerAlign: 'center',
       renderCell: (params) => (
@@ -1066,7 +1149,8 @@ const LoadsPage = () => {
         }}>
           <Typography sx={{
             whiteSpace: 'nowrap',
-            overflow: 'visible'
+            overflow: 'visible',
+            fontSize: '0.875rem'
           }}>
             {params.value}
           </Typography>
@@ -1093,110 +1177,68 @@ const LoadsPage = () => {
     {
       field: 'load_id',
       headerName: 'Load ID',
-      width: 280,
+      width: 150,
       align: 'center',
       headerAlign: 'center',
-      renderCell: (params) => {
-        const loadId = params.value || '-';
-        const formatLoadId = (id) => {
-          if (id === '-') return id;
-          if (id.length <= 10) return id;
-          const firstPart = id.substring(0, 5);
-          const lastPart = id.substring(id.length - 5);
-          return `${firstPart}...${lastPart}`;
-        };
-        return (
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            width: '100%',
-            height: '100%',
-            justifyContent: 'center',
-            py: '4px'
-          }}>
-            <Typography
-              sx={{
-                whiteSpace: 'nowrap',
-                overflow: 'visible',
-                cursor: 'pointer',
-                color: '#000000',
-                textDecoration: 'underline'
-              }}
-              onClick={() => handleViewLoad(params.row.id)}
-            >
-              {formatLoadId(loadId)}
-            </Typography>
-            <IconButton
-              size="small"
-              onClick={() => handleCopyId(loadId)}
-              sx={{
-                padding: '4px',
-                color: copiedId === loadId ? '#10B981' : '#6B7280',
-                '&:hover': {
-                  backgroundColor: copiedId === loadId ? '#D1FAE5' : '#F3F4F6'
-                }
-              }}
-            >
-              {copiedId === loadId ? (
-                <CheckIcon sx={{ fontSize: '16px' }} />
-              ) : (
-                <ContentCopyIcon sx={{ fontSize: '16px' }} />
-              )}
-            </IconButton>
-          </Box>
-        );
-      }
-    },
-    { field: 'company_name', headerName: 'Company Name', width: 120 },
-
-    {
-      field: 'created_by',
-      headerName: 'Created By',
-      width: 120,
       renderCell: (params) => (
-        <Box
-          sx={{
-            cursor: 'pointer',
-            '&:hover': { textDecoration: 'underline' }
-          }}
-          onClick={() => handleViewDispatcher(params.row.created_by_id)}
-        >
-          {params.value}
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          width: '100%',
+          height: '100%',
+          justifyContent: 'center',
+          py: '4px'
+        }}>
+          <Typography
+            sx={{
+              whiteSpace: 'nowrap',
+              overflow: 'visible',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              color: '#000000',
+              textDecoration: 'underline'
+            }}
+            onClick={() => handleViewLoad(params.row.id)}
+          >
+            {params.value || '-'}
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => handleCopyId(params.value)}
+            sx={{
+              padding: '4px',
+              color: copiedId === params.value ? '#10B981' : '#6B7280',
+              '&:hover': {
+                backgroundColor: copiedId === params.value ? '#D1FAE5' : '#F3F4F6'
+              }
+            }}
+          >
+            {copiedId === params.value ? (
+              <CheckIcon sx={{ fontSize: '16px' }} />
+            ) : (
+              <ContentCopyIcon sx={{ fontSize: '16px' }} />
+            )}
+          </IconButton>
         </Box>
       )
     },
     {
-      field: 'created_date',
-      headerName: 'Created Date',
-      width: 180,
-      valueGetter: (params) => {
-        if (!params.value) return '-';
-        const date = new Date(params.value);
-        return date.toLocaleString('en-US', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        });
-      }
-    },
-    {
-      field: 'customer_broker',
-      headerName: 'Customer Broker',
-      width: 120,
+      field: 'note',
+      headerName: 'Note',
+      width: 200,
       renderCell: (params) => (
-        <Box
-          sx={{
-            cursor: 'pointer',
-            '&:hover': { textDecoration: 'underline' }
-          }}
-          onClick={() => handleViewCustomerBroker(params.row.customer_broker_id)}
-        >
-          {params.value}
-        </Box>
+        <Tooltip title={params.value || ''}>
+          <Box sx={{
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            fontSize: '0.875rem'
+          }}>
+            {params.value || '-'}
+          </Box>
+        </Tooltip>
       )
     },
     {
@@ -1204,117 +1246,189 @@ const LoadsPage = () => {
       headerName: 'Driver',
       width: 150,
       valueGetter: (params) => {
-        const driver = params.row.driver;
-        if (!driver) return '-';
-        const firstName = driver.user?.first_name || '';
-        const lastName = driver.user?.last_name || '';
-        return `${firstName} ${lastName}`.trim() || '-';
+        if (params.row.driver?.user) {
+          const { first_name, last_name } = params.row.driver.user;
+          return `${first_name || ''} ${last_name || ''}`.trim() || '-';
+        }
+        return '-';
       },
       renderCell: (params) => {
-        const driver = params.row.driver;
-        if (!driver) return '-';
-
-        const firstName = driver.user?.first_name || '';
-        const lastName = driver.user?.last_name || '';
-        const fullName = `${firstName} ${lastName}`.trim();
-
-        const formatName = (name) => {
-          if (!name || name === '-') return '-';
-          if (name.length <= 15) return name;
-          return `${name.substring(0, 12)}...`;
-        };
-
+        const driverId = params.row.driver?.id;
         return (
-          <Tooltip title={fullName}>
-            <Box
-              sx={{
-                cursor: 'pointer',
-                '&:hover': { textDecoration: 'underline' }
-              }}
-              onClick={() => handleViewDriver(driver.id)}
-            >
-              {formatName(fullName)}
-            </Box>
-          </Tooltip>
-        );
-      }
-    },
-    {
-      field: 'truck',
-      headerName: 'Truck',
-      width: 120,
-      valueGetter: (params) => {
-        const truck = params.row.truck;
-        return truck ? `${truck.make || ''} ${truck.model || ''} ${truck.unit_number || ''}`.trim() : '-';
-      }
-    },
-    {
-      field: 'load_status',
-      headerName: 'Load Status',
-      width: 130,
-      headerAlign: 'center',
-      align: 'center',
-      pinned: 'right',
-      renderCell: (params) => {
-        const statusValue = params.value || 'Unknown';
-        const statusConfig = loadStatuses.find(s => s.value.toLowerCase() === statusValue.toLowerCase());
-        return (
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '100%',
-            height: '100%',
-            paddingTop: '4px'
-          }}>
-            <Chip
-              label={
-                statusConfig?.label
-                  ? statusConfig.label.toUpperCase()
-                  : statusValue.toUpperCase()
-              }
-              icon={statusConfig?.icon}
-              sx={{
-                ...getStatusStyle(statusValue),
-                height: '20px',
-                minWidth: 'auto',
-                maxWidth: '100%',
-                '& .MuiChip-label': {
-                  fontSize: '0.7rem',
-                  padding: '0 4px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  textTransform: 'uppercase',
-                },
-                '& .MuiChip-icon': {
-                  fontSize: '12px',
-                  marginLeft: '2px',
-                },
-              }}
-            />
+          <Box
+            sx={{
+              cursor: driverId ? 'pointer' : 'default',
+              '&:hover': driverId ? { textDecoration: 'underline' } : {},
+              fontSize: '0.875rem'
+            }}
+            onClick={() => driverId && handleViewDriver(driverId)}
+          >
+            {params.value}
           </Box>
         );
       }
     },
     {
-      field: 'dispatcher',
-      headerName: 'Dispatcher',
-      width: 120,
+      field: 'pickup_date',
+      headerName: 'Pickup Date',
+      width: 180,
+      valueGetter: (params) => {
+        const pickupStop = params.row.stop?.find(s => s.stop_name === 'PICKUP');
+        if (!pickupStop) return '-';
+        
+        const dateStr = pickupStop.appointmentdate || pickupStop.plus_hour;
+        if (!dateStr) return '-';
+        
+        try {
+          const date = new Date(dateStr);
+          return date.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        } catch {
+          return '-';
+        }
+      },
       renderCell: (params) => (
-        <Box
-          sx={{
-            cursor: 'pointer',
-            '&:hover': { textDecoration: 'underline' }
-          }}
-          onClick={() => handleViewDispatcher(params.row.dispatcher_id)}
-        >
+        <Typography sx={{ fontSize: '0.875rem' }}>
           {params.value}
-        </Box>
+        </Typography>
       )
     },
-    { field: 'equipment_type', headerName: 'Equipment Type', width: 120 },
-    { field: 'trip_status', headerName: 'Trip Status', width: 120 },
+    {
+      field: 'delivery_date',
+      headerName: 'Delivery Date',
+      width: 180,
+      valueGetter: (params) => {
+        const deliveryStop = params.row.stop?.find(s => s.stop_name === 'DELIVERY');
+        if (!deliveryStop) return '-';
+        
+        const dateStr = deliveryStop.appointmentdate || deliveryStop.plus_hour;
+        if (!dateStr) return '-';
+        
+        try {
+          const date = new Date(dateStr);
+          return date.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        } catch {
+          return '-';
+        }
+      },
+      renderCell: (params) => (
+        <Typography sx={{ fontSize: '0.875rem' }}>
+          {params.value}
+        </Typography>
+      )
+    },
+    {
+      field: 'customer',
+      headerName: 'Customer',
+      width: 150,
+      valueGetter: (params) => params.row.customer_broker?.company_name || '-',
+      renderCell: (params) => {
+        const customerId = params.row.customer_broker?.id;
+        return (
+          <Box
+            sx={{
+              cursor: customerId ? 'pointer' : 'default',
+              '&:hover': customerId ? { textDecoration: 'underline' } : {},
+              fontSize: '0.875rem',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}
+            onClick={() => customerId && handleViewCustomerBroker(customerId)}
+          >
+            {params.value}
+          </Box>
+        );
+      }
+    },
+    {
+      field: 'origin',
+      headerName: 'Origin',
+      width: 150,
+      valueGetter: (params) => {
+        const pickupStop = params.row.stop?.find(s => s.stop_name === 'PICKUP');
+        if (!pickupStop) return '-';
+        const city = pickupStop.city || '';
+        const state = pickupStop.state || '';
+        return city && state ? `${city}, ${state}` : city || state || '-';
+      },
+      renderCell: (params) => (
+        <Typography sx={{ fontSize: '0.8rem' }}>
+          {params.value}
+        </Typography>
+      )
+    },
+    {
+      field: 'destination',
+      headerName: 'Destination',
+      width: 150,
+      valueGetter: (params) => {
+        const deliveryStop = params.row.stop?.find(s => s.stop_name === 'DELIVERY');
+        if (!deliveryStop) return '-';
+        const city = deliveryStop.city || '';
+        const state = deliveryStop.state || '';
+        return city && state ? `${city}, ${state}` : city || state || '-';
+      },
+      renderCell: (params) => (
+        <Typography sx={{ fontSize: '0.8rem' }}>
+          {params.value}
+        </Typography>
+      )
+    },
+    {
+      field: 'load_status',
+      headerName: 'Load Status',
+      width: 150,
+      headerAlign: 'center',
+      align: 'center',
+      renderCell: (params) => {
+        const statusConfig = loadStatuses.find(
+          s => s.value === params.value?.toUpperCase()
+        );
+        
+        if (!statusConfig) return params.value;
+
+        return (
+          <Box
+            onClick={() => handleStatusClick(params.row.id, params.row.load_id, params.value?.toUpperCase())}
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 0.5,
+              px: 1.5,
+              py: 0.5,
+              borderRadius: '12px',
+              backgroundColor: `${statusConfig.color}15`,
+              border: `1px solid ${statusConfig.color}40`,
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              color: statusConfig.color,
+              whiteSpace: 'nowrap',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              '&:hover': {
+                backgroundColor: `${statusConfig.color}25`,
+                transform: 'scale(1.05)'
+              }
+            }}
+          >
+            {React.cloneElement(statusConfig.icon, { size: 14 })}
+            {statusConfig.label}
+          </Box>
+        );
+      }
+    },
     {
       field: 'invoice_status',
       headerName: 'Invoice Status',
@@ -1322,52 +1436,33 @@ const LoadsPage = () => {
       headerAlign: 'center',
       align: 'center',
       renderCell: (params) => {
-        const statusValue = params.value || 'NOT_DETERMINED';
-        const statusConfig = invoiceStatuses.find(s => s.value === statusValue);
+        const statusConfig = invoiceStatuses.find(
+          s => s.value === params.value
+        );
         
-        // If no config found, use default gray for NOT_DETERMINED
-        const color = statusConfig?.color || '#9CA3AF';
-        const label = statusConfig?.label || 'Not Determined';
-        
+        if (!statusConfig) return params.value;
+
         return (
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '100%',
-            height: '100%',
-            paddingTop: '4px'
-          }}>
-            <Chip
-              label={label}
-              sx={{
-                backgroundColor: `${color}20`,
-                color: color,
-                fontWeight: 600,
-                borderRadius: '16px',
-                height: '24px',
-                fontSize: '0.75rem',
-                border: `1px solid ${color}40`,
-                '& .MuiChip-label': {
-                  padding: '0 10px',
-                }
-              }}
-            />
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              px: 1.5,
+              py: 0.5,
+              borderRadius: '12px',
+              backgroundColor: `${statusConfig.color}15`,
+              border: `1px solid ${statusConfig.color}40`,
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              color: statusConfig.color,
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {statusConfig.label}
           </Box>
         );
       }
-    },
-    { field: 'trip_bil_status', headerName: 'Trip Bill Status', width: 120 },
-    { field: 'load_pay', headerName: 'Load Pay', width: 100 },
-    { field: 'driver_pay', headerName: 'Driver Pay', width: 100 },
-    { field: 'total_pay', headerName: 'Total Pay', width: 100 },
-    { field: 'per_mile', headerName: 'Per Mile', width: 100 },
-    { field: 'mile', headerName: 'Mile', width: 100 },
-    { field: 'empty_mile', headerName: 'Empty Mile', width: 100 },
-    { field: 'total_miles', headerName: 'Total Miles', width: 100 },
-    { field: 'document', headerName: 'Document', width: 100 },
-    { field: 'bills', headerName: 'Bills', width: 100 },
-    { field: 'tags', headerName: 'Tags', width: 100 },
+    }
   ];
 
   const CustomFooter = () => {
@@ -1792,6 +1887,11 @@ const LoadsPage = () => {
             disableColumnMenu={false}
             disableSelectionOnClick
             columnBuffer={5}
+            getRowClassName={(params) => {
+              const status = params.row.load_status?.toUpperCase();
+              const statusConfig = loadStatuses.find(s => s.value === status);
+              return statusConfig ? `row-status-${status.toLowerCase()}` : '';
+            }}
             sx={{
               backgroundColor: 'white',
               borderRadius: '12px',
@@ -1841,6 +1941,67 @@ const LoadsPage = () => {
                 '&:last-child': {
                   borderRight: 'none'
                 }
+              },
+              // Row background colors based on status
+              '& .row-status-open': {
+                backgroundColor: '#3B82F625',
+                '&:hover': {
+                  backgroundColor: '#3B82F635',
+                }
+              },
+              '& .row-status-covered': {
+                backgroundColor: '#10B98125',
+                '&:hover': {
+                  backgroundColor: '#10B98135',
+                }
+              },
+              '& .row-status-dispatched': {
+                backgroundColor: '#6366F125',
+                '&:hover': {
+                  backgroundColor: '#6366F135',
+                }
+              },
+              '& .row-status-loading': {
+                backgroundColor: '#F59E0B25',
+                '&:hover': {
+                  backgroundColor: '#F59E0B35',
+                }
+              },
+              '& .row-status-on_route': {
+                backgroundColor: '#3B82F625',
+                '&:hover': {
+                  backgroundColor: '#3B82F635',
+                }
+              },
+              '& .row-status-unloading': {
+                backgroundColor: '#F59E0B25',
+                '&:hover': {
+                  backgroundColor: '#F59E0B35',
+                }
+              },
+              '& .row-status-delivered': {
+                backgroundColor: '#10B98125',
+                '&:hover': {
+                  backgroundColor: '#10B98135',
+                }
+              },
+              '& .row-status-completed': {
+                backgroundColor: '#05966925',
+                '&:hover': {
+                  backgroundColor: '#05966935',
+                }
+              },
+              '& .row-status-in_yard': {
+                backgroundColor: '#6B728025',
+                '&:hover': {
+                  backgroundColor: '#6B728035',
+                }
+              },
+              '& .row-status-canceled': {
+                backgroundColor: '#EF444425',
+                '&:hover': {
+                  backgroundColor: '#EF444435',
+                }
               }
             }}
             onSelectionModelChange={(newSelection) => {
@@ -1850,6 +2011,73 @@ const LoadsPage = () => {
           />
         </Box>
       </Box>
+
+      {/* Status Change Confirmation Dialog */}
+      <Dialog
+        open={statusChangeDialog.open}
+        onClose={handleStatusDialogClose}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <MdLocalShipping size={24} color="#3B82F6" />
+            <Typography variant="h6">Change Load Status</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Load ID: <strong>{statusChangeDialog.loadName}</strong>
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Current Status: <strong style={{ textTransform: 'capitalize' }}>{statusChangeDialog.currentStatus}</strong>
+            </Typography>
+            
+            <FormControl fullWidth>
+              <InputLabel>New Status</InputLabel>
+              <Select
+                value={statusChangeDialog.newStatus}
+                onChange={(e) => setStatusChangeDialog(prev => ({ ...prev, newStatus: e.target.value }))}
+                label="New Status"
+              >
+                {loadStatuses.map((status) => (
+                  <MenuItem key={status.value} value={status.value}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {React.cloneElement(status.icon, { size: 18, style: { color: status.color } })}
+                      <Typography>{status.label}</Typography>
+                    </Box>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleStatusDialogClose} variant="outlined">
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleConfirmStatusChange}
+            disabled={!statusChangeDialog.newStatus || statusChangeDialog.newStatus === statusChangeDialog.currentStatus}
+            sx={{
+              backgroundColor: '#3B82F6',
+              '&:hover': {
+                backgroundColor: '#2563EB'
+              }
+            }}
+          >
+            Confirm Change
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <CreateLoadModal
+        open={isCreateModalOpen}
+        onClose={handleCloseCreateModal}
+        onCreateSuccess={handleCreateLoadSuccess}
+      />
     </Box>
   );
 };

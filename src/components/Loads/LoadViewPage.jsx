@@ -3927,7 +3927,8 @@ const LoadViewPage = () => {
         company_name: load.company_name || '',
         equipment_type: load.equipment_type || '',
         unit_id: load.unit_id || null, // Add unit_id field
-        team_id: load.team_id || null // Add team_id field
+        team_id: load.team_id || null, // Add team_id field
+        note: load.note || '' // Add note field
       });
     } else if (section === 'personnel') {
       setEditFormData({
@@ -4041,7 +4042,8 @@ const LoadViewPage = () => {
           equipment_type: editFormData.equipment_type,
           unit_id: editFormData.unit_id || null,
           team_id: editFormData.team_id || null,
-          weight: editFormData.weight ? editFormData.weight.toString() : null
+          weight: editFormData.weight ? editFormData.weight.toString() : null,
+          note: editFormData.note || null
         };
 
         // If unit is selected, update truck, trailer, and driver as well
@@ -5808,6 +5810,22 @@ const LoadViewPage = () => {
                         </Select>
                       </FormControl>
                     </Grid>
+                    
+                    {/* Note Field */}
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Note"
+                        name="note"
+                        value={editFormData.note || ''}
+                        onChange={handleFormChange}
+                        multiline
+                        rows={3}
+                        placeholder="Add notes about this load..."
+                      />
+                    </Grid>
+                    
                     {permissions.load_update && (
                       <Grid item xs={12}>
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
@@ -5938,6 +5956,18 @@ const LoadViewPage = () => {
                         </Typography>
                         <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500, fontSize: '0.875rem' }}>
                           {load.created_date ? new Date(load.created_date).toLocaleString() : "Not assigned"}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    
+                    {/* Note */}
+                    <Grid item xs={12}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#5f6368', fontWeight: 500, fontSize: '0.8rem' }}>
+                          Note
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#202124', fontSize: '0.875rem', whiteSpace: 'pre-wrap' }}>
+                          {load.note || "No notes"}
                         </Typography>
                       </Box>
                     </Grid>

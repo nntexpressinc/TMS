@@ -45,3 +45,14 @@ export const getUninvoicedCompletedLoads = async (delivery_date, page = 1, page_
     throw error;
   }
 };
+
+// Update load status
+export const updateLoadStatus = async (loadId, statusData) => {
+  try {
+    const endpoint = `${ENDPOINTS.LOADS}${loadId}/`;
+    return await ApiService.updateData(endpoint, statusData);
+  } catch (error) {
+    console.error("Error updating load status:", error.message);
+    throw error;
+  }
+};
