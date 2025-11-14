@@ -131,425 +131,70 @@ const Panel = styled(Paper)(({ theme }) => ({
 const PanelHeader = styled(Box)(({ theme }) => ({
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
-  padding: theme.spacing(0.75, 1),
-  borderBottom: `1px solid #f0f2f5`,
-  backgroundColor: '#fafbfc',
-}));
+              </StopsHeader>
 
-const PanelContent = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(0.75),
-  flex: 1,
-  overflowY: "auto",
-  display: "flex",
-  flexDirection: "column",
-  gap: theme.spacing(0.5),
-  position: 'relative',
-  zIndex: 1
-}));
-
-const FormGroup = styled(Box)(({ theme }) => ({
-  marginBottom: theme.spacing(0.5),
-}));
-
-const FormLabel = styled(Typography)(({ theme }) => ({
-  fontSize: "0.8rem",
-  fontWeight: 500,
-  marginBottom: theme.spacing(0.5),
-}));
-
-const StyledTextarea = styled("textarea")(({ theme }) => ({
-  width: "100%",
-  padding: theme.spacing(1),
-  border: `1px solid ${theme.palette.divider}`,
-  borderRadius: theme.spacing(0.5),
-  resize: "vertical",
-  minHeight: "60px",
-  fontFamily: theme.typography.fontFamily,
-  fontSize: "0.8rem",
-  backgroundColor: "#f9f9f9",
-  "&:focus": {
-    outline: "none",
-    borderColor: theme.palette.primary.main,
-  },
-}));
-
-const StyledInput = styled("input")(({ theme }) => ({
-  width: "100%",
-  padding: theme.spacing(1),
-  border: `1px solid ${theme.palette.divider}`,
-  borderRadius: theme.spacing(0.5),
-  fontFamily: theme.typography.fontFamily,
-  fontSize: "0.8rem",
-  backgroundColor: "#f9f9f9",
-  "&:focus": {
-    outline: "none",
-    borderColor: theme.palette.primary.main,
-  },
-}));
-
-const LocationInput = styled(Box)(({ theme }) => ({
-  position: "relative",
-  "& svg": {
-    position: "absolute",
-    left: "10px",
-    top: "50%",
-    transform: "translateY(-50%)",
-    color: theme.palette.text.secondary,
-    zIndex: 1,
-  },
-  "& input": {
-    paddingLeft: "35px",
-  }
-}));
-
-// Add a new black and white filter for logo background
-const ChatBackgroundOverlay = styled(Box)({
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundImage: `url(${darkLogo})`,
-  backgroundRepeat: 'repeat',
-  backgroundSize: '50px',
-  backgroundPosition: 'center',
-  opacity: 0.15,
-  filter: 'grayscale(100%)',
-  zIndex: 0,
-  borderRadius: 'inherit',
-});
-
-const ChatContentWrapper = styled(Box)({
-  position: 'relative',
-  zIndex: 1,
-  flex: 1,
-  display: 'flex',
-  flexDirection: 'column',
-  backdropFilter: 'blur(2px)',
-  height: '100%',
-  width: '100%',
-});
-
-const MessageBubble = styled(Paper)(({ theme, isCurrentUser }) => ({
-  padding: theme.spacing(1.5),
-  borderRadius: theme.spacing(1),
-  backgroundColor: isCurrentUser ? '#0078d4' : '#ffffff',
-  color: isCurrentUser ? '#ffffff' : theme.palette.text.primary,
-  boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-  position: 'relative',
-  maxWidth: '100%',
-  wordBreak: 'break-word',
-}));
-
-const MessageTime = styled(Typography)(({ theme, isCurrentUser }) => ({
-  fontSize: '0.65rem',
-  display: 'inline-block',
-  textAlign: 'right',
-  color: isCurrentUser ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)',
-  marginTop: '4px',
-  cursor: 'default',
-}));
-
-const UserAvatar = styled(Avatar)(({ theme }) => ({
-  width: 36,
-  height: 36,
-  border: '2px solid #fff',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-}));
-
-const MessageInput = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  padding: theme.spacing(1, 2),
-  borderTop: `1px solid ${theme.palette.divider}`,
-  backgroundColor: theme.palette.background.paper,
-  gap: theme.spacing(1),
-  margin: theme.spacing(0, 2, 2, 2),
-  borderRadius: `0 0 ${theme.spacing(1)}px ${theme.spacing(1)}px`,
-  boxShadow: "0 -1px 3px rgba(0,0,0,0.05)",
-}));
-
-const InfoItem = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: theme.spacing(1),
-  marginBottom: theme.spacing(0.75),
-}));
-
-const InfoIcon = styled(Avatar)(({ theme }) => ({
-  width: 32,
-  height: 32,
-  backgroundColor: theme.palette.grey[200],
-  color: theme.palette.text.primary,
-}));
-
-const InfoText = styled(Box)(({ theme }) => ({
-  display: "flex",
-  flexDirection: "column",
-}));
-
-const InfoLabel = styled(Typography)(({ theme }) => ({
-  fontWeight: 500,
-  fontSize: "0.875rem",
-}));
-
-const InfoValue = styled(Typography)(({ theme }) => ({
-  color: theme.palette.text.secondary,
-  fontSize: "0.875rem",
-}));
-
-const StatusStep = styled(Box)(({ theme, active }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: theme.spacing(1),
-  marginBottom: theme.spacing(1),
-  "& .step-number": {
-    width: 24,
-    height: 24,
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: active ? theme.palette.primary.main : theme.palette.grey[300],
-    color: active ? theme.palette.primary.contrastText : theme.palette.text.primary,
-    fontSize: "0.75rem",
-    fontWeight: 500,
-  },
-  "& .step-label": {
-    fontWeight: active ? 600 : 400,
-    color: active ? theme.palette.primary.main : theme.palette.text.primary,
-  },
-  "& .step-line": {
-    flex: 1,
-    height: 2,
-    backgroundColor: theme.palette.grey[200],
-  }
-}));
-
-// New styled components for file attachments
-const AttachmentPreview = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  padding: theme.spacing(1),
-  backgroundColor: theme.palette.grey[100],
-  borderRadius: theme.spacing(1),
-  marginTop: theme.spacing(1),
-  gap: theme.spacing(1)
-}));
-
-const FilePreview = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(1),
-  maxWidth: '250px',
-  overflow: 'hidden'
-}));
-
-const FileAttachment = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(1),
-  padding: theme.spacing(0.5, 1),
-  backgroundColor: theme.palette.grey[100],
-  borderRadius: theme.spacing(0.5),
-  marginTop: theme.spacing(0.5)
-}));
-
-const FilePreviewModal = styled(Dialog)(({ theme }) => ({
-  '& .MuiDialog-paper': {
-    maxWidth: '90vw',
-    maxHeight: '90vh',
-    borderRadius: theme.spacing(1),
-    overflow: 'hidden',
-  }
-}));
-
-const ImagePreview = styled('img')({
-  maxWidth: '100%',
-  maxHeight: '70vh',
-  objectFit: 'contain',
-  display: 'block',
-  margin: '0 auto',
-  cursor: 'pointer',
-});
-
-const PdfPreview = styled('iframe')({
-  width: '100%',
-  height: '80vh',
-  border: 'none',
-});
-
-const EditIconButton = styled(IconButton)(({ theme }) => ({
-  padding: 4,
-  position: 'absolute',
-  top: -8,
-  right: -8,
-  backgroundColor: 'rgba(255, 255, 255, 0.9)',
-  border: '1px solid #e0e0e0',
-  '&:hover': {
-    backgroundColor: 'rgba(255, 255, 255, 1)',
-  },
-  zIndex: 1,
-}));
-
-const LeftPanel = styled(Panel)(({ theme }) => ({
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-  maxHeight: "calc(100vh - 64px)",
-  width: "100%",
-  "& > :first-of-type": {
-    flex: "0 0 auto"
-  }
-}));
-
-const LeftPanelContent = styled(Box)(({ theme }) => ({
-  flex: 1,
-  overflowY: "auto",
-  padding: theme.spacing(0.5, 1, 1),
-  display: "flex",
-  flexDirection: "column",
-  gap: theme.spacing(0.5)
-}));
-
-const MiddlePanel = styled(Panel)(({ theme }) => ({
-  flex: 1,
-  display: "flex",
-  flexDirection: "column",
-  gap: theme.spacing(2),
-  position: 'relative',
-  overflow: 'hidden'
-}));
-
-// Floating Chat Button Styles
-const FloatingChatButton = styled(Box)(({ theme }) => ({
-  position: 'fixed',
-  bottom: theme.spacing(3),
-  right: theme.spacing(3),
-  zIndex: 1000,
-  width: 56,
-  height: 56,
-  borderRadius: '50%',
-  backgroundColor: theme.palette.primary.main,
-  color: 'white',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    transform: 'scale(1.1)',
-    boxShadow: '0 6px 20px rgba(0,0,0,0.2)',
-  },
-  '&:active': {
-    transform: 'scale(0.95)',
-  }
-}));
-
-const ChatDialog = styled(Dialog)(({ theme }) => ({
-  '& .MuiDialog-paper': {
-    width: '450px',
-    maxWidth: '90vw',
-    height: '600px',
-    maxHeight: '80vh',
-    borderRadius: theme.spacing(2),
-    overflow: 'hidden',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-  }
-}));
-
-const ChatDialogHeader = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  padding: theme.spacing(2, 2.5),
-  borderBottom: `1px solid ${theme.palette.divider}`,
-  backgroundColor: theme.palette.primary.main,
-  color: 'white',
-}));
-
-const ChatDialogContent = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  flexDirection: 'column',
-  height: 'calc(100% - 140px)',
-  position: 'relative',
-  overflow: 'hidden',
-}));
-
-const ArrowBackIcon = styled(ArrowBack)(({ theme }) => ({
-  color: theme.palette.text.primary,
-}));
-
-const StatusProgressContainer = styled(Box)(({ theme }) => ({
-  display: "flex",
-  marginBottom: theme.spacing(1),
-  padding: theme.spacing(1),
-  backgroundColor: theme.palette.background.paper,
-  borderRadius: theme.spacing(1),
-  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-  overflowX: "auto",
-  position: "relative",
-  "&::before": {
-    content: '""',
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: "30px",
-    height: "100%",
-    background: "linear-gradient(to right, rgba(255,255,255,1), rgba(255,255,255,0))",
-    zIndex: 1,
-    pointerEvents: "none",
-  },
-  "&::after": {
-    content: '""',
-    position: "absolute",
-    top: 0,
-    right: 0,
-    width: "30px",
-    height: "100%",
-    background: "linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0))",
-    zIndex: 1,
-    pointerEvents: "none",
-  }
-}));
-
-const StatusProgressTrack = styled(Box)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  padding: theme.spacing(0.5, 0),
-  minWidth: "max-content",
-}));
-
-const StatusProgressItem = styled(Box)(({ theme, active, completed }) => ({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  position: "relative",
-  padding: theme.spacing(0.5),
-  marginRight: theme.spacing(3),
-  width: 75,
-  "&:not(:last-child)::after": {
-    content: '""',
-    position: "absolute",
-    left: 37.5,
-    top: 12,
-    height: 2,
-    width: 75,
-    backgroundColor: completed ? theme.palette.primary.main : theme.palette.grey[300],
-  }
-}));
-
-const StatusDot = styled(Box)(({ theme, active, completed }) => ({
-  width: 20,
-  height: 20,
-  borderRadius: "50%",
-  backgroundColor: active 
-    ? theme.palette.primary.main 
-    : completed 
-      ? theme.palette.success.main 
-      : theme.palette.grey[300],
+              {compactView ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 0.5 }}>
+                  {sortStopsInOrder(load.stop || []).map((stop, idx) => (
+                    <StopItem key={idx} isCompact>
+                      <StopIconContainer isPickup={stop.stop_name === 'PICKUP'} isCompact>
+                        {stop.stop_name === 'PICKUP' ? <MdFileUpload size={14} /> : <MdFileDownload size={14} />}
+                      </StopIconContainer>
+                      <StopDetails>
+                        <StopHeader>
+                          <StopAddress>{stop.company_name || stop.stop_name || 'Stop'}</StopAddress>
+                          <StopDate>{stop.appointmentdate ? formatTimeForDisplay(stop.appointmentdate) : (stop.fcfs ? `FCFS ${formatTimeForDisplay(stop.fcfs)}` : '')}</StopDate>
+                        </StopHeader>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>{stop.address1 || stop.city || ''}</Typography>
+                      </StopDetails>
+                    </StopItem>
+                  ))}
+                </Box>
+              ) : (
+                <>
+                  {isAddingStop ? (
+                    <StopEditContainer>
+                      <Typography variant="subtitle2" gutterBottom>
+                        New Stop
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">Use the form to add stop details.</Typography>
+                      <StopButtonGroup>
+                        <Button variant="outlined" onClick={handleCancelEditStop}>Cancel</Button>
+                        <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveStop}>Save</Button>
+                      </StopButtonGroup>
+                    </StopEditContainer>
+                  ) : isStopsLoading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress size={20} /></Box>
+                  ) : (load.stop && load.stop.length > 0) ? (
+                    <Grid container spacing={0.5}>
+                      {sortStopsInOrder(load.stop || []).map((stop) => (
+                        <Grid item xs={12} sm={6} md={4} key={stop.id || `${stop.stop_name}-${Math.random()}`}>
+                          <Box sx={{ p: 0.75, border: `2px solid ${stop.stop_name === 'PICKUP' ? '#4caf50' : stop.stop_name === 'DELIVERY' ? '#f44336' : '#2196f3'}`, borderRadius: 1, bgcolor: 'white', position: 'relative' }}>
+                            <Box sx={{ position: 'absolute', top: -10, left: 12, bgcolor: stop.stop_name === 'PICKUP' ? '#4caf50' : stop.stop_name === 'DELIVERY' ? '#f44336' : '#2196f3', color: 'white', px: 1, py: 0.25, borderRadius: 0.75, fontSize: '0.7rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              {stop.stop_name === 'PICKUP' ? <><MdFileUpload size={12} /> Pick Up</> : stop.stop_name === 'DELIVERY' ? <><MdFileDownload size={12} /> Delivery</> : <><TimelineIcon sx={{ fontSize: 12 }} /> {stop.stop_name}</>}
+                            </Box>
+                            <IconButton size="small" onClick={() => handleEditStop(stop)} sx={{ position: 'absolute', top: 6, right: 6, bgcolor: 'background.paper', padding: 0.5 }}><EditIcon fontSize="small" /></IconButton>
+                            {stop.company_name && (<Typography variant="subtitle2" sx={{ mt: 1, mb: 0.25, fontWeight: 600 }}>{stop.company_name}</Typography>)}
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', mb: 0.5 }}>{stop.address1 || 'No address'}{stop.city ? `, ${stop.city}` : ''}{stop.state ? `, ${stop.state}` : ''}{stop.zip_code ? ` ${stop.zip_code}` : ''}</Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>{stop.appointmentdate ? <>📅 {formatTimeForDisplay(stop.appointmentdate)}</> : stop.fcfs ? <>⏰ FCFS: {formatTimeForDisplay(stop.fcfs)}{stop.plus_hour ? ` - ${formatTimeForDisplay(stop.plus_hour)}` : ''}</> : 'No time specified'}</Typography>
+                            </Box>
+                            {stop.contact_name && (<Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.7rem' }}>👤 {stop.contact_name}</Typography>)}
+                          </Box>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  ) : (
+                    <Box sx={{ textAlign: 'center', p: 2, color: 'text.secondary', border: '2px dashed', borderColor: 'divider', borderRadius: 1, mx: 2 }}>
+                      <LocalShippingIcon sx={{ fontSize: 32, mb: 0.75, opacity: 0.5 }} />
+                      <Typography variant="body2" gutterBottom sx={{ fontWeight: 600 }}>No stops configured yet</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>Add pickup, delivery, and intermediate stops to define your route</Typography>
+                      <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={handleAddStop}>Add First Stop</Button>
+                    </Box>
+                  )}
+                </>
+              )}
+            </StopsContainer>
   color: active || completed ? "white" : theme.palette.text.secondary,
   display: "flex",
   alignItems: "center",
@@ -4823,7 +4468,18 @@ const LoadViewPage = () => {
                 ))}
               </Select>
             </FormControl>
-            <IconButton
+              <Tooltip title={compactView ? 'Switch to expanded view' : 'Switch to compact view'}>
+                <IconButton
+                  size="small"
+                  onClick={() => setCompactView(!compactView)}
+                  sx={{ mr: 0.5 }}
+                  aria-label="toggle-compact-view"
+                >
+                  {compactView ? <ExpandMore fontSize="small" /> : <Visibility fontSize="small" />}
+                </IconButton>
+              </Tooltip>
+
+              <IconButton
               onClick={() => {
                 setIsLoadDataLoading(true);
                 ApiService.getData(`/load/${id}/`)
@@ -4857,6 +4513,77 @@ const LoadViewPage = () => {
           </Box>
         ) : (
           <LeftPanelContent>
+            {/* Compact Summary */}
+            {load && (
+              <InfoCard>
+                <InfoCardHeader>
+                  <InfoCardTitle>
+                    <Info />
+                    Summary
+                  </InfoCardTitle>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">{load.load_id || '—'}</Typography>
+                  </Box>
+                </InfoCardHeader>
+
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                  <Box sx={{ minWidth: 160 }}>
+                    <DetailItem>
+                      <DetailLabel>Load ID</DetailLabel>
+                      <DetailValue>{load.load_id || '--'}</DetailValue>
+                    </DetailItem>
+                    <DetailItem>
+                      <DetailLabel>Customer</DetailLabel>
+                      <DetailValue>{(load.customer_broker && load.customer_broker.company_name) || load.customer_name || load.customer || '--'}</DetailValue>
+                    </DetailItem>
+                  </Box>
+
+                  <Box sx={{ minWidth: 160 }}>
+                    <DetailItem>
+                      <DetailLabel>Status</DetailLabel>
+                      <DetailValue>
+                        <Box component="span" sx={{
+                          display: 'inline-block',
+                          px: 1,
+                          py: '2px',
+                          borderRadius: 1,
+                          backgroundColor: (loadStatusOptions.find(o => o.value === (load.load_status || '')) || {}).color || '#E5E7EB',
+                          color: '#fff',
+                          fontWeight: 600,
+                          fontSize: '0.75rem'
+                        }}>{load.load_status || '--'}</Box>
+                      </DetailValue>
+                    </DetailItem>
+                    <DetailItem>
+                      <DetailLabel>Invoice</DetailLabel>
+                      <DetailValue>
+                        <Box component="span" sx={{
+                          display: 'inline-block',
+                          px: 1,
+                          py: '2px',
+                          borderRadius: 1,
+                          backgroundColor: (invoiceStatusOptions.find(o => o.value === (load.invoice_status || '')) || {}).color || '#9CA3AF',
+                          color: '#fff',
+                          fontWeight: 600,
+                          fontSize: '0.75rem'
+                        }}>{load.invoice_status || '--'}</Box>
+                      </DetailValue>
+                    </DetailItem>
+                  </Box>
+
+                  <Box sx={{ flex: 1, minWidth: 200 }}>
+                    <DetailItem>
+                      <DetailLabel>Driver</DetailLabel>
+                      <DetailValue>{(load.driver && (load.driver.first_name || load.driver.name)) || load.driver_name || '--'}</DetailValue>
+                    </DetailItem>
+                    <DetailItem>
+                      <DetailLabel>Truck</DetailLabel>
+                      <DetailValue>{(load.truck && (load.truck.unit_number || load.truck_number)) || '--'}</DetailValue>
+                    </DetailItem>
+                  </Box>
+                </Box>
+              </InfoCard>
+            )}
             {/* Stops Information with Edit Functionality */}
             <StopsContainer>
               <StopsHeader>
@@ -4910,6 +4637,25 @@ const LoadViewPage = () => {
                   </Box>
                 </Box>
               </StopsHeader>
+              
+              {compactView ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 0.5 }}>
+                  {sortStopsInOrder(load.stop || []).map((stop, idx) => (
+                    <StopItem key={idx} isCompact>
+                      <StopIconContainer isPickup={stop.stop_name === 'PICKUP'} isCompact>
+                        {stop.stop_name === 'PICKUP' ? <MdFileUpload size={14} /> : <MdFileDownload size={14} />}
+                      </StopIconContainer>
+                      <StopDetails>
+                        <StopHeader>
+                          <StopAddress>{stop.company_name || stop.stop_name || 'Stop'}</StopAddress>
+                          <StopDate>{stop.appointmentdate ? formatTimeForDisplay(stop.appointmentdate) : (stop.fcfs ? `FCFS ${formatTimeForDisplay(stop.fcfs)}` : '')}</StopDate>
+                        </StopHeader>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>{stop.address1 || stop.city || ''}</Typography>
+                      </StopDetails>
+                    </StopItem>
+                  ))}
+                </Box>
+              ) : (
               
               {isAddingStop && (
                 <StopEditContainer>
@@ -5669,6 +5415,7 @@ const LoadViewPage = () => {
                   </Box>
                 )
               ))}
+              )}
             </StopsContainer>
 
             <Divider sx={{ my: 0.5 }} />

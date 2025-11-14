@@ -181,6 +181,56 @@ const getLoadStatusStyle = (status) => {
   return {};
 };
 
+const getInvoiceStatusStyle = (status) => {
+  if (!status) return {};
+  
+  const statusUpper = status.toUpperCase();
+  
+  switch (statusUpper) {
+    case 'NOT_DETERMINED':
+      return { 
+        color: '#000000', 
+        backgroundColor: '#E5E7EB', 
+        padding: '4px 8px', 
+        borderRadius: '4px', 
+        fontWeight: '600',
+        display: 'inline-block'
+      }; // Gray background for not determined
+    case 'INVOICED':
+      return { 
+        color: '#ffffff', 
+        backgroundColor: '#2563EB', 
+        padding: '4px 8px', 
+        borderRadius: '4px', 
+        fontWeight: '600',
+        display: 'inline-block'
+      }; // Blue background for invoiced
+    case 'PAID':
+      return { 
+        color: '#ffffff', 
+        backgroundColor: '#059669', 
+        padding: '4px 8px', 
+        borderRadius: '4px', 
+        fontWeight: '600',
+        display: 'inline-block'
+      }; // Green background for paid
+    case 'UNPAID':
+      return { 
+        color: '#ffffff', 
+        backgroundColor: '#DC2626', 
+        padding: '4px 8px', 
+        borderRadius: '4px', 
+        fontWeight: '600',
+        display: 'inline-block'
+      }; // Red background for unpaid
+    default:
+      return { 
+        color: '#6B7280', 
+        fontWeight: '600' 
+      }; // Gray for unknown status
+  }
+};
+
 const AccountingPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -1089,7 +1139,8 @@ const AccountingPage = () => {
                     <th>{t('Load #')}</th>
                     <th>{t('Customer')}</th>
                     <th>{t('Lane')}</th>
-                    <th>{t('Status')}</th>
+                    <th>{t('Load Status')}</th>
+                    <th>{t('Invoice Status')}</th>
                     <th>{t('Pay')}</th>
                     <th>{t('Miles')}</th>
                     <th />
@@ -1122,6 +1173,11 @@ const AccountingPage = () => {
                               {load.load_status || '--'}
                             </span>
                           </td>
+                          <td>
+                            <span style={getInvoiceStatusStyle(load.invoice_status)}>
+                              {load.invoice_status || '--'}
+                            </span>
+                          </td>
                           <td>{formatCurrency(load.driver_pay ?? load.pay_total ?? load.pay)}</td>
                           <td>{formatMiles(load.total_miles ?? load.miles)}</td>
                           <td>
@@ -1138,7 +1194,7 @@ const AccountingPage = () => {
                         {expanded && hasExpandableContent && (
                           <tr className="stops-row">
                             <td />
-                            <td colSpan={7}>
+                            <td colSpan={8}>
                               <div className="load-details-content">
                                 {/* Pay Plan Section */}
                                 <div className="load-details-section pay-plan-section">

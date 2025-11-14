@@ -212,12 +212,13 @@ const AmazonInvoiceList = ({ refreshTrigger }) => {
             <table className="data-table amazon-invoice-table">
               <thead>
                 <tr>
-                  <th>{t('ID')}</th>
-                  <th>{t('Uploaded At')}</th>
-                  <th>{t('Processed At')}</th>
+                  <th>{t('Invoice Number')}</th>
+                  <th>{t('Weekly Number')}</th>
+                  <th>{t('Work Period Start')}</th>
+                  <th>{t('Work Period End')}</th>
+                  
                   <th>{t('Status')}</th>
                   <th>{t('Total Records')}</th>
-                  <th>{t('Matched')}</th>
                   <th>{t('Summary')}</th>
                   <th>{t('Actions')}</th>
                 </tr>
@@ -225,11 +226,11 @@ const AmazonInvoiceList = ({ refreshTrigger }) => {
               <tbody>
                 {invoices.map(invoice => (
                   <tr key={invoice.id}>
-                    <td>
-                      <strong>#{invoice.id}</strong>
-                    </td>
-                    <td>{formatDate(invoice.uploaded_at)}</td>
-                    <td>{formatDate(invoice.processed_at)}</td>
+                    <td>{invoice.invoice_number || '-'}</td>
+                    <td>{invoice.weekly_number || '-'}</td>
+                    <td>{invoice.work_period_start ? formatDate(invoice.work_period_start) : (invoice.work_period || '-')}</td>
+                    <td>{invoice.work_period_end ? formatDate(invoice.work_period_end) : (invoice.work_period ? invoice.work_period.split(' - ')[1] : '-')}</td>
+                    
                     <td>
                       <span className={getStatusBadgeClass(invoice.status)}>
                         {invoice.status || 'N/A'}
@@ -237,9 +238,6 @@ const AmazonInvoiceList = ({ refreshTrigger }) => {
                     </td>
                     <td className="text-center">
                       {invoice.total_records || invoice.loads?.length || 0}
-                    </td>
-                    <td className="text-center">
-                      {invoice.matched_records || 0}
                     </td>
                     <td>
                       {getSummaryBadges(invoice)}
@@ -253,7 +251,7 @@ const AmazonInvoiceList = ({ refreshTrigger }) => {
                         >
                           {t('View')}
                         </button>
-                        
+
                         {invoice.output_file_url && (
                           <a
                             href={invoice.output_file_url}
