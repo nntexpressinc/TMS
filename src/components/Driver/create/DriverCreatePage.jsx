@@ -328,6 +328,7 @@ const DriverCreatePage = () => {
       toast.success('User account created successfully');
 
       // 2. Create driver with the user ID
+      const currentUserId = localStorage.getItem('userid');
       const formattedDriverData = {
         user: userResponse.user_id,
         birth_date: driverData.birth_date || null,
@@ -353,7 +354,8 @@ const DriverCreatePage = () => {
         assigned_truck: driverData.assigned_truck ? parseInt(driverData.assigned_truck) : null,
         assigned_trailer: driverData.assigned_trailer ? parseInt(driverData.assigned_trailer) : null,
         assigned_dispatcher: driverData.assigned_dispatcher ? parseInt(driverData.assigned_dispatcher) : null,
-        driver_tags: driverData.driver_tags !== '' ? parseInt(driverData.driver_tags) : null
+        driver_tags: driverData.driver_tags !== '' ? parseInt(driverData.driver_tags) : null,
+        created_by: currentUserId
       };
 
       console.log("Sending driver data:", formattedDriverData);

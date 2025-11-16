@@ -105,9 +105,11 @@ const CreateDriverForm = () => {
 
     try {
       setLoading(true);
+      const currentUserId = localStorage.getItem('userid');
       const dataToSend = {
         ...formData,
-        role: 2  // Haydovchi uchun role ID ni aniq belgilaymiz
+        role: 2,  // Haydovchi uchun role ID ni aniq belgilaymiz
+        created_by: currentUserId
       };
       await DriverService.createDriver(dataToSend);
       navigate('/drivers');

@@ -500,9 +500,11 @@ const LoadPage = () => {
 
   const handleCreateInitialLoad = async () => {
     try {
+      const currentUserId = localStorage.getItem('userid');
       const response = await ApiService.postData("/load/", {
         reference_id: initialLoadData.reference_id,
         customer_broker: initialLoadData.customer_broker?.id,
+        created_by: currentUserId,
       });
       setLoadData(response);
       setCreateModalOpen(false);
@@ -547,20 +549,13 @@ const LoadPage = () => {
     load.customer_broker?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleNext = async () => {
+    const handleNext = async () => {
     const currentStep = steps[activeStep].toUpperCase().replace(" ", " ");
     const required = requiredFields[activeStep];
 
     // Enhanced validation with specific error messages
     for (const field of required) {
-      if (!loadData[field]) {
-        let fieldName = field.replace("_", " ");
-        if (field === "truck") {
-          fieldName = "Unit/Truck";
-        }
-        alert(`${fieldName} is required to proceed.`);
-        return;
-      }
+      if (!loadData[field]) {/* Lines 557-563 omitted */}
     }
 
     try {
@@ -568,33 +563,25 @@ const LoadPage = () => {
       const processedData = { ...loadData };
 
       // Extract only the 'id' from objects
-      if (processedData.created_by && typeof processedData.created_by === 'object') processedData.created_by = processedData.created_by.id;
-      if (processedData.customer_broker && typeof processedData.customer_broker === 'object') processedData.customer_broker = processedData.customer_broker.id;
-      if (processedData.dispatcher && typeof processedData.dispatcher === 'object') processedData.dispatcher = processedData.dispatcher.id;
-      if (processedData.driver && typeof processedData.driver === 'object') processedData.driver = processedData.driver.id;
-      if (processedData.truck && typeof processedData.truck === 'object') processedData.truck = processedData.truck.id;
+      if (processedData.created_by && typeof processedData.created_by === 'object') /* Line 571 omitted */
+      if (processedData.customer_broker && typeof processedData.customer_broker === 'object') /* Line 572 omitted */
+      if (processedData.dispatcher && typeof processedData.dispatcher === 'object') /* Line 573 omitted */
+      if (processedData.driver && typeof processedData.driver === 'object') /* Line 574 omitted */
+      if (processedData.truck && typeof processedData.truck === 'object') /* Line 575 omitted */
 
-      Object.keys(processedData).forEach((key) => {
-        // Skip created_date and updated_date unless they are explicitly set in a valid format
-        if (key === "created_date" || key === "updated_date") {
-          if (processedData[key] && typeof processedData[key] === "string" && processedData[key].includes("T")) {
-            formData.append(key, processedData[key]);
-          }
-        } else if (processedData[key] !== null && processedData[key] !== undefined && key !== "pickup_time" && key !== "delivery_time") {
-          if (processedData[key]?.file) {
-            formData.append(key, processedData[key].file);
-          } else {
-            formData.append(key, processedData[key]);
-          }
-        }
-      });
+      Object.keys(processedData).forEach((key) => {/* Lines 578-590 omitted */});
+      
+      // Get current user ID
+      const currentUserId = localStorage.getItem('userid');
+      
       // Format created_date and updated_date to YYYY-MM-DD
       const formattedCreatedDate = loadData.created_date ? new Date(loadData.created_date).toISOString().split('T')[0] : "";
       const formattedUpdatedDate = loadData.updated_date ? new Date(loadData.updated_date).toISOString().split('T')[0] : "";
       formData.set("created_date", formattedCreatedDate);
       formData.set("updated_date", formattedUpdatedDate);
       formData.set("load_status", currentStep);
-      formData.set("created_by", processedData.created_by || "");
+      formData.set("created_by", processedData.created_by || currentUserId || "");
+      formData.set("updated_by", currentUserId || "");
 
       if (id) {
         await ApiService.patchData(`/load/${id}/`, formData);
@@ -627,30 +614,22 @@ const LoadPage = () => {
       const formData = new FormData();
       const processedData = { ...loadData };
 
-      if (processedData.created_by && typeof processedData.created_by === 'object') processedData.created_by = processedData.created_by.id;
-      if (processedData.customer_broker && typeof processedData.customer_broker === 'object') processedData.customer_broker = processedData.customer_broker.id;
-      if (processedData.dispatcher && typeof processedData.dispatcher === 'object') processedData.dispatcher = processedData.dispatcher.id;
-      if (processedData.driver && typeof processedData.driver === 'object') processedData.driver = processedData.driver.id;
-      if (processedData.truck && typeof processedData.truck === 'object') processedData.truck = processedData.truck.id;
+      if (processedData.created_by && typeof processedData.created_by === 'object') /* Line 630 omitted */
+      if (processedData.customer_broker && typeof processedData.customer_broker === 'object') /* Line 631 omitted */
+      if (processedData.dispatcher && typeof processedData.dispatcher === 'object') /* Line 632 omitted */
+      if (processedData.driver && typeof processedData.driver === 'object') /* Line 633 omitted */
+      if (processedData.truck && typeof processedData.truck === 'object') /* Line 634 omitted */
 
-      Object.keys(processedData).forEach((key) => {
-        if (key === "created_date" || key === "updated_date") {
-          if (processedData[key] && typeof processedData[key] === "string" && processedData[key].includes("T")) {
-            formData.append(key, processedData[key]);
-          }
-        } else if (processedData[key] !== null && processedData[key] !== undefined && key !== "pickup_time" && key !== "delivery_time") {
-          if (processedData[key]?.file) {
-            formData.append(key, processedData[key].file);
-          } else {
-            formData.append(key, processedData[key]);
-          }
-        }
-      });
+      Object.keys(processedData).forEach((key) => {/* Lines 637-648 omitted */});
 
+      // Get current user ID
+      const currentUserId = localStorage.getItem('userid');
+      
       const formattedCreatedDate = loadData.created_date ? new Date(loadData.created_date).toISOString().split('T')[0] : "";
       const formattedUpdatedDate = loadData.updated_date ? new Date(loadData.updated_date).toISOString().split('T')[0] : "";
       formData.set("created_date", formattedCreatedDate);
       formData.set("updated_date", formattedUpdatedDate);
+      formData.set("updated_by", currentUserId || "");
 
       const loadId = id ? id : localStorage.getItem('loadId');
       await ApiService.putData(`/load/${loadId}/`, formData);
@@ -659,9 +638,7 @@ const LoadPage = () => {
     } catch (error) {
       console.error('Error saving load:', error);
     }
-  };
-
-  const handleChange = async (e) => {
+  };  const handleChange = async (e) => {
     const { name, files, value } = e.target;
     const updatedLoadData = {
       ...loadData,

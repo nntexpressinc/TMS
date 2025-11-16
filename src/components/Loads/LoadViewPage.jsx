@@ -1261,13 +1261,15 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
     setError(null);
 
     try {
+      const currentUserId = localStorage.getItem('userid');
       const response = await ApiService.postData("/load/", {
         reference_id: loadData.reference_id,
         load_id: loadData.load_id,
         customer_broker: loadData.customer_broker.id,
         load_status: "OPEN", 
         company_name: loadData.customer_broker.company_name,
-        weight: loadData.weight ? loadData.weight.toString() : null
+        weight: loadData.weight ? loadData.weight.toString() : null,
+        created_by: currentUserId
       });
       
       console.log("Load created:", response);
@@ -3688,6 +3690,11 @@ const LoadViewPage = () => {
           });
         }, 200);
         
+        const currentUserId = localStorage.getItem('userid');
+        if (currentUserId) {
+          formData.append('updated_by', currentUserId);
+        }
+        
         await ApiService.putMediaData(`/load/${id}/`, formData);
         
         clearInterval(progressInterval);
@@ -4625,8 +4632,10 @@ const LoadViewPage = () => {
     
     setIsUpdatingStatus(true);
     try {
+      const currentUserId = localStorage.getItem('userid');
       await ApiService.putData(`/load/${id}/`, {
-        invoice_status: newStatus
+        invoice_status: newStatus,
+        updated_by: currentUserId
       });
       
       setLoad(prevLoad => ({
@@ -4656,8 +4665,10 @@ const LoadViewPage = () => {
     
     setIsUpdatingStatus(true);
     try {
+      const currentUserId = localStorage.getItem('userid');
       await ApiService.putData(`/load/${id}/`, {
-        load_status: newStatus
+        load_status: newStatus,
+        updated_by: currentUserId
       });
       
       setLoad(prevLoad => ({

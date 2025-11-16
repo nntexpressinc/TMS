@@ -186,6 +186,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
     setError(null);
 
     try {
+      const currentUserId = localStorage.getItem('userid');
       const response = await ApiService.postData("/load/", {
         load_id: loadData.load_id,
         reference_id: loadData.reference_id,
@@ -197,7 +198,8 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
         team_id: loadData.team_id,
         equipment_type: loadData.equipment_type,
         load_status: "OPEN",
-        company_name: loadData.customer_broker.company_name
+        company_name: loadData.customer_broker.company_name,
+        created_by: currentUserId
       });
 
       console.log("Load created:", response);
@@ -1061,9 +1063,11 @@ const LoadsPage = () => {
     const newStatus = params.value;
     
     try {
+      const currentUserId = localStorage.getItem('userid');
       // Use putData like LoadViewPage does
       await ApiService.putData(`/load/${loadId}/`, {
-        load_status: newStatus
+        load_status: newStatus,
+        updated_by: currentUserId
       });
       
       // Update local state

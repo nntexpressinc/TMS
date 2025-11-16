@@ -291,6 +291,11 @@ const EditLoad = () => {
         }
       });
 
+      const currentUserId = localStorage.getItem('userid');
+      if (currentUserId) {
+        formData.append('updated_by', currentUserId);
+      }
+
       try {
         const response = await ApiService.putMediaData(`/load/${id}/`, formData);
         console.log("File uploaded successfully:", response);

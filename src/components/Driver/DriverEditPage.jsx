@@ -283,6 +283,7 @@ const DriverEditPage = () => {
     setSuccess(false);
     setLoading(true);
     try {
+      const currentUserId = localStorage.getItem('userid');
       const updatedData = Object.keys(driverData).reduce((acc, key) => {
         if ([
           'assigned_truck', 'assigned_trailer', 'assigned_dispatcher'
@@ -298,6 +299,7 @@ const DriverEditPage = () => {
         return acc;
       }, {});
       updatedData.user = selectedUser?.id;
+      updatedData.updated_by = currentUserId;
       await ApiService.putData(`/driver/${id}/`, updatedData);
       
       // Handle unit assignment

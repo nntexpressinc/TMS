@@ -68,7 +68,13 @@ export const DriverService = {
   updateDriver: async (id, driverData) => {
     try {
       const token = localStorage.getItem('token');
+      const currentUserId = localStorage.getItem('userid');
       const formData = new FormData();
+      
+      // Add updated_by field
+      if (currentUserId) {
+        formData.append('updated_by', currentUserId);
+      }
       
       Object.keys(driverData).forEach(key => {
         if (driverData[key] !== null && driverData[key] !== undefined) {
