@@ -7114,7 +7114,7 @@ const LoadViewPage = () => {
                           Load Pay
                         </Typography>
                         <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                          {load.load_pay ? `$${load.load_pay}` : "Not assigned"}
+                          {load.load_pay ? `$${parseFloat(load.load_pay).toFixed(2)}` : "Not assigned"}
                         </Typography>
                       </Box>
                     </Grid>
@@ -7125,7 +7125,7 @@ const LoadViewPage = () => {
                           Total Pay
                         </Typography>
                         <Typography variant="body2" sx={{ color: '#202124', fontWeight: 500 }}>
-                          {load.total_pay ? `$${load.total_pay}` : "Not assigned"}
+                          {load.total_pay ? `$${parseFloat(load.total_pay).toFixed(2)}` : "Not assigned"}
                         </Typography>
                       </Box>
                     </Grid>
