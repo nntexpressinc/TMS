@@ -1,6 +1,8 @@
 import axios from 'axios';
+import { BASE_URL } from '../config';
 
-export const BASE_URL = 'https://nnt.nntexpressinc.com/api';
+export { BASE_URL };
+
 
 const apiClient = axios.create({
   baseURL: BASE_URL,

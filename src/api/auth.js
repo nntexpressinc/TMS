@@ -1,7 +1,7 @@
 // src/api/auth.js
 import axios from 'axios';
+import { BASE_URL } from '../config';
 
-const BASE_URL = 'https://nnt.nntexpressinc.com/api';
 
 // API endpoints
 const ENDPOINTS = {
