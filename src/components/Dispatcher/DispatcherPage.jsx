@@ -228,6 +228,15 @@ const DispatcherPage = () => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const getRowClassName = (params) => {
+    const status = params.row.employee_status?.toUpperCase();
+    const statusConfig = dispatcherStatuses.find(s => s.value === status);
+    if (statusConfig) {
+      return `row-status-${status.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    }
+    return '';
+  };
+
   const columns = [
     {
       field: 'nickname',
@@ -458,6 +467,7 @@ const DispatcherPage = () => {
             pageSize={10}
             rowsPerPageOptions={[10, 20, 50]}
             loading={loading}
+            getRowClassName={getRowClassName}
             sx={{
               backgroundColor: 'white',
               borderRadius: '12px',
@@ -492,6 +502,25 @@ const DispatcherPage = () => {
                 borderLeft: '1px solid #E5E7EB',
                 '&:last-child': {
                   borderRight: 'none'
+                }
+              },
+              // Row background colors for dispatcher statuses
+              '& .row-status-active--df-': {
+                backgroundColor: '#10B98120',
+                '&:hover': {
+                  backgroundColor: '#10B98130',
+                }
+              },
+              '& .row-status-terminate': {
+                backgroundColor: '#EF444420',
+                '&:hover': {
+                  backgroundColor: '#EF444430',
+                }
+              },
+              '& .row-status-applicant': {
+                backgroundColor: '#6366F120',
+                '&:hover': {
+                  backgroundColor: '#6366F130',
                 }
               }
             }}

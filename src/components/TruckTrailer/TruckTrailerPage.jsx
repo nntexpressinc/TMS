@@ -491,12 +491,7 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
       }
     },
     { field: 'color', headerName: 'Color', width: 100, valueFormatter: (params) => params?.value || '-' },
-    { field: 'mc_number', headerName: 'MC Number', width: 120, valueFormatter: (params) => params?.value || '-' },
-    { field: 'pickup_odometer', headerName: 'Pickup Odometer', width: 150, valueFormatter: (params) => params?.value || '-' },
-    { field: 'owner', headerName: 'Owner', width: 120, valueFormatter: (params) => params?.value || '-' },
-    { field: 'driver', headerName: 'Driver', width: 120, valueFormatter: (params) => params?.value || '-' },
-    { field: 'location', headerName: 'Location', width: 150, valueFormatter: (params) => params?.value || '-' },
-    { field: 'mileage_on_pickup', headerName: 'Mileage on Pickup', width: 150, valueFormatter: (params) => params?.value || '-' }
+    { field: 'mc_number', headerName: 'MC Number', width: 120, valueFormatter: (params) => params?.value || '-' }
   ];
 
   const trailerColumns = [
@@ -647,25 +642,27 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
       headerName: 'Last Inspection', 
       width: 150,
       valueFormatter: (params) => params?.value ? new Date(params.value).toLocaleDateString() : '-'
-    },
-    { field: 'location', headerName: 'Location', width: 150, valueFormatter: (params) => params?.value || '-' },
-    { field: 'driver', headerName: 'Driver', width: 120, valueFormatter: (params) => params?.value || '-' },
-    { field: 'co_driver', headerName: 'Co-Driver', width: 120, valueFormatter: (params) => params?.value || '-' },
-    { 
-      field: 'pickup_date', 
-      headerName: 'Pickup Date', 
-      width: 150,
-      valueFormatter: (params) => params?.value ? new Date(params.value).toLocaleDateString() : '-'
-    },
-    { 
-      field: 'drop_date', 
-      headerName: 'Drop Date', 
-      width: 150,
-      valueFormatter: (params) => params?.value ? new Date(params.value).toLocaleDateString() : '-'
     }
   ];
 
   const columns = type === 'truck' ? truckColumns : trailerColumns;
+
+  const getRowClassName = (params) => {
+    if (type === 'truck') {
+      const ownership = params.row.ownership_type?.toUpperCase();
+      const ownershipConfig = ownershipTypes.find(t => t.value === ownership);
+      if (ownershipConfig) {
+        return `row-ownership-${ownership.toLowerCase().replace('_', '-')}`;
+      }
+    } else {
+      const trailerType = params.row.type?.toUpperCase();
+      const typeConfig = trailerTypes.find(t => t.value === trailerType);
+      if (typeConfig) {
+        return `row-type-${trailerType.toLowerCase()}`;
+      }
+    }
+    return '';
+  };
 
   return (
     <Box sx={{ height: '100%', width: '100%', transition: 'width 0.3s', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} ref={tableRef}>
@@ -847,6 +844,7 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
             columns={columns}
             pageSize={10}
             rowsPerPageOptions={[10, 20, 50]}
+            getRowClassName={getRowClassName}
             sx={{
               backgroundColor: 'white',
               borderRadius: '12px',
@@ -881,6 +879,68 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
                 borderLeft: '1px solid #E5E7EB',
                 '&:last-child': {
                   borderRight: 'none'
+                }
+              },
+              // Row background colors for truck ownership types
+              '& .row-ownership-company': {
+                backgroundColor: '#3B82F620',
+                '&:hover': {
+                  backgroundColor: '#3B82F630',
+                }
+              },
+              '& .row-ownership-owner-operator': {
+                backgroundColor: '#10B98120',
+                '&:hover': {
+                  backgroundColor: '#10B98130',
+                }
+              },
+              '& .row-ownership-lease': {
+                backgroundColor: '#F59E0B20',
+                '&:hover': {
+                  backgroundColor: '#F59E0B30',
+                }
+              },
+              '& .row-ownership-rental': {
+                backgroundColor: '#8B5CF620',
+                '&:hover': {
+                  backgroundColor: '#8B5CF630',
+                }
+              },
+              // Row background colors for trailer types
+              '& .row-type-reefer': {
+                backgroundColor: '#3B82F620',
+                '&:hover': {
+                  backgroundColor: '#3B82F630',
+                }
+              },
+              '& .row-type-dryvan': {
+                backgroundColor: '#10B98120',
+                '&:hover': {
+                  backgroundColor: '#10B98130',
+                }
+              },
+              '& .row-type-stepdeck': {
+                backgroundColor: '#F59E0B20',
+                '&:hover': {
+                  backgroundColor: '#F59E0B30',
+                }
+              },
+              '& .row-type-lowboy': {
+                backgroundColor: '#8B5CF620',
+                '&:hover': {
+                  backgroundColor: '#8B5CF630',
+                }
+              },
+              '& .row-type-carhaul': {
+                backgroundColor: '#EC489920',
+                '&:hover': {
+                  backgroundColor: '#EC489930',
+                }
+              },
+              '& .row-type-flatbed': {
+                backgroundColor: '#6366F120',
+                '&:hover': {
+                  backgroundColor: '#6366F130',
                 }
               }
             }}
