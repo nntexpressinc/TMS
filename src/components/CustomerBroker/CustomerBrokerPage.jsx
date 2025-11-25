@@ -8,6 +8,7 @@ import { Download, Height, FormatAlignLeft, FormatAlignCenter, FormatAlignRight 
 import { useNavigate } from 'react-router-dom';
 import './CustomerBrokerPage.css';
 import { useSidebar } from "../SidebarContext";
+import { OverlayLoader } from "../loader/PulseDotsLoader";
 import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -475,7 +476,13 @@ const CustomerBrokerPage = () => {
       </Box>
 
       <Box sx={{ display: 'flex', gap: 2, flexGrow: 1, overflow: 'hidden' }}>
-        <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
+        <Box sx={{ flexGrow: 1, overflow: 'hidden', position: 'relative' }}>
+          {loading && (
+            <OverlayLoader
+              fullScreen={false}
+              showText={false}
+            />
+          )}
           <DataGrid
             rows={filteredCustomerBrokers}
             columns={columns}

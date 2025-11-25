@@ -6,6 +6,7 @@ import { updateLoadStatus } from "../../api/loads";
 import { useNavigate } from 'react-router-dom';
 import './LoadsPage.css';
 import { useSidebar } from "../SidebarContext";
+import { OverlayLoader } from "../loader/PulseDotsLoader";
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -42,6 +43,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
   const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isLookupLoading, setIsLookupLoading] = useState(false);
   const [showBrokerModal, setShowBrokerModal] = useState(false);
   const [newBroker, setNewBroker] = useState({
     company_name: "",
@@ -58,30 +60,39 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
   });
 
   useEffect(() => {
-    const fetchBrokers = async () => {
-      try {
-        const data = await ApiService.getData("/customer_broker/");
-        setBrokers(data);
-      } catch (error) {
-        console.error("Error fetching brokers:", error);
-        setError("Failed to load brokers. Please try again.");
-      }
-    };
+    let isMounted = true;
 
-    const fetchUnits = async () => {
+    const fetchInitialData = async () => {
+      setIsLookupLoading(true);
       try {
-        const data = await ApiService.getData("/unit/");
-        setUnits(data);
+        const [brokerData, unitData] = await Promise.all([
+          ApiService.getData("/customer_broker/"),
+          ApiService.getData("/unit/"),
+        ]);
+
+        if (!isMounted) return;
+        setBrokers(brokerData);
+        setUnits(unitData);
       } catch (error) {
-        console.error("Error fetching units:", error);
-        setError("Failed to load units. Please try again.");
+        console.error("Error fetching brokers or units:", error);
+        if (isMounted) {
+          setError("Failed to load customer/broker data. Please try again.");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLookupLoading(false);
+        }
       }
     };
 
     if (open) {
-      fetchBrokers();
-      fetchUnits();
+      fetchInitialData();
     }
+
+    return () => {
+      isMounted = false;
+      setIsLookupLoading(false);
+    };
   }, [open]);
 
   const handleChange = (e) => {
@@ -288,13 +299,13 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
             <Typography variant="h6">Create New Load</Typography>
           </Box>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ position: 'relative', minHeight: '200px' }}>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid container spacing={2} sx={{ mt: 1, opacity: isLookupLoading ? 0.5 : 1 }}>
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -473,6 +484,14 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
               />
             </Grid>
           </Grid>
+          {isLookupLoading && (
+            <OverlayLoader
+              label="Loading broker data"
+              fullScreen={false}
+              showText={false}
+              style={{ borderRadius: 12 }}
+            />
+          )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={onClose}>Cancel</Button>
@@ -1824,48 +1843,12 @@ const LoadsPage = () => {
       <Box sx={{ display: 'flex', gap: 2, flexGrow: 1, overflow: 'hidden' }}>
         <Box sx={{ flexGrow: 1, overflow: 'hidden', position: 'relative' }}>
           {loading && (
-            <Box sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'rgba(255, 255, 255, 0.9)',
-              zIndex: 1000,
-              borderRadius: '12px'
-            }}>
-              <CircularProgress
-                size={60}
-                sx={{
-                  color: '#3B82F6',
-                  mb: 2
-                }}
-              />
-              <Typography
-                variant="h6"
-                sx={{
-                  color: '#6B7280',
-                  fontWeight: 500,
-                  textAlign: 'center'
-                }}
-              >
-                Loading loads...
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: '#9CA3AF',
-                  mt: 1,
-                  textAlign: 'center'
-                }}
-              >
-                Please wait while we fetch your data
-              </Typography>
-            </Box>
+            <OverlayLoader
+              label="Loading loads"
+              fullScreen={false}
+              showText={false}
+              style={{ borderRadius: 12 }}
+            />
           )}
           <DataGrid
             rows={filteredLoads}

@@ -23,6 +23,7 @@ import { ApiService } from "../../api/auth";
 import { useNavigate } from 'react-router-dom';
 import './TruckTrailerPage.css';
 import { useSidebar } from "../SidebarContext";
+import { OverlayLoader } from "../loader/PulseDotsLoader";
 import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -824,20 +825,10 @@ const TruckTrailerPage = ({ type = 'truck' }) => {
       <Box sx={{ display: 'flex', gap: 2, flexGrow: 1, overflow: 'hidden' }}>
         <Box sx={{ flexGrow: 1, overflow: 'hidden', position: 'relative' }}>
           {loading && (
-            <Box sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'rgba(255, 255, 255, 0.7)',
-              zIndex: 1
-            }}>
-              <CircularProgress />
-            </Box>
+            <OverlayLoader
+              fullScreen={false}
+              showText={false}
+            />
           )}
           <DataGrid
             rows={filteredItems}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import PulseDotsLoader from '../loader/PulseDotsLoader';
 import './PayReportsPage.css';
 
 // Import API functions (you'll need to add these to your paySystem.js)
@@ -252,10 +253,11 @@ const PayReportsPage = ({ onCreateNew }) => {
 
       {/* Records Table */}
       <div className="pay-reports-content">
-        {loading && <div className="pay-reports-loading">
-          <div className="spinner"></div>
-          <p>{t('Loading pay records...')}</p>
-        </div>}
+        {loading && (
+          <div className="pay-reports-loading">
+            <PulseDotsLoader size="lg" ariaLabel={t('Loading pay records')} />
+          </div>
+        )}
 
         {!loading && filteredRecords.length === 0 && (
           <div className="pay-reports-empty">

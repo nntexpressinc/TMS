@@ -8,7 +8,6 @@ import {
   IconButton,
   Button,
   Divider,
-  CircularProgress,
   Tooltip,
   Chip,
 } from '@mui/material';
@@ -21,6 +20,7 @@ import { toast } from 'react-hot-toast';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { OverlayLoader } from '../../loader/PulseDotsLoader';
 
 const CustomerBrokerViewPage = () => {
   const { id } = useParams();
@@ -99,7 +99,7 @@ const CustomerBrokerViewPage = () => {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
+        <OverlayLoader fullScreen={false} showText={false} />
       </Box>
     );
   }

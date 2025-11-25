@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FaUserCog, FaPlus, FaUsers, FaEllipsisV, FaTruck, FaSearch } from 'react-icons/fa';
 import { ApiService } from '../../api/auth';
+import PulseDotsLoader from '../loader/PulseDotsLoader';
 import './ManageUsers.scss';
 import CreateTeamModal from './CreateTeamModal';
 import defaultAvatar from '../../images/photo_url.jpg';
@@ -340,7 +341,11 @@ const TeamManagementPage = () => {
   };
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return (
+      <div className="manage-users-container" style={{ minHeight: '80vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <PulseDotsLoader size="lg" ariaLabel={t('Loading teams')} />
+      </div>
+    );
   }
 
   const getProfilePhotoUrl = (photoPath) => {

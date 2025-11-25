@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getDriversSummary, getDriverCompletedLoads, getTruckCompletedLoads, postPaystubAction, createDriverExpense, createTruckExpense } from '../../api/paySystem';
 import { testApiConnection } from '../../api/testConnection';
+import { OverlayLoader } from '../loader/PulseDotsLoader';
 import './AccountingPage.css';
 
 const STORAGE_KEY = 'driverPayPageState';
@@ -1103,7 +1104,7 @@ const AccountingPage = () => {
         <section className={`data-panel ${driverLoading ? 'loading' : ''}`}>
           {driverLoading && (
             <div className="loading-overlay">
-              <div className="loading-spinner"></div>
+              <OverlayLoader fullScreen={false} showText={false} />
             </div>
           )}
           <div className="panel-header">
@@ -1302,7 +1303,7 @@ const AccountingPage = () => {
         <section className={`data-panel ${driverLoading ? 'loading' : ''}`}>
           {driverLoading && (
             <div className="loading-overlay">
-              <div className="loading-spinner"></div>
+              <OverlayLoader fullScreen={false} showText={false} />
             </div>
           )}
           <div className="panel-header">

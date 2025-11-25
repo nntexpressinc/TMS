@@ -8,7 +8,6 @@ import {
   IconButton,
   Button,
   Divider,
-  CircularProgress,
   Tooltip,
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -20,6 +19,7 @@ import { toast } from 'react-hot-toast';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { OverlayLoader } from '../../loader/PulseDotsLoader';
 
 const TrailerView = () => {
   const { id } = useParams();
@@ -95,8 +95,8 @@ const TrailerView = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
+      <Box sx={{ position: 'relative', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+        <OverlayLoader fullScreen={false} showText={false} />
       </Box>
     );
   }

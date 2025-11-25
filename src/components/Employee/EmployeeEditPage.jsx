@@ -3,6 +3,7 @@ import { Box, Button, TextField, Typography, Paper, MenuItem, FormControl, Input
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiService } from "../../api/auth";
 import { toast } from 'react-hot-toast';
+import { PageLoader } from "../loader/PulseDotsLoader";
 
 const US_STATES = [
   { code: 'AL', name: 'Alabama' },
@@ -220,7 +221,7 @@ const EmployeeEditPage = () => {
     }
   };
 
-  if (loading) return <Typography>Loading...</Typography>;
+  if (loading) return <PageLoader label="Loading employee..." />;
 
   return (
     <Box sx={{ p: 3 }}>

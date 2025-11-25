@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getIftaReports, createIftaReport, deleteIftaReport, downloadIftaReport } from '../../api/ifta';
+import PulseDotsLoader from '../loader/PulseDotsLoader';
 
 const QUARTERS = [
   { value: 'Quarter 1', label: 'Quarter 1 (Jan-Mar)' },
@@ -106,7 +107,9 @@ const IftaReportsPage = ({ showCreateModal, setShowCreateModal }) => {
       {error && <div className="error-message">{error}</div>}
       {success && <div className="success-message">{success}</div>}
       {loading ? (
-        <div className="loading">Loading IFTA reports...</div>
+        <div className="loading" style={{ minHeight: '40vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <PulseDotsLoader size="lg" ariaLabel="Loading IFTA reports" />
+        </div>
       ) : reports.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '20px' }}>No IFTA reports found.</div>
       ) : (

@@ -7,6 +7,7 @@ import EditIftaModal from './EditIftaModal';
 import CreateFuelTaxRatesModal from './CreateFuelTaxRatesModal';
 import EditFuelTaxRateModal from './EditFuelTaxRateModal';
 import './IftaPage.css';
+import PulseDotsLoader from '../loader/PulseDotsLoader';
 
 const IftaPage = () => {
   const { t } = useTranslation();
@@ -321,7 +322,11 @@ const IftaPage = () => {
   };
 
   if (loading) {
-    return <div className="loading">Loading IFTA records...</div>;
+    return (
+      <div className="loading" style={{ minHeight: '40vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <PulseDotsLoader size="lg" ariaLabel="Loading IFTA records" />
+      </div>
+    );
   }
 
   return (

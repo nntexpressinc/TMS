@@ -5,6 +5,7 @@ import { ApiService } from "../../api/auth";
 import { useNavigate } from 'react-router-dom';
 import './DispatcherPage.css';
 import { useSidebar } from "../SidebarContext";
+import { OverlayLoader } from "../loader/PulseDotsLoader";
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import EditIcon from '@mui/icons-material/Edit';
@@ -460,7 +461,13 @@ const DispatcherPage = () => {
 
       <Box sx={{ display: 'flex', gap: 2, flexGrow: 1, overflow: 'hidden' }}>
         {/* Main Table */}
-        <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
+        <Box sx={{ flexGrow: 1, overflow: 'hidden', position: 'relative' }}>
+          {loading && (
+            <OverlayLoader
+              fullScreen={false}
+              showText={false}
+            />
+          )}
           <DataGrid
             rows={filteredDispatchers}
             columns={columns}

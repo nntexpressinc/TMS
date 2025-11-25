@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FaUserCog, FaPlus, FaUsers, FaEllipsisV } from 'react-icons/fa';
 import { ApiService } from '../../api/auth';
+import PulseDotsLoader from '../loader/PulseDotsLoader';
 import './ManageUsers.scss';
 import CreateRoleModal from './CreateRoleModal';
 import defaultAvatar from '../../images/photo_url.jpg';
@@ -263,7 +264,11 @@ const ManageUsersPage = () => {
   };
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return (
+      <div className="manage-users-container" style={{ minHeight: '80vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <PulseDotsLoader size="lg" ariaLabel={t('Loading users')} />
+      </div>
+    );
   }
 
   const getUsersByRole = (roleId) => {

@@ -93,6 +93,7 @@ import { useSidebar } from "../SidebarContext";
 import darkLogo from '../../images/dark-logo.png';
 import { CiDeliveryTruck } from "react-icons/ci";
 import EmojiPicker from 'emoji-picker-react';
+import { OverlayLoader } from "../loader/PulseDotsLoader";
 
 // Styled components for the layout - Clean & Minimalist Design
 const MainContainer = styled(Box)(({ theme }) => ({
@@ -1205,6 +1206,7 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
   const [brokers, setBrokers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isLookupLoading, setIsLookupLoading] = useState(false);
   const [showBrokerModal, setShowBrokerModal] = useState(false);
   const [newBroker, setNewBroker] = useState({
     company_name: "",
@@ -1221,19 +1223,34 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
   });
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchBrokers = async () => {
+      setIsLookupLoading(true);
       try {
         const data = await ApiService.getData("/customer_broker/");
+        if (!isMounted) return;
         setBrokers(data);
       } catch (error) {
         console.error("Error fetching brokers:", error);
-        setError("Failed to load brokers. Please try again.");
+        if (isMounted) {
+          setError("Failed to load brokers. Please try again.");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLookupLoading(false);
+        }
       }
     };
 
     if (open) {
       fetchBrokers();
     }
+
+    return () => {
+      isMounted = false;
+      setIsLookupLoading(false);
+    };
   }, [open]);
 
   const handleChange = (e) => {
@@ -1353,13 +1370,13 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
             <Typography variant="h6">Yangi Load Yaratish</Typography>
           </Box>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ position: 'relative', minHeight: '200px' }}>
           {error && (
             <Alert severity="error" sx={{ mb: 1 }}>
               {error}
             </Alert>
           )}
-          <Grid container spacing={0.5} sx={{ mt: 0.5 }}>
+          <Grid container spacing={0.5} sx={{ mt: 0.5, opacity: isLookupLoading ? 0.5 : 1 }}>
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -1486,6 +1503,14 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
               </Box>
             </Grid>
           </Grid>
+          {isLookupLoading && (
+            <OverlayLoader
+              label="Loading broker data"
+              fullScreen={false}
+              showText={false}
+              style={{ borderRadius: 12 }}
+            />
+          )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={onClose}>Cancel</Button>
@@ -4339,8 +4364,12 @@ const LoadViewPage = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-        <CircularProgress />
+      <Box sx={{ position: "relative", minHeight: "100vh", backgroundColor: '#f8f9fa' }}>
+        <OverlayLoader
+          label="Loading load data"
+          fullScreen={false}
+          showText={false}
+        />
       </Box>
     );
   }

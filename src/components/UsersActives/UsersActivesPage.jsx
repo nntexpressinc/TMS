@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import { ApiService } from "../../api/auth";
 import { Box, Typography, Alert } from "@mui/material";
+import { OverlayLoader } from "../loader/PulseDotsLoader";
 
 const DispatcherPage = () => {
   const [locations, setLocations] = useState([]);
@@ -91,14 +92,29 @@ const DispatcherPage = () => {
           {error}
         </Alert>
       )}
-      <div style={{ height: 400, width: '100%' }}>
+      <div style={{ height: 400, width: '100%', position: 'relative' }}>
+        {loading && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(255, 255, 255, 0.7)',
+              zIndex: 1,
+              pointerEvents: 'all'
+            }}
+          >
+            <OverlayLoader fullScreen={false} showText={false} />
+          </div>
+        )}
         <DataGrid
           rows={rows}
           columns={columns}
           pageSize={5}
           rowsPerPageOptions={[5, 10, 20]}
           components={{ Toolbar: GridToolbar }}
-          loading={loading}
           disableSelectionOnClick
         />
       </div>

@@ -48,6 +48,7 @@ import { ApiService } from "../../api/auth";
 import { useNavigate } from "react-router-dom";
 import { format } from 'date-fns';
 import { getTeamStatistics } from '../../api/statistics';
+import { PageLoader } from "../loader/PulseDotsLoader";
 
 // StatCard component definition
 const StatCard = ({ title, total, active, icon, color, onClick }) => (
@@ -266,16 +267,7 @@ const DashboardPage = () => {
   };
 
   if (loading) {
-    return (
-      <Box sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh'
-      }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <PageLoader label="Loading dashboard..." minHeight="70vh" />;
   }
 
   const handleTeamClick = (teamId) => {

@@ -12,7 +12,6 @@ import {
   Grid,
   Divider,
   Chip,
-  CircularProgress,
   Avatar,
   Alert,
   Card,
@@ -25,6 +24,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { ApiService } from '../../api/auth';
 import { toast } from 'react-hot-toast';
+import PulseDotsLoader from '../loader/PulseDotsLoader';
 import EmployeePDF from './EmployeePDF';
 import { saveAs } from 'file-saver';
 import { pdf } from '@react-pdf/renderer';
@@ -181,8 +181,8 @@ const EmployeeViewPage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <PulseDotsLoader size="lg" ariaLabel="Loading employee" />
       </Box>
     );
   }

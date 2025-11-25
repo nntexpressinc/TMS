@@ -7,6 +7,7 @@ import CreateFuelTaxRatesModal from './CreateFuelTaxRatesModal';
 import './IftaPage.css';
 import { useLocation } from 'react-router-dom';
 import IftaReportsPage from './IftaReportsPage';
+import PulseDotsLoader from '../loader/PulseDotsLoader';
 
 const IftaPage = () => {
   // const { t } = useTranslation(); // Translation not used yet
@@ -393,7 +394,11 @@ const IftaPage = () => {
     : iftaRecords;
 
   if (loading) {
-    return <div className="loading">Loading IFTA records...</div>;
+    return (
+      <div className="loading" style={{ minHeight: '40vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <PulseDotsLoader size="lg" ariaLabel="Loading IFTA records" />
+      </div>
+    );
   }
 
   return (

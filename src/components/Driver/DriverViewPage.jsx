@@ -18,7 +18,6 @@ import {
   DialogActions,
   Alert,
   Snackbar,
-  CircularProgress,
   Avatar,
   Card,
   CardContent
@@ -41,6 +40,7 @@ import { MdCheckCircle, MdCancel, MdPerson, MdDirectionsCar, MdPayment, MdReceip
 import CreateIftaModal from '../IFTA/CreateIftaModal';
 import EditIftaModal from '../IFTA/EditIftaModal';
 import './DriverPage.css';
+import PulseDotsLoader from '../loader/PulseDotsLoader';
 
 const US_STATES = [
   { code: 'AL', name: 'Alabama' },
@@ -605,11 +605,11 @@ const DriverViewPage = () => {
   };
 
   if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+          <PulseDotsLoader size="lg" ariaLabel="Loading driver" />
+        </Box>
+      );
   }
 
   if (error) {

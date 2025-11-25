@@ -7,7 +7,6 @@ import {
   Chip,
   IconButton,
   Button,
-  CircularProgress,
   Alert,
   Snackbar,
   Divider,
@@ -35,6 +34,7 @@ import { pdf } from '@react-pdf/renderer';
 import TruckPDF from './TruckPDF';
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
+import { OverlayLoader } from '../../loader/PulseDotsLoader';
 
 const TruckView = () => {
   const { id } = useParams();
@@ -286,8 +286,8 @@ const TruckView = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
+      <Box sx={{ position: 'relative', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+        <OverlayLoader fullScreen={false} showText={false} />
       </Box>
     );
   }

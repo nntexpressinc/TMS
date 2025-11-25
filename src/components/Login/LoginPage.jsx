@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, NavLink } from "react-router-dom";
 import { ApiService } from "../../api/auth";
-import { TextField, Button } from "@mui/material";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
-import Loader1 from "../loader/loader1";
 import { lightLogo } from "../../images";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
+import { OverlayLoader } from "../loader/PulseDotsLoader";
+import "./LoginPage.css";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -193,101 +193,120 @@ const LoginPage = () => {
   };
 
   return (
-    <main className="relative w-full h-screen flex justify-center items-center bg-gray-100 overflow-hidden">
-      <svg
-        className="absolute inset-0 w-full h-full"
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 1440 320"
-        preserveAspectRatio="none"
-      >
-        <path
-          fill="#F3F4F6"
-          fillOpacity="1"
-          d="M0,256L80,240C160,224,320,192,480,176C640,160,800,160,960,165.3C1120,171,1280,181,1360,186.7L1440,192L1440,320L1360,320C1280,320,1120,320,960,320C800,320,640,320,480,320C320,320,160,320,80,320L0,320Z"
-        ></path>
-      </svg>
-      <section className="bg-white shadow-lg rounded-lg p-6 w-[90%] max-w-[400px] z-10">
-        <div className="flex flex-col items-center gap-4">
-          <img className="w-20 h-20" src={lightLogo} alt="logo" />
-          <h1 className="text-xl font-bold text-gray-700">Log in to your account</h1>
-        </div>
-        <form className="flex flex-col gap-4 mt-6" onSubmit={handleLogin}>
-          {error && <p className="text-red-500">{error}</p>}
-          <div>
-            <label className="block text-sm font-semibold text-gray-600" htmlFor="email">
-              Email
-            </label>
-            <TextField
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary"
-              type="email"
-              id="email"
-              value={email}
-              name="email"
-              placeholder="youremail@gmail.com"
-              required
-              disabled={!location}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-600" htmlFor="password">
-              Password
-            </label>
-            <div className="relative">
-              <TextField
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary"
-                type={showPassword ? "password" : "text"}
-                placeholder="*******"
-                id="password"
-                value={password}
-                name="password"
-                required
-                disabled={!location}
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600"
-                onClick={togglePasswordVisibility}
-                disabled={!location}
-              >
-                {showPassword ? <FaRegEye /> : <FaRegEyeSlash />}
-              </button>
+    <main className="login-page">
+      {/* Animated background pattern */}
+      <div className="login-background">
+        <div className="animated-grid"></div>
+      </div>
+
+      {/* Main login container */}
+      <div className="login-container">
+        <div className="login-card">
+          {/* Logo and header */}
+          <div className="login-header">
+            <div className="logo-wrapper">
+              <img src={lightLogo} alt="logo" className="login-logo" />
             </div>
+            <h1 className="login-title">Welcome Back</h1>
+            <p className="login-subtitle">Please sign in to continue</p>
           </div>
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            fullWidth
-            className="w-full bg-primary text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2"
-            disabled={!location || !deviceInfo || !pageVisibility}
-          >
-            Login
-          </Button>
-          <NavLink to="/forgot-password" className="text-center text-sm text-gray-600">
-            {t("Forgot Password")}
-          </NavLink>
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-            <NavLink to="/support" className="text-xs text-gray-500">
-              {t("Support Center")}
+
+          {/* Login form */}
+          <form className="login-form" onSubmit={handleLogin}>
+            {error && (
+              <div className="error-message">
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Email field */}
+            <div className="form-group">
+              <label htmlFor="email" className="form-label">
+                Email Address
+              </label>
+              <div className="input-wrapper">
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your.email@example.com"
+                  className="form-input"
+                  required
+                  disabled={!location}
+                />
+              </div>
+            </div>
+
+            {/* Password field */}
+            <div className="form-group">
+              <label htmlFor="password" className="form-label">
+                Password
+              </label>
+              <div className="input-wrapper password-wrapper">
+                <input
+                  type={showPassword ? "password" : "text"}
+                  id="password"
+                  name="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="form-input"
+                  required
+                  disabled={!location}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={togglePasswordVisibility}
+                  disabled={!location}
+                >
+                  {showPassword ? <FaRegEye size={18} /> : <FaRegEyeSlash size={18} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Forgot password link */}
+            <div className="forgot-password-wrapper">
+              <NavLink to="/forgot-password" className="forgot-password-link">
+                {t("Forgot Password")}?
+              </NavLink>
+            </div>
+
+            {/* Submit button */}
+            <button
+              type="submit"
+              className="login-button"
+              disabled={!location || !deviceInfo || !pageVisibility || loading}
+            >
+              {loading ? (
+                <span className="button-loading">Signing in...</span>
+              ) : (
+                <span>Sign In</span>
+              )}
+            </button>
+          </form>
+
+          {/* Footer links */}
+          <div className="login-footer">
+            <NavLink to="/support" className="footer-link">
+              {t("Support")}
             </NavLink>
-            <span className="text-xs text-gray-500">•</span>
-            <NavLink to="/terms" className="text-xs text-gray-500">
-              {t("Terms of Use")}
+            <span className="footer-separator">•</span>
+            <NavLink to="/terms" className="footer-link">
+              {t("Terms")}
             </NavLink>
-            <span className="text-xs text-gray-500">•</span>
-            <NavLink to="/privacy" className="text-xs text-gray-500">
-              {t("Privacy Policy")}
+            <span className="footer-separator">•</span>
+            <NavLink to="/privacy" className="footer-link">
+              {t("Privacy")}
             </NavLink>
           </div>
-        </form>
-      </section>
-      {loading && (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center">
-          <Loader1 />
         </div>
-      )}
+      </div>
+
+      {/* Loading overlay */}
+      {loading && <OverlayLoader label={t("Signing in") || "Signing in"} />}
     </main>
   );
 };

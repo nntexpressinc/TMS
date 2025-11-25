@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FaTruck, FaPlus, FaEllipsisV, FaUser, FaTruckMoving, FaUserTie, FaTrailer, FaUsers, FaSearch } from 'react-icons/fa';
 import { ApiService } from '../../api/auth';
+import PulseDotsLoader from '../loader/PulseDotsLoader';
 import './UnitManagement.scss';
 import CreateEditUnitModal from './CreateEditUnitModal';
 
@@ -154,8 +155,7 @@ const ResourceSection = ({ type, data = [], loading, units, onUpdateUnit }) => {
   if (loading) {
     return (
       <div className="section-loading">
-        <div className="loader"></div>
-        <span>Loading resources...</span>
+        <PulseDotsLoader size="md" ariaLabel={t('Loading resources')} />
       </div>
     );
   }
