@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, NavLink } from "react-router-dom";
 import { ApiService } from "../../api/auth";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
@@ -8,6 +8,34 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { OverlayLoader } from "../loader/PulseDotsLoader";
 import "./LoginPage.css";
+import { initializeAuthSession, clearAuthSession } from "../../utils/authSession";
+import { getFirstAllowedRoute } from "../../utils/navigation";
+import {
+  clearPendingVerification,
+  loadPendingVerification,
+  savePendingVerification,
+} from "../../utils/verification";
+
+const computeRemainingSeconds = (isoString) => {
+  if (!isoString) {
+    return 0;
+  }
+  const timestamp = Date.parse(isoString);
+  if (Number.isNaN(timestamp)) {
+    return 0;
+  }
+  const diff = Math.floor((timestamp - Date.now()) / 1000);
+  return diff > 0 ? diff : 0;
+};
+
+const formatCountdown = (seconds) => {
+  const value = seconds > 0 ? seconds : 0;
+  const minutes = Math.floor(value / 60)
+    .toString()
+    .padStart(2, "0");
+  const secs = (value % 60).toString().padStart(2, "0");
+  return `${minutes}:${secs}`;
+};
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -18,9 +46,23 @@ const LoginPage = () => {
   const [location, setLocation] = useState(null);
   const [deviceInfo, setDeviceInfo] = useState(null);
   const [pageVisibility, setPageVisibility] = useState(null);
+  const [mode, setMode] = useState("login");
+  const [code, setCode] = useState("");
+  const [verificationMessage, setVerificationMessage] = useState("");
+  const [activeSessionsCount, setActiveSessionsCount] = useState(null);
+  const [expiresAt, setExpiresAt] = useState(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [resendAvailableAt, setResendAvailableAt] = useState(null);
+  const [resendRemainingSeconds, setResendRemainingSeconds] = useState(0);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [lastKnownLat, setLastKnownLat] = useState(null);
+  const [lastKnownLng, setLastKnownLng] = useState(null);
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { login } = useAuth();
+  const userAgent = useMemo(() => (typeof navigator !== "undefined" ? navigator.userAgent : ""), []);
+  const pendingEmailRef = useRef(null);
+  const pendingPasswordRef = useRef(null);
 
   const togglePasswordVisibility = (e) => {
     e.preventDefault();
@@ -28,7 +70,6 @@ const LoginPage = () => {
   };
 
   useEffect(() => {
-    // Get geolocation
     const getLocation = () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -36,7 +77,7 @@ const LoginPage = () => {
             const { latitude, longitude } = position.coords;
             setLocation({ latitude, longitude });
           },
-          (err) => {
+          () => {
             setError("Please allow geolocation");
             toast.error("Please allow location access!");
           }
@@ -47,18 +88,14 @@ const LoginPage = () => {
       }
     };
 
-    // Get device information
     const getDeviceInfo = () => {
-      const userAgent = navigator.userAgent;
       setDeviceInfo(userAgent);
     };
 
-    // Get page visibility status
     const getPageVisibility = () => {
       setPageVisibility(document.visibilityState === "visible" ? "open" : "hidden");
     };
 
-    // Add visibility change event listener
     const handleVisibilityChange = () => {
       setPageVisibility(document.visibilityState === "visible" ? "open" : "hidden");
     };
@@ -69,140 +106,371 @@ const LoginPage = () => {
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    // Cleanup event listener
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
+  }, [userAgent]);
+
+  const resetVerificationState = useCallback(
+    (clearStorage = false) => {
+      setMode("login");
+      setCode("");
+      setVerificationMessage("");
+      setActiveSessionsCount(null);
+      setExpiresAt(null);
+      setRemainingSeconds(0);
+      setResendAvailableAt(null);
+      setResendRemainingSeconds(0);
+      setResendLoading(false);
+      setLastKnownLat(null);
+      setLastKnownLng(null);
+      setError(null);
+      pendingEmailRef.current = null;
+      pendingPasswordRef.current = null;
+      if (clearStorage) {
+        clearPendingVerification();
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    const stored = loadPendingVerification();
+    if (stored?.email) {
+      setEmail((prev) => prev || stored.email);
+      pendingEmailRef.current = stored.email;
+      pendingPasswordRef.current = null;
+      setMode("verify");
+      setVerificationMessage(stored.message || "We sent a verification code to your email.");
+      setActiveSessionsCount(
+        typeof stored.activeSessionsCount === "number" ? stored.activeSessionsCount : null
+      );
+      setExpiresAt(stored.verificationExpiresAt || null);
+      setRemainingSeconds(computeRemainingSeconds(stored.verificationExpiresAt));
+      setResendAvailableAt(stored.resendAvailableAt || null);
+      setResendRemainingSeconds(computeRemainingSeconds(stored.resendAvailableAt));
+      setCode("");
+      setLastKnownLat(stored.lat ?? null);
+      setLastKnownLng(stored.lng ?? null);
+    }
   }, []);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (!expiresAt) {
+      setRemainingSeconds(0);
+      return;
+    }
+
+    const update = () => {
+      setRemainingSeconds(computeRemainingSeconds(expiresAt));
+    };
+
+    update();
+    const intervalId = setInterval(update, 1000);
+    return () => clearInterval(intervalId);
+  }, [expiresAt]);
+
+  useEffect(() => {
+    if (!resendAvailableAt) {
+      setResendRemainingSeconds(0);
+      return;
+    }
+
+    const update = () => {
+      setResendRemainingSeconds(computeRemainingSeconds(resendAvailableAt));
+    };
+
+    update();
+    const intervalId = setInterval(update, 1000);
+    return () => clearInterval(intervalId);
+  }, [resendAvailableAt]);
+
+  useEffect(() => {
+    const trimmed = email.trim();
+    if (mode === "verify" && pendingEmailRef.current && trimmed && trimmed !== pendingEmailRef.current) {
+      resetVerificationState(true);
+    }
+  }, [email, mode, resetVerificationState]);
+
+  useEffect(() => {
+    if (
+      mode === "verify" &&
+      pendingPasswordRef.current !== null &&
+      password !== pendingPasswordRef.current
+    ) {
+      resetVerificationState(true);
+    }
+  }, [mode, password, resetVerificationState]);
+
+  const enterVerificationMode = useCallback(
+    (response, trimmedEmail) => {
+      const {
+        message,
+        active_sessions_count: activeCount,
+        debug,
+        lat,
+        lng,
+        verification_expires_at: verificationExpiresAt,
+        resend_available_at: resendAt,
+      } = response || {};
+
+      const pendingData = {
+        email: trimmedEmail,
+        message,
+        activeSessionsCount: activeCount,
+        debugCode: debug?.verification_code,
+        lat: lat ?? debug?.lat ?? null,
+        lng: lng ?? debug?.lng ?? null,
+        verificationExpiresAt: verificationExpiresAt || null,
+        resendAvailableAt: resendAt || null,
+        createdAt: new Date().toISOString(),
+      };
+
+      pendingEmailRef.current = trimmedEmail;
+      pendingPasswordRef.current = password;
+      setMode("verify");
+      setError(null);
+      setVerificationMessage(message || "We sent a verification code to your email.");
+      setActiveSessionsCount(typeof activeCount === "number" ? activeCount : null);
+      setCode("");
+      setExpiresAt(verificationExpiresAt || null);
+      setRemainingSeconds(computeRemainingSeconds(verificationExpiresAt));
+      setResendAvailableAt(resendAt || null);
+      setResendRemainingSeconds(computeRemainingSeconds(resendAt));
+      setLastKnownLat(pendingData.lat ?? null);
+      setLastKnownLng(pendingData.lng ?? null);
+      savePendingVerification(pendingData);
+      clearAuthSession();
+      toast(message || "Additional verification required. A code has been emailed to you.");
+    },
+    [password]
+  );
+
+  const handleLogin = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // 1. Login so'rovi
-      const data = { email, password };
-      const response = await ApiService.login(data);
-      // console.log("Login Response:", response);
+      const trimmedEmail = email.trim();
+      const payload = {
+        email: trimmedEmail,
+        password,
+        device_info: deviceInfo || "unknown",
+      };
 
-      // Save tokens
-      localStorage.setItem("accessToken", response.access);
-      localStorage.setItem("refreshToken", response.refresh);
-      localStorage.setItem("userid", response.user_id);
-      // Save user info (if present in response)
-      if (response.user) {
-        localStorage.setItem("user", JSON.stringify(response.user));
-      } else {
-        try {
-          const userData = await ApiService.getData(`/auth/users/${response.user_id}/`);
-          localStorage.setItem("user", JSON.stringify(userData));
-        } catch (userError) {
-          console.error("Error fetching user data:", userError);
-        }
+      const response = await ApiService.login(payload);
+
+      if (response?.requires_verification) {
+        enterVerificationMode(response, trimmedEmail);
+        return;
       }
-      // Fetch and encode role and permissions
-      try {
-        const user = JSON.parse(localStorage.getItem("user"));
-        if (user && user.role) {
-          // Get role info (to get permission_id)
-          const roleData = await ApiService.getData(`/auth/role/${user.role}/`);
-          const roleNameEnc = btoa(unescape(encodeURIComponent(roleData.name)));
-          localStorage.setItem("roleNameEnc", roleNameEnc);
-          // Remove plain text
-          localStorage.removeItem("roleName");
-          // Get permissions using permission_id from role
-          if (roleData.permission_id) {
-            const permissionData = await ApiService.getData(`/auth/permission/${roleData.permission_id}/`);
-            const permissionsEnc = btoa(unescape(encodeURIComponent(JSON.stringify(permissionData))));
-            localStorage.setItem("permissionsEnc", permissionsEnc);
-            localStorage.removeItem("permissions");
-          }
-        }
-      } catch (err) {
-        console.error("Error encoding role/permissions:", err);
-      }
-      
+
+      await initializeAuthSession(response, {
+        location,
+        deviceInfo,
+        pageVisibility,
+      });
+
+      clearPendingVerification();
+      resetVerificationState();
       login();
-
-      // 2. Geolokatsiya, qurilma va sahifa holatini API'ga yuborish
-      if (location && deviceInfo && pageVisibility) {
-        const additionalData = {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          user: response.user_id,
-          device_info: deviceInfo,
-          page_status: pageVisibility,
-        };
-        // console.log("Yuborilayotgan additionalData:", additionalData);
-        try {
-          const additionalResponse = await ApiService.postData("/auth/location/", additionalData, response.access);
-          console.log("Additional Data Response:", additionalResponse);
-        } catch (additionalError) {
-          console.error("Error saving data:", additionalError);
-          toast.error("Error occurred while saving data!");
-        }
-      } else {
-        console.error("Incomplete data");
-        toast.error("Incomplete data!");
-      }
-
-      // Find first allowed route after login
-      function getFirstAllowedRoute() {
-        const permissionsEnc = localStorage.getItem("permissionsEnc");
-        let permissions = {};
-        if (permissionsEnc) {
-          try {
-            permissions = JSON.parse(decodeURIComponent(escape(atob(permissionsEnc))));
-          } catch (e) {
-            permissions = {};
-          }
-        }
-        const sidebarRoutes = [
-          { path: "/loads", key: "loads" },
-          { path: "/truck", key: "vehicles" },
-          { path: "/trailer", key: "vehicles" },
-          { path: "/customer_broker", key: "customer_broker" },
-          { path: "/driver", key: "driver" },
-          { path: "/employee", key: "employee" },
-          { path: "/dispatcher", key: "dispatcher" },
-          { path: "/users-actives", key: "users_actives" },
-          { path: "/accounting", key: "accounting" },
-          { path: "/manage-users", key: "manage_users" },
-          { path: "/manage-units", key: "manage_units" },
-          { path: "/manage-teams", key: "manage_teams" },
-        ];
-        for (const route of sidebarRoutes) {
-          if (permissions[route.key] === true) {
-            return route.path;
-          }
-        }
-        return "/permission-denied";
-      }
-
       toast.success("Login successful!");
       navigate(getFirstAllowedRoute(), { replace: true });
     } catch (error) {
       console.error("Login Failed:", error);
-      const errorMessage = error.response?.data?.detail || "Login failed. Please check your credentials.";
+      const status = error.response?.status;
+
+      if (status === 401 || status === 403) {
+        clearAuthSession();
+        navigate("/auth/login", { replace: true });
+      }
+
+      if (status === 503 || error.response?.data?.error === "verification_email_failed") {
+        const message = "Verification email was not sent, please try again later.";
+        setError(message);
+        toast.error(message);
+        return;
+      }
+
+      const errorMessage =
+        error.response?.data?.detail ||
+        error.response?.data?.non_field_errors?.[0] ||
+        error.response?.data?.message ||
+        error.message ||
+        "Login failed. Please check your credentials.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
+  }, [deviceInfo, email, enterVerificationMode, location, login, navigate, pageVisibility, password, resetVerificationState]);
+
+  const handleVerify = useCallback(async () => {
+    if (!code) {
+      setError("Enter the verification code to continue.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const trimmedEmail = (pendingEmailRef.current || email).trim();
+      const response = await ApiService.verifyCode({
+        email: trimmedEmail,
+        code: code.trim(),
+        device_info: deviceInfo || "unknown",
+      });
+
+      await initializeAuthSession(response, {
+        location,
+        deviceInfo,
+        pageVisibility,
+      });
+
+      clearPendingVerification();
+      resetVerificationState();
+      login();
+      toast.success("Verification successful! Redirecting...");
+      navigate(getFirstAllowedRoute(), { replace: true });
+    } catch (error) {
+      console.error("Verification Failed:", error);
+      const status = error.response?.status;
+
+      if (status === 401 || status === 403) {
+        clearAuthSession();
+        clearPendingVerification();
+        navigate("/auth/login", { replace: true });
+        return;
+      }
+
+      if (status === 503 || error.response?.data?.error === "verification_email_failed") {
+        const message = "Verification email was not sent, please try again later.";
+        setError(message);
+        toast.error(message);
+        return;
+      }
+
+      const backendMessage =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.message ||
+        "Verification failed. Please try again.";
+
+      let friendlyMessage = backendMessage;
+      if (/expired/i.test(backendMessage)) {
+        friendlyMessage = "Code expired - request a new one.";
+      } else if (/invalid/i.test(backendMessage)) {
+        friendlyMessage = "Incorrect code - double-check and try again.";
+      } else if (!error.response) {
+        friendlyMessage = "Network unavailable - try again.";
+      }
+
+      setError(friendlyMessage);
+      toast.error(friendlyMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, [code, deviceInfo, email, location, login, navigate, pageVisibility, resetVerificationState]);
+
+  const handleResend = useCallback(async () => {
+    if (!pendingEmailRef.current) {
+      setError("Enter your email and request a verification code first.");
+      return;
+    }
+
+    setResendLoading(true);
+    setError(null);
+
+    try {
+      const trimmedEmail = pendingEmailRef.current;
+      const response = await ApiService.resendVerificationCode({
+        email: trimmedEmail,
+        device_info: deviceInfo || "unknown",
+      });
+
+      const message =
+        response?.message || "We sent a new verification code. Please check your inbox.";
+      toast.success(message);
+
+      const updatedLat = response?.lat ?? response?.debug?.lat ?? lastKnownLat ?? null;
+      const updatedLng = response?.lng ?? response?.debug?.lng ?? lastKnownLng ?? null;
+      const updatedActive =
+        typeof response?.active_sessions_count === "number"
+          ? response.active_sessions_count
+          : activeSessionsCount;
+      const updatedDebugCode = response?.debug?.verification_code || code;
+
+      const updatedPending = {
+        email: trimmedEmail,
+        message: response?.message,
+        activeSessionsCount: updatedActive,
+        debugCode: updatedDebugCode,
+        lat: updatedLat,
+        lng: updatedLng,
+        verificationExpiresAt: response?.verification_expires_at || null,
+        resendAvailableAt: response?.resend_available_at || null,
+        createdAt: new Date().toISOString(),
+      };
+
+      setVerificationMessage(response?.message || verificationMessage);
+      setActiveSessionsCount(updatedActive ?? null);
+      setCode("");
+      setExpiresAt(updatedPending.verificationExpiresAt || null);
+      setRemainingSeconds(computeRemainingSeconds(updatedPending.verificationExpiresAt));
+      setResendAvailableAt(updatedPending.resendAvailableAt || null);
+      setResendRemainingSeconds(computeRemainingSeconds(updatedPending.resendAvailableAt));
+      setLastKnownLat(updatedLat);
+      setLastKnownLng(updatedLng);
+
+      savePendingVerification(updatedPending);
+    } catch (error) {
+      console.error("Resend Failed:", error);
+      const status = error.response?.status;
+
+      if (status === 401 || status === 403) {
+        clearAuthSession();
+        clearPendingVerification();
+        navigate("/auth/login", { replace: true });
+        return;
+      }
+
+      if (status === 503 || error.response?.data?.error === "verification_email_failed") {
+        const message = "Verification email was not sent, please try again later.";
+        setError(message);
+        toast.error(message);
+        return;
+      }
+
+      const message =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.message ||
+        "Unable to resend the verification code.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setResendLoading(false);
+    }
+  }, [activeSessionsCount, code, deviceInfo, lastKnownLat, lastKnownLng, navigate, verificationMessage]);
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (mode === "verify") {
+      handleVerify();
+    } else {
+      handleLogin();
+    }
   };
 
   return (
     <main className="login-page">
-      {/* Animated background pattern */}
       <div className="login-background">
         <div className="animated-grid"></div>
       </div>
 
-      {/* Main login container */}
       <div className="login-container">
         <div className="login-card">
-          {/* Logo and header */}
           <div className="login-header">
             <div className="logo-wrapper">
               <img src={lightLogo} alt="logo" className="login-logo" />
@@ -211,84 +479,155 @@ const LoginPage = () => {
             <p className="login-subtitle">Please sign in to continue</p>
           </div>
 
-          {/* Login form */}
-          <form className="login-form" onSubmit={handleLogin}>
+          <form className="login-form" onSubmit={handleSubmit}>
             {error && (
               <div className="error-message">
                 <span>{error}</span>
               </div>
             )}
 
-            {/* Email field */}
-            <div className="form-group">
-              <label htmlFor="email" className="form-label">
-                Email Address
-              </label>
-              <div className="input-wrapper">
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your.email@example.com"
-                  className="form-input"
-                  required
-                  disabled={!location}
-                />
-              </div>
-            </div>
+            {mode !== "verify" && (
+              <>
+                <div className="form-group">
+                  <label htmlFor="email" className="form-label">
+                    Email Address
+                  </label>
+                  <div className="input-wrapper">
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="your.email@example.com"
+                      className="form-input"
+                      required
+                      disabled={!location || loading}
+                    />
+                  </div>
+                </div>
 
-            {/* Password field */}
-            <div className="form-group">
-              <label htmlFor="password" className="form-label">
-                Password
-              </label>
-              <div className="input-wrapper password-wrapper">
-                <input
-                  type={showPassword ? "password" : "text"}
-                  id="password"
-                  name="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="form-input"
-                  required
-                  disabled={!location}
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={togglePasswordVisibility}
-                  disabled={!location}
-                >
-                  {showPassword ? <FaRegEye size={18} /> : <FaRegEyeSlash size={18} />}
-                </button>
-              </div>
-            </div>
+                <div className="form-group">
+                  <label htmlFor="password" className="form-label">
+                    Password
+                  </label>
+                  <div className="input-wrapper password-wrapper">
+                    <input
+                      type={showPassword ? "password" : "text"}
+                      id="password"
+                      name="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      className="form-input"
+                      required
+                      disabled={!location || loading}
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={togglePasswordVisibility}
+                      disabled={!location || loading}
+                    >
+                      {showPassword ? <FaRegEye size={18} /> : <FaRegEyeSlash size={18} />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
 
-            {/* Forgot password link */}
+            {mode === "verify" && (
+              <>
+                <div className="verification-panel">
+                  {verificationMessage && (
+                    <p className="verification-message">{verificationMessage}</p>
+                  )}
+                  {typeof activeSessionsCount === "number" && activeSessionsCount > 0 && (
+                    <p className="verification-subtle">Active sessions: {activeSessionsCount}.</p>
+                  )}
+                  {lastKnownLat !== null && lastKnownLng !== null && (
+                    <a
+                      className="verification-link"
+                      href={`https://www.google.com/maps?q=${lastKnownLat},${lastKnownLng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View last known location in Google Maps
+                    </a>
+                  )}
+                  {expiresAt && (
+                    <p className={`verification-subtle${remainingSeconds <= 0 ? " expired" : ""}`}>
+                      {remainingSeconds > 0
+                        ? `Code expires in ${formatCountdown(remainingSeconds)}.`
+                        : "The verification code has expired - request a new one."}
+                    </p>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="verificationCode" className="form-label">
+                    Verification Code
+                  </label>
+                  <div className="input-wrapper">
+                    <input
+                      type="text"
+                      id="verificationCode"
+                      name="verificationCode"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      placeholder="Enter the code from the email"
+                      className="form-input"
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+
+                <div className="verification-actions">
+                  <button
+                    type="button"
+                    className="resend-button"
+                    onClick={handleResend}
+                    disabled={resendLoading || resendRemainingSeconds > 0 || loading}
+                  >
+                    {resendLoading ? "Resending..." : "Resend code"}
+                  </button>
+                  {resendRemainingSeconds > 0 && (
+                    <span className="resend-timer">
+                      You can resend in {formatCountdown(resendRemainingSeconds)}
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
+
             <div className="forgot-password-wrapper">
               <NavLink to="/forgot-password" className="forgot-password-link">
                 {t("Forgot Password")}?
               </NavLink>
             </div>
 
-            {/* Submit button */}
             <button
               type="submit"
               className="login-button"
-              disabled={!location || !deviceInfo || !pageVisibility || loading}
+              disabled={
+                !location ||
+                !deviceInfo ||
+                !pageVisibility ||
+                loading ||
+                (mode === "verify" && !code)
+              }
             >
               {loading ? (
-                <span className="button-loading">Signing in...</span>
+                <span className="button-loading">
+                  {mode === "verify" ? "Verifying..." : "Signing in..."}
+                </span>
               ) : (
-                <span>Sign In</span>
+                <span>{mode === "verify" ? "Verify Code" : "Sign In"}</span>
               )}
             </button>
           </form>
 
-          {/* Footer links */}
           <div className="login-footer">
             <NavLink to="/support" className="footer-link">
               {t("Support")}
@@ -305,8 +644,7 @@ const LoginPage = () => {
         </div>
       </div>
 
-      {/* Loading overlay */}
-      {loading && <OverlayLoader label={t("Signing in") || "Signing in"} />}
+      {loading && <OverlayLoader label={mode === "verify" ? "Verifying" : t("Signing in") || "Signing in"} />}
     </main>
   );
 };

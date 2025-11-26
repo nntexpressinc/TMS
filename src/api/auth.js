@@ -10,6 +10,8 @@ const ENDPOINTS = {
   REGISTER: '/auth/register/',
   REFRESH_TOKEN: '/auth/token/refresh/',
   VERIFY_TOKEN: '/auth/token/verify/',
+  VERIFY_CODE: process.env.REACT_APP_VERIFY_CODE_ENDPOINT || '/auth/verify-code/',
+  RESEND_VERIFICATION_CODE: process.env.REACT_APP_RESEND_VERIFICATION_ENDPOINT || '/auth/resend-code/',
   
   // Load management
   LOADS: '/load/',
@@ -286,13 +288,27 @@ const ApiService = {
   login: async (credentials) => {
     try {
       const response = await axios.post(`${BASE_URL}${ENDPOINTS.LOGIN}`, credentials);
-      if (response.data.access) {
-        localStorage.setItem('accessToken', response.data.access);
-        localStorage.setItem('refreshToken', response.data.refresh);
-      }
       return response.data;
     } catch (error) {
-      throw error.response?.data || error.message;
+      throw error;
+    }
+  },
+
+  verifyCode: async (payload) => {
+    try {
+      const response = await axios.post(`${BASE_URL}${ENDPOINTS.VERIFY_CODE}`, payload);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  resendVerificationCode: async (payload) => {
+    try {
+      const response = await axios.post(`${BASE_URL}${ENDPOINTS.RESEND_VERIFICATION_CODE}`, payload);
+      return response.data;
+    } catch (error) {
+      throw error;
     }
   },
 

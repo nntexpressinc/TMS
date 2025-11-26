@@ -1,7 +1,8 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import LoginPage from "./components/Login/LoginPage";
+import VerifyLoginPage from "./components/Login/VerifyLoginPage";
 import DashboardPage from "./components/Dashboard/DashboardPage";
 import ProfilePage from "./components/Profile/ProfilePage";
 import LoadsPage from "./components/Loads/LoadsPage";
@@ -58,6 +59,7 @@ import PermissionDenied from "./components/PermissionDenied";
 import SettingsPage from "./components/Settings/SettingsPage";
 import CompanyManagementPage from "./components/Settings/CompanyManagementPage";
 import PermissionGuard from "./components/PermissionGuard";
+import { getFirstAllowedRoute } from "./utils/navigation";
 
 const App = () => {
   const { isAuthenticated: isAuth } = useAuth();
@@ -69,6 +71,7 @@ const App = () => {
       <Router>
         <Routes>
           <Route path="/auth/login" element={<LoginPage />} />
+          <Route path="/verify" element={<VerifyLoginPage />} />
           <Route
             path="/"
             element={
@@ -587,41 +590,6 @@ const App = () => {
     </SidebarProvider>
   );
 };
-
-// Helper to find first allowed route
-function getFirstAllowedRoute() {
-  const permissionsEnc = localStorage.getItem("permissionsEnc");
-  let permissions = {};
-  if (permissionsEnc) {
-    try {
-      permissions = JSON.parse(decodeURIComponent(escape(atob(permissionsEnc))));
-    } catch (e) {
-      permissions = {};
-    }
-  }
-  // List of sidebar routes and their permission keys (must match Sidebar.jsx)
-  const sidebarRoutes = [
-    { path: "/loads", key: "loads" },
-    { path: "/truck", key: "vehicles" },
-    { path: "/trailer", key: "vehicles" },
-    { path: "/customer_broker", key: "customer_broker" },
-    { path: "/driver", key: "driver" },
-    { path: "/employee", key: "employee" },
-    { path: "/dispatcher", key: "dispatcher" },
-    { path: "/users-actives", key: "users_actives" },
-    { path: "/accounting", key: "accounting" },
-    { path: "/manage-users", key: "manage_users" },
-    { path: "/manage-units", key: "manage_units" },
-    { path: "/manage-teams", key: "manage_teams" },
-    { path: "/ifta", key: "ifta" },
-  ];
-  for (const route of sidebarRoutes) {
-    if (permissions[route.key] === true) {
-      return route.path;
-    }
-  }
-  return "/permission-denied";
-}
 
 export default App;
 
