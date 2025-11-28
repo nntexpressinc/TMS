@@ -93,7 +93,6 @@ import { useSidebar } from "../SidebarContext";
 import darkLogo from '../../images/dark-logo.png';
 import { CiDeliveryTruck } from "react-icons/ci";
 import EmojiPicker from 'emoji-picker-react';
-import { OverlayLoader } from "../loader/PulseDotsLoader";
 
 // Styled components for the layout - Clean & Minimalist Design
 const MainContainer = styled(Box)(({ theme }) => ({
@@ -1206,7 +1205,6 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
   const [brokers, setBrokers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [isLookupLoading, setIsLookupLoading] = useState(false);
   const [showBrokerModal, setShowBrokerModal] = useState(false);
   const [newBroker, setNewBroker] = useState({
     company_name: "",
@@ -1223,34 +1221,19 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
   });
 
   useEffect(() => {
-    let isMounted = true;
-
     const fetchBrokers = async () => {
-      setIsLookupLoading(true);
       try {
         const data = await ApiService.getData("/customer_broker/");
-        if (!isMounted) return;
         setBrokers(data);
       } catch (error) {
         console.error("Error fetching brokers:", error);
-        if (isMounted) {
-          setError("Failed to load brokers. Please try again.");
-        }
-      } finally {
-        if (isMounted) {
-          setIsLookupLoading(false);
-        }
+        setError("Failed to load brokers. Please try again.");
       }
     };
 
     if (open) {
       fetchBrokers();
     }
-
-    return () => {
-      isMounted = false;
-      setIsLookupLoading(false);
-    };
   }, [open]);
 
   const handleChange = (e) => {
@@ -1370,13 +1353,13 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
             <Typography variant="h6">Yangi Load Yaratish</Typography>
           </Box>
         </DialogTitle>
-        <DialogContent sx={{ position: 'relative', minHeight: '200px' }}>
+        <DialogContent>
           {error && (
             <Alert severity="error" sx={{ mb: 1 }}>
               {error}
             </Alert>
           )}
-          <Grid container spacing={0.5} sx={{ mt: 0.5, opacity: isLookupLoading ? 0.5 : 1 }}>
+          <Grid container spacing={0.5} sx={{ mt: 0.5 }}>
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -1503,14 +1486,6 @@ const CreateLoadModal = ({ open, onClose, onCreateSuccess }) => {
               </Box>
             </Grid>
           </Grid>
-          {isLookupLoading && (
-            <OverlayLoader
-              label="Loading broker data"
-              fullScreen={false}
-              showText={false}
-              style={{ borderRadius: 12 }}
-            />
-          )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={onClose}>Cancel</Button>
@@ -1768,6 +1743,8 @@ const LoadViewPage = () => {
   
   // Broker info modal state
   const [brokerInfoOpen, setBrokerInfoOpen] = useState(false);
+  const [brokerOptions, setBrokerOptions] = useState([]);
+  const [isBrokerListLoading, setIsBrokerListLoading] = useState(false);
   
   // Define status options with short labels
 
@@ -1805,6 +1782,22 @@ const LoadViewPage = () => {
       return next;
     });
   }, [editingSection]);
+
+  useEffect(() => {
+    const fetchBrokers = async () => {
+      try {
+        setIsBrokerListLoading(true);
+        const data = await ApiService.getData('/customer_broker/');
+        setBrokerOptions(Array.isArray(data) ? data : []);
+      } catch (fetchError) {
+        console.error('Error fetching brokers:', fetchError);
+      } finally {
+        setIsBrokerListLoading(false);
+      }
+    };
+
+    fetchBrokers();
+  }, []);
   const isBasicExpanded = expandedSections.basic || editingSection === 'basic';
   const isPersonnelExpanded = expandedSections.personnel || editingSection === 'personnel';
   const isEquipmentExpanded = expandedSections.equipment || editingSection === 'equipment';
@@ -3956,7 +3949,9 @@ const LoadViewPage = () => {
       setEditFormData({
         load_id: load.load_id || '',
         reference_id: load.reference_id || '',
-        company_name: load.company_name || '',
+        weight: load.weight ? load.weight.toString() : '',
+        customer_broker: load.customer_broker || null,
+        company_name: load.customer_broker?.company_name || load.company_name || '',
         equipment_type: load.equipment_type || '',
         unit_id: load.unit_id || null, // Add unit_id field
         team_id: load.team_id || null, // Add team_id field
@@ -4067,10 +4062,12 @@ const LoadViewPage = () => {
       let dataToUpdate = {};
       
       if (editingSection === 'basic') {
+        const selectedBroker = editFormData.customer_broker || null;
         dataToUpdate = {
           load_id: editFormData.load_id,
           reference_id: editFormData.reference_id,
-          company_name: editFormData.company_name,
+          customer_broker: selectedBroker ? selectedBroker.id : null,
+          company_name: selectedBroker?.company_name || editFormData.company_name || null,
           equipment_type: editFormData.equipment_type,
           unit_id: editFormData.unit_id || null,
           team_id: editFormData.team_id || null,
@@ -4364,12 +4361,8 @@ const LoadViewPage = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ position: "relative", minHeight: "100vh", backgroundColor: '#f8f9fa' }}>
-        <OverlayLoader
-          label="Loading load data"
-          fullScreen={false}
-          showText={false}
-        />
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <CircularProgress />
       </Box>
     );
   }
@@ -5789,6 +5782,101 @@ const LoadViewPage = () => {
                         name="reference_id"
                         value={editFormData.reference_id}
                         onChange={handleFormChange}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Autocomplete
+                        fullWidth
+                        size="small"
+                        options={brokerOptions}
+                        loading={isBrokerListLoading}
+                        value={editFormData.customer_broker || null}
+                        onChange={(event, newValue) => {
+                          setEditFormData(prev => ({
+                            ...prev,
+                            customer_broker: newValue,
+                            company_name: newValue?.company_name || ''
+                          }));
+                        }}
+                        isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                        filterOptions={(options, { inputValue }) => {
+                          try {
+                            const list = Array.isArray(options) ? options : [];
+                            const q = (inputValue || '').toString().trim().toLowerCase();
+
+                            if (!q) return list.slice(0, 50);
+
+                            const scored = [];
+                            const maxResults = 200;
+
+                            const scoreFor = (opt) => {
+                              if (!opt) return -Infinity;
+                              const name = (opt.company_name || '').toString().toLowerCase();
+                              const mc = (opt.mc_number || '').toString().toLowerCase();
+                              const email = (opt.email_address || '').toString().toLowerCase();
+
+                              let score = 0;
+                              if (name === q || mc === q || email === q) score += 100;
+                              if (name.startsWith(q) || mc.startsWith(q) || email.startsWith(q)) score += 50;
+                              if (name.split(/\s+/).some(w => w.startsWith(q))) score += 30;
+                              if (name.includes(q)) score += 10;
+                              if (mc.includes(q)) score += 20;
+                              if (email.includes(q)) score += 5;
+
+                              const idx = name.indexOf(q);
+                              if (idx >= 0) score += Math.max(0, 5 - idx);
+
+                              return score;
+                            };
+
+                            for (let i = 0; i < list.length; i++) {
+                              const opt = list[i];
+                              if (!opt) continue;
+                              const s = scoreFor(opt);
+                              if (s > 0) scored.push({ opt, score: s });
+                            }
+
+                            scored.sort((a, b) => {
+                              if (b.score !== a.score) return b.score - a.score;
+                              const na = (a.opt.company_name || a.opt.mc_number || '').toString().toLowerCase();
+                              const nb = (b.opt.company_name || b.opt.mc_number || '').toString().toLowerCase();
+                              return na.localeCompare(nb);
+                            });
+
+                            return scored.slice(0, maxResults).map(s => s.opt);
+                          } catch (err) {
+                            console.error('broker filter error', err);
+                            return options || [];
+                          }
+                        }}
+                        getOptionLabel={(option) => option?.company_name || option?.mc_number || option?.email_address || ''}
+                        renderOption={(props, option) => (
+                          <li {...props}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                              <Typography variant="body2">{option.company_name || option.mc_number}</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                MC: {option.mc_number || 'N/A'} {option.email_address ? `| ${option.email_address}` : ''}
+                              </Typography>
+                            </Box>
+                          </li>
+                        )}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Customer/Broker"
+                            placeholder="Search by company name or MC number"
+                            InputProps={{
+                              ...params.InputProps,
+                              endAdornment: (
+                                <>
+                                  {isBrokerListLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                                  {params.InputProps.endAdornment}
+                                </>
+                              ),
+                            }}
+                          />
+                        )}
                       />
                     </Grid>
                     
